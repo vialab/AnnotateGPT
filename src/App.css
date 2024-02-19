@@ -1,0 +1,43 @@
+.react-pdf__Document {
+    width: 100%;
+    height: 100%;
+    /* display: flex; */
+    /* justify-content: center; */
+    /* align-items: center; */
+    /* flex-direction: column; */
+    /* position: absolute; */
+    overflow: hidden;
+}
+
+.react-pdf__Page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 0;
+    background-color: #fff;
+    /* position: unset !important; */
+    /* overflow: hidden; */
+    /* user-select: none; */
+}
+
+.textLayer {
+    inset: unset !important;
+    border: rgba(0, 0, 0, 0.54) 1px solid;
+    border-radius: 1em;
+    mix-blend-mode: multiply;
+}
+
+.textLayer span::selection {
+    background: rgba(252,232,151,1);
+    mix-blend-mode: multiply;
+}
+
+.annotationLayer {
+    inset: unset !important;
+}
+
+hr {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}

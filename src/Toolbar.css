@@ -1,0 +1,53 @@
+.toolbar {
+    position: fixed;
+    bottom: 10px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column-reverse;
+    --pen-offset: -98px;
+    --highlighter-offset: -100px;
+    --offset-active: 35px;
+    user-select: none;
+    width: min-content;
+}
+
+.toolbar.disabled, .toolbar.disabled * {
+    pointer-events: none !important;
+}
+
+.toolbar svg {
+    transition: transform 0.3s ease;
+}
+
+#pen {
+    transform: translateX(var(--pen-offset));
+}
+
+#pen.active {
+    transform: translateX(calc(var(--pen-offset) + var(--offset-active)));
+}
+
+#highlighter {
+    transform: translateX(var(--highlighter-offset));
+}
+
+#highlighter.active {
+    transform: translateX(calc(var(--highlighter-offset) + var(--offset-active)));
+}
+
+.svg-container {
+    display: flex;
+    align-items: center;
+    height: 90px;
+    overflow: hidden;
+}
+
+.palette-container {
+    display: flex;
+    align-items: center;
+}
+
+.svg-container svg *, .palette-container svg * {
+    pointer-events: visible;
+    cursor: pointer;
+}
