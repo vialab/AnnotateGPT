@@ -4,7 +4,7 @@ import PenAnnotation from './PenAnnotation.js';
 import Toolbar from './Toolbar.js';
 import * as d3 from 'd3';
 
-import './App.css';
+import './css/App.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -16,15 +16,33 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 export default function App() {
+    const defaultColour = "#000000";
+
     const [numPages, setNumPages] = useState();
-    // const [pageNumber, setPageNumber] = useState(1);
+    const [colour, setColour] = useState(defaultColour);
+    const [pageContent, setPageContent] = useState([]);
+    const [tool, setTool] = useState("pen");
+
     const svgContent = useRef([]);
-    // const [containerWidth, setContainerWidth] = useState();
-    // const maxWidth = 600;
 
     function onDocumentLoadSuccess({ numPages }) {
         setNumPages(numPages);
         svgContent.current = Array(numPages).fill(null);
+
+        let pageContent = Array.from(new Array(numPages), (el, index) =>
+            <div className="page-container" key={`pageContainer_${index + 1}`} style={{ position: "relative" }}>
+                <Page
+                    key={`page_${index + 1}`}
+                    pageNumber={index + 1}
+                    height={window.innerHeight * 1.5}
+                    onRenderTextLayerSuccess={() => onLoad(index + 1)}
+                    className={`page-${index + 1}`}
+                >
+                </Page>
+                <hr style={{ width: "100%" }} />
+            </div>
+        );
+        setPageContent(pageContent);
     }
 
     function onLoad(index) {
@@ -32,7 +50,7 @@ export default function App() {
         .select(".textLayer")
         .selectAll("span[role='presentation']")
         .nodes();
-        
+
         // Split the text into words and put them in spans
         spanPresentation.forEach((span) => {
             let text = span.textContent;
@@ -70,38 +88,28 @@ export default function App() {
         });
     }
 
-    // function handleNewPage(pNum) {
-    //     if (pNum > numPages) {
-    //         setPageNumber(numPages);
-    //     } else if (pNum < 1) {
-    //         setPageNumber(1);
-    //     } else {
-    //         setPageNumber(pNum);
-    //     }
-    //     svgContent.current[pageNumber] = d3.select(".pen-annotation-layer svg").node().innerHTML;
-    // }
+    function onChange(colour, event) {
+        setColour(colour.hex);
+    }
+
+    function onToolChange(tool) {
+        setTool(tool);
+    }
 
     return (
         <>
             <Document file="./leu2022a.pdf" onLoadSuccess={onDocumentLoadSuccess} >
-                {Array.from(new Array(numPages), (el, index) =>
-                    <div key={`pageContainer_${index + 1}`}>
-                        <Page
-                            key={`page_${index + 1}`}
-                            pageNumber={index + 1}
-                            height={window.innerHeight * 1.5}
-                            onRenderTextLayerSuccess={() => onLoad(index + 1)}
-                            className={`page-${index + 1}`}
-                        >
-                            <PenAnnotation key={`annotation_${index + 1}`} content={svgContent.current[index + 1]} />
-                        </Page>
-                        <hr style={{ width: "100%" }} />
-                    </div>
-                )}
+                {pageContent}
+                <div className="pen-annotation-container">
+
+                    {Array.from(new Array(numPages), (el, index) =>
+                        <PenAnnotation index={index + 1} tool={tool} colour={colour} key={`annotation_${index + 1}`} content={svgContent.current[index + 1]} />
+                    )}
+                </div>
                 {/* <button onClick={() => handleNewPage(pageNumber + 1)} style={{ zIndex: 4 }}>Next</button>
                 <button onClick={() => handleNewPage(pageNumber - 1)} style={{ zIndex: 4 }}>Previous</button> */}
             </Document>
-            <Toolbar />
+            <Toolbar tool={tool} onToolChange={onToolChange} onColourChange={onChange} defaultColour={defaultColour} />
         </>
     );
 }

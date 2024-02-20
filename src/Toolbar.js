@@ -1,42 +1,67 @@
-import { useEffect } from "react";
-import { ReactComponent as PenIcon } from "./pen.svg";
-import { ReactComponent as HighlighterIcon } from "./download.svg";
+import { useEffect, useState } from "react";
+import { ReactComponent as PenIcon } from "./svg/pen.svg";
+import { ReactComponent as HighlighterIcon } from "./svg/download.svg";
 import Palette from "./Palette";
 import * as d3 from "d3";
 
-import "./Toolbar.css";
+import "./css/Toolbar.css";
 
-export default function Toolbar() {
+export default function Toolbar({ tool, onToolChange, defaultColour, onColourChange }) {
+    let [ colour, setColour ] = useState(defaultColour);
+
     useEffect(() => {
-        d3.selectAll("#pen, #highlighter")
+        d3.selectAll("#pen, #highlighter, #palette")
         .selectAll("*")
-        .on("mousemove", function () {
-            d3.select(d3.select(this).node().closest("svg")).classed("active", true);
+        .on("pointermove", function () {
+            d3.select(d3.select(this).node().closest("svg")).classed("hover", true);
         })
-        .on("mouseleave", function () {
-            d3.select(d3.select(this).node().closest("svg")).classed("active", false);
+        .on("pointerleave", function () {
+            d3.select(d3.select(this).node().closest("svg")).classed("hover", false);
         });
 
+        return () => {
+            d3.selectAll("#pen, #highlighter, #palette")
+            .selectAll("*")
+            .on("pointermove", null)
+            .on("pointerleave", null);
+        };
+    }, []);
+
+    useEffect(() => {
+        d3.selectAll("#pen, #highlighter")
+        .on("click", function () {
+            d3.selectAll("#pen, #highlighter").classed("active", false);
+            d3.select(this).classed("active", true);
+
+            if (onToolChange instanceof Function)
+                onToolChange(d3.select(this).attr("id"));
+        });
 
         return () => {
             d3.selectAll("#pen, #highlighter")
-            .selectAll("*")
-            .on("mousemove", null);
+            .on("click", null);
         };
-    }, []);
+    }, [onToolChange]);
+
+    function onPaletteChange(color, event) {
+        setColour(color.hex);
+
+        if (onColourChange instanceof Function) 
+            onColourChange(color, event);
+    }
 
     return (
         <div className="toolbar">
             <div className="svg-container">
-                <PenIcon id="pen" />
+                <PenIcon id="pen" className={tool === "pen" ? "active" : null} />
             </div>
 
             <div className="svg-container">
-                <HighlighterIcon id="highlighter" />
+                <HighlighterIcon id="highlighter" className={tool === "highlighter" ? "active" : null} />
             </div>
 
             <div className="palette-container">
-                <Palette id="" />
+                <Palette colour={colour} onChange={onPaletteChange} />
             </div>
         </div>
     );

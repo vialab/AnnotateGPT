@@ -1,0 +1,23 @@
+.pen-annotation-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 3;
+}
+
+.pen-annotation-layer {
+    width: 100%;
+    height: calc(100vh * 1.5 + 21.5px);
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+.pen-annotation-layer:first-child {
+    height: calc(100vh * 1.5 + 12px);
+}
+
+.pen-annotation-layer canvas {
+    border-radius: 1em;
+}

@@ -4,35 +4,15 @@
     z-index: 3;
     display: flex;
     flex-direction: column-reverse;
-    --pen-offset: -98px;
-    --highlighter-offset: -100px;
-    --offset-active: 35px;
+    --pen-offset: -138px;
+    --highlighter-offset: -140px;
+    --offset-active: 75px;
     user-select: none;
     width: min-content;
 }
 
 .toolbar.disabled, .toolbar.disabled * {
     pointer-events: none !important;
-}
-
-.toolbar svg {
-    transition: transform 0.3s ease;
-}
-
-#pen {
-    transform: translateX(var(--pen-offset));
-}
-
-#pen.active {
-    transform: translateX(calc(var(--pen-offset) + var(--offset-active)));
-}
-
-#highlighter {
-    transform: translateX(var(--highlighter-offset));
-}
-
-#highlighter.active {
-    transform: translateX(calc(var(--highlighter-offset) + var(--offset-active)));
 }
 
 .svg-container {
@@ -45,9 +25,35 @@
 .palette-container {
     display: flex;
     align-items: center;
+    width: auto;
 }
 
 .svg-container svg *, .palette-container svg * {
+    will-change: transform;
     pointer-events: visible;
     cursor: pointer;
+}
+
+.toolbar svg {
+    transition: transform 0.3s ease;
+}
+
+#pen {
+    transform: translateX(var(--pen-offset));
+}
+
+#pen.hover, #pen.active {
+    transform: translateX(calc(var(--pen-offset) + var(--offset-active)));
+}
+
+#highlighter {
+    transform: translateX(var(--highlighter-offset));
+}
+
+#highlighter.hover, #highlighter.active {
+    transform: translateX(calc(var(--highlighter-offset) + var(--offset-active)));
+}
+
+#palette.hover {
+    transform: scale(1.05);
 }
