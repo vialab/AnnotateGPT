@@ -3,7 +3,7 @@ import SvgPenSketch from './SvgPenSketch';
 import * as d3 from 'd3';
 import { ShapeInfo, Intersection } from "kld-intersections";
 
-import './PenAnnotation.css';
+import './css/PenAnnotation.css';
 
 function isHorizontalLine(coordinates) {
     if (coordinates.length < 2 || d3.line()(coordinates).length < 100) {
@@ -64,15 +64,80 @@ function findClosestLine(lines, point) {
     return closestLine;
 }
 
-export default function PenAnnotation({ content }) {
+function checkEnclosed(coords) {
+    function intersects(a, b, c, d, p, q, r, s) {
+        let det, gamma, lambda;
+        det = (c - a) * (s - q) - (r - p) * (d - b);
+
+        if (det === 0) {
+            return false;
+        } else {
+            lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+            gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+            return -2 < lambda && lambda < 3 && -2 < gamma && gamma < 3;
+        }
+    }
+
+    function dist(x1, y1, x2, y2) {
+        var a = x1 - x2;
+        var b = y1 - y2;
+
+        return a * a + b * b;
+    }
+
+    loop1: for (let i1 = 0; i1 < coords.length / 3; i1++) {
+        let samplePoint1 = 1;
+
+        let x1 = coords[i1][0];
+        let y1 = coords[i1][1];
+        let x2 = coords[i1 + samplePoint1][0];
+        let y2 = coords[i1 + samplePoint1][1];
+
+        while (dist(x1, y1, x2, y2) < 400) {
+            samplePoint1++;
+            i1++;
+
+            if (i1 + samplePoint1 >= coords.length / 3)
+                break loop1;
+            x2 = coords[i1 + samplePoint1][0];
+            y2 = coords[i1 + samplePoint1][1];
+        }
+
+        loop2: for (let i2 = coords.length - 1; i2 >= (coords.length / 3) * 2; i2--) {
+            let samplePoint2 = 1;
+
+            let x3 = coords[i2][0];
+            let y3 = coords[i2][1];
+            let x4 = coords[i2 - samplePoint2][0];
+            let y4 = coords[i2 - samplePoint2][1];
+
+            while (dist(x3, y3, x4, y4) < 400) {
+                samplePoint2++;
+                i2--;
+
+                if (i2 - samplePoint2 <= (coords.length / 3) * 2)
+                    break loop2;
+                x4 = coords[i2 - samplePoint2][0];
+                y4 = coords[i2 - samplePoint2][1];
+            }
+
+            if (intersects(x1, y1, x2, y2, x3, y3, x4, y4)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+export default function PenAnnotation({ content, index, tool, colour }) {
     const svgRef = useRef();
+    const svgPenSketch = useRef();
 
     useEffect(() => {
-        let svgPenSketch = new SvgPenSketch(
+        svgPenSketch.current = new SvgPenSketch(
             svgRef.current,
             {
                 fill: "none",
-                "fill-opacity": 1,
                 stroke: "red",
                 "stroke-opacity": 0.3,
                 "stroke-width": "25",
@@ -80,12 +145,15 @@ export default function PenAnnotation({ content }) {
             {},
             { eraserMode: "object", eraserSize: "25" }
         );
+    }, []);
 
-        svgPenSketch.eraserUpCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
+    useEffect(() => {
+
+        svgPenSketch.current.eraserUpCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
             d3.select(".toolbar").classed("disabled", false);
         };
 
-        svgPenSketch.eraserDownCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
+        svgPenSketch.current.eraserDownCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
             d3.select(".toolbar").classed("disabled", true);
 
             for (let path of affectedPaths) {
@@ -93,12 +161,13 @@ export default function PenAnnotation({ content }) {
             }
         };
 
-        svgPenSketch.penDownCallback = (path, e, coords) => {
+        svgPenSketch.current.penDownCallback = (path, e, coords) => {
             d3.select(".toolbar").classed("disabled", true);
         };
 
-        svgPenSketch.penUpCallback = (path, e, coords) => {
+        svgPenSketch.current.penUpCallback = (path, e, coords) => {
             d3.select(".toolbar").classed("disabled", false);
+            d3.selectAll(".highlighted-word").remove();
             // Check words underlined
             if (coords.length < 2) {
                 return;
@@ -106,28 +175,59 @@ export default function PenAnnotation({ content }) {
             let scrollCoords = coords.map(coord => [coord[0], coord[1] - window.scrollY]);
             let wordsOfInterest = new Set();
 
+            let processWords = () => {
+                for (let word of wordsOfInterest) {
+                    let closestWordRect = word.element.getBoundingClientRect();
+
+                    d3.select("html")
+                    .append("div")
+                    .style("position", "absolute")
+                    .attr("class", "highlighted-word")
+                    .style("top", `${closestWordRect.top + window.scrollY}px`)
+                    .style("left", `${closestWordRect.left}px`)
+                    .style("width", `${closestWordRect.width}px`)
+                    .style("height", `${closestWordRect.height}px`)
+                    .style("border", "1px solid red");
+                }
+            };
+
             if (isHorizontalLine(scrollCoords)) {
-                let page = svgRef.current.closest(".react-pdf__Page");
-                let words = d3.select(page).selectAll(".textLayer span.word").nodes();
+                let words = d3.select(".react-pdf__Page.page-" + index).selectAll(".textLayer span.word").nodes().filter(word => {
+                    return word.textContent.trim() !== "";
+                });
 
                 if (words.length === 0) {
                     return;
                 }
-                let bottomLines = words.filter(word => {
-                    return word.textContent.trim() !== "";
-                }).map(word => {
+                let rectLines = words.map(word => {
                     let rect = word.getBoundingClientRect();
+                    let y = tool === "highlighter" ? rect.top + rect.height / 2 : rect.bottom;
 
                     return {
                         x1: rect.left,
-                        y1: rect.bottom,
+                        y1: y,
                         x2: rect.right,
-                        y2: rect.bottom,
+                        y2: y,
                         element: word,
                     };
                 });
+
+                if (tool === "pen") {
+                    words.forEach(word => {
+                        let rect = word.getBoundingClientRect();
+
+                        rectLines.push({
+                            x1: rect.left,
+                            y1: rect.top + rect.height / 2,
+                            x2: rect.right,
+                            y2: rect.top + rect.height / 2,
+                            element: word,
+                        });
+                    });
+                }
                 let svgPoint = svgRef.current.createSVGPoint();
-                let allLines = bottomLines.map(line => {
+
+                let allLines = rectLines.map(line => {
                     return {
                         x1: line.x1,
                         y1: line.y1,
@@ -140,6 +240,7 @@ export default function PenAnnotation({ content }) {
                     onmessage = (e) => {
                         let lines = e.data.lines;
                         let coords = e.data.coords;
+                        // eslint-disable-next-line no-new-func
                         let findClosestLine = new Function(`return ${e.data.findClosestLine}`)();
 
                         let closestLine = findClosestLine(lines, { x: coords[0], y: coords[1] });
@@ -163,7 +264,7 @@ export default function PenAnnotation({ content }) {
                 worker.onmessage = (e) => {
                     if (e.data !== undefined) {
                         // console.log(wordsOfInterest);
-                        wordsOfInterest.add(bottomLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2));
+                        wordsOfInterest.add(rectLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2));
                     }
                     length++;
 
@@ -174,40 +275,27 @@ export default function PenAnnotation({ content }) {
                         let leftMostX = d3.min([...wordsOfInterest].map(w => w.element.getBoundingClientRect().left));
                         let rightMostX = d3.max([...wordsOfInterest].map(w => w.element.getBoundingClientRect().right));
 
-                        
                         for (let word of words) {
                             let rect = word.getBoundingClientRect();
 
                             if (rect.left > leftMostX && rect.right < rightMostX && rect.bottom > majorityY - 5 && rect.bottom < majorityY + 5) {
-                                wordsOfInterestFiltered.push({element: word});
+                                wordsOfInterestFiltered.push({ element: word });
                             }
                         }
-
-                        for (let word of wordsOfInterestFiltered) {
-                            let closestWordRect = word.element.getBoundingClientRect();
-
-                            d3.select("html")
-                            .append("div")
-                            .style("position", "absolute")
-                            .style("top", `${closestWordRect.top + window.scrollY}px`)
-                            .style("left", `${closestWordRect.left}px`)
-                            .style("width", `${closestWordRect.width}px`)
-                            .style("height", `${closestWordRect.height}px`)
-                            .style("border", "1px solid red");
-                        }
-
+                        wordsOfInterest = new Set(wordsOfInterestFiltered);
+                        processWords();
                     }
                 };
             } else {
                 // Distance of the first coord and the last coord
-                let distance = Math.sqrt((coords[0][0] - coords[coords.length - 1][0]) ** 2 + (coords[0][1] - coords[coords.length - 1][1]) ** 2);
-                if (distance > 50) {
+                let distance = (coords[0][0] - coords[coords.length - 1][0]) ** 2 + (coords[0][1] - coords[coords.length - 1][1]) ** 2;
+                let checkLoop = checkEnclosed(coords);
+
+                if (distance >= 10000 && !checkLoop) {
                     return;
                 }
                 let shape = ShapeInfo.path(d3.select(path).attr("d"));
-
-                let page = svgRef.current.closest(".react-pdf__Page");
-                let words = d3.select(page).selectAll(".textLayer span.word").nodes();
+                let words = d3.select(".react-pdf__Page.page-" + index).selectAll(".textLayer span.word").nodes();
                 let pathBoundingBox = path.getBoundingClientRect();
                 let svgBoundingBox = svgRef.current.getBoundingClientRect();
 
@@ -237,7 +325,7 @@ export default function PenAnnotation({ content }) {
 
                     if (intersection.status === "Intersection") {
                         let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
-                        let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4 , svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
+                        let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
                         let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];
 
                         // d3.select(svgRef.current)
@@ -260,38 +348,49 @@ export default function PenAnnotation({ content }) {
                         // .attr("cy", leftCenter[1])
                         // .attr("r", 5)
                         // .attr("fill", "black");
-                        
-                        if (d3.polygonContains(coords, center) && d3.polygonContains(coords, rightCenter) && d3.polygonContains(coords, leftCenter)){
-                            wordsOfInterest.add(word);
+
+                        if (d3.polygonContains(coords, center) && d3.polygonContains(coords, rightCenter) && d3.polygonContains(coords, leftCenter)) {
+                            wordsOfInterest.add({ element: word });
                         }
                     } else {
                         let rectBoundingBox = word.getBoundingClientRect();
 
                         if (rectBoundingBox.left > pathBoundingBox.x && rectBoundingBox.right < pathBoundingBox.x + pathBoundingBox.width && rectBoundingBox.top > pathBoundingBox.y && rectBoundingBox.bottom < pathBoundingBox.y + pathBoundingBox.height) {
-                            wordsOfInterest.add(word);
+                            wordsOfInterest.add({ element: word });
                         }
                     }
                 }
-
-                for (let word of wordsOfInterest) {
-                    let closestWordRect = word.getBoundingClientRect();
-
-                    d3.select("html")
-                    .append("div")
-                    .style("position", "absolute")
-                    .style("top", `${closestWordRect.top + window.scrollY}px`)
-                    .style("left", `${closestWordRect.left}px`)
-                    .style("width", `${closestWordRect.width}px`)
-                    .style("height", `${closestWordRect.height}px`)
-                    .style("border", "1px solid red");
-                }
+                processWords();
             }
         };
-    }, []);
+    }, [index, tool]);
 
     useEffect(() => {
         d3.select(svgRef.current).html(content);
     }, [content]);
+
+    useEffect(() => {
+        svgPenSketch.current.strokeStyles = {
+            ...svgPenSketch.current.strokeStyles,
+            stroke: colour,
+        };
+    }, [colour]);
+
+    useEffect(() => {
+        if (tool === "pen") {
+            svgPenSketch.current.strokeStyles = {
+                ...svgPenSketch.current.strokeStyles,
+                "stroke-opacity": 1,
+                "stroke-width": "2",
+            };
+        } else {
+            svgPenSketch.current.strokeStyles = {
+                ...svgPenSketch.current.strokeStyles,
+                "stroke-opacity": 0.2,
+                "stroke-width": "25",
+            };
+        }
+    }, [tool]);
 
     return (
         <div className="pen-annotation-layer">
