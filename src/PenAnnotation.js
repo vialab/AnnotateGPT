@@ -3,9 +3,12 @@ import SvgPenSketch from './SvgPenSketch';
 import * as d3 from 'd3';
 import { ShapeInfo, Intersection } from "kld-intersections";
 import PenCluster from './PenCluster';
-import { useScreenshot } from 'use-react-screenshot';
 
 import './css/PenAnnotation.css';
+
+// use vite
+import { createContext, destroyContext, domToPng } from 'modern-screenshot';
+
 
 function isHorizontalLine(coordinates) {
     if (coordinates.length < 2 || d3.line()(coordinates).length < 100) {
@@ -136,7 +139,6 @@ export default function PenAnnotation({ content, index, tool, colour }) {
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
     const bbox = useRef({ x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity });
-    const [image, takeScreenshot] = useScreenshot();
 
     useEffect(() => {
         svgPenSketch.current = new SvgPenSketch(
@@ -150,9 +152,26 @@ export default function PenAnnotation({ content, index, tool, colour }) {
             {},
             { eraserMode: "object", eraserSize: "25" }
         );
+
+        if (d3.select(".screenshot-container").empty()) {
+            let container = document.createElement("div");
+
+            d3.select(container)
+            .attr("class", "screenshot-container")
+            .style("position", "absolute")
+            .style("top", "0")
+            .style("left", "0")
+            .style("width", "100%")
+            .style("display", "flex")
+            .style("justify-content", "center")
+            .style("z-index", "-1000");
+
+            document.body.appendChild(container);
+        }
     }, []);
 
     useEffect(() => {
+        let timeout;
 
         svgPenSketch.current.eraserUpCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
             d3.select(".toolbar").classed("disabled", false);
@@ -168,24 +187,37 @@ export default function PenAnnotation({ content, index, tool, colour }) {
 
         svgPenSketch.current.penDownCallback = (path, e, coords) => {
             d3.select(".toolbar").classed("disabled", true);
+
+            if (timeout) {
+                clearTimeout(timeout);
+                timeout = null;
+            }
         };
 
-        svgPenSketch.current.penUpCallback = (path, e, coords) => {
-            d3.select(".toolbar").classed("disabled", false);
-            d3.selectAll(".highlighted-word").remove();
-            
-            if (coords.length < 2) {
-                return;
-            }
-            let pageTop = d3.select(".react-pdf__Page.page-" + index).node().getBoundingClientRect().top;
-            let pathBbox = path.getBoundingClientRect();
-            pathBbox.y -= pageTop;
+        let clusterStrokes = async (clusters, stopIteration) => {
+            console.log(clusters, stopIteration);
+            let lastCluster = clusters[stopIteration[stopIteration.length - 1]].sort((a, b) => a.lastestTimestamp - b.lastestTimestamp)[clusters[stopIteration[stopIteration.length - 1]].length - 1];
+            // let noText = true;
 
-            let clusters = penCluster.current.add(path.id, pathBbox);
-            let lastCluster = clusters.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp)[clusters.length - 1];
+            
+            loop1: for (let i = stopIteration[stopIteration.length - 1]; i < clusters.length; i++) {
+                for (let stroke of clusters[i][clusters[i].length - 1].strokes) {
+                    if (stroke.annotatedText !== "") {
+                        lastCluster = clusters[i][clusters[i].length - 1];
+                        break loop1;
+                    }
+                }
+            }
+
+            console.log(lastCluster);
+            
             let page = d3.select(".react-pdf__Page.page-" + index).node().cloneNode(true);
             let annotationPage = d3.select("#layer-" + index).node().cloneNode(true);
-            let container = document.createElement("div");
+            bbox.current = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+
+            d3.select(annotationPage)
+            .select("svg")
+            .html("");
 
             for (let stroke of lastCluster.strokes) {
                 let bb = stroke.bbox;
@@ -193,21 +225,26 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                 bbox.current.y1 = Math.min(bb.y, bbox.current.y1);
                 bbox.current.x2 = Math.max(bb.x + bb.width, bbox.current.x2);
                 bbox.current.y2 = Math.max(bb.y + bb.height, bbox.current.y2);
+
+                let element = d3.select(`[id="${stroke.id}"]`).node().cloneNode(true);
+                d3.select(annotationPage).select("svg").node().appendChild(element);
             }
-            d3.select(container)
-            .attr("class", "screenshot-container")
-            .style("position", "absolute")
-            .style("top", "0")
-            .style("left", "0")
-            .style("width", "100%")
-            .style("display", "flex")
-            .style("justify-content", "center")
-            .style("z-index", "-1000");
+            let container = d3.select(".screenshot-container").html("").node();
 
             d3.select(annotationPage)
             .style("position", "absolute")
             .style("top", index === 1 ? "0" : "-10px")
             .style("left", "6px");
+
+            d3.select("body")
+            .append("div")
+            .style("position", "absolute")
+            .attr("class", "highlighted-word")
+            .style("top", `${bbox.current.y1 * window.innerHeight}px`)
+            .style("left", `${bbox.current.x1 * window.innerWidth}px`)
+            .style("width", `${(bbox.current.x2 - bbox.current.x1) * window.innerWidth}px`)
+            .style("height", `${(bbox.current.y2 - bbox.current.y1) * window.innerHeight}px`)
+            .style("border", "2px solid red");
 
             container.appendChild(page);
             container.appendChild(annotationPage);
@@ -215,27 +252,93 @@ export default function PenAnnotation({ content, index, tool, colour }) {
             let context = d3.select(container).select("canvas").node().getContext("2d");
             context.drawImage(d3.select(".react-pdf__Page.page-" + index).select("canvas").node(), 0, 0);
 
-            document.body.appendChild(container);
-            
-            takeScreenshot(container);
+            const c = await createContext(container, {
+                workerUrl: "./Worker.js",
+                workerNumber: 1,
+            });
 
+            domToPng(c).then(dataUrl => {
+                // d3.selectAll(".screenshot-container").remove();
+        
+                if (dataUrl) {
+                    let img = new Image();
+                    img.src = dataUrl;
+        
+                    let startX = bbox.current.x1 * window.innerWidth - 50;
+                    let startY = bbox.current.y1 * window.innerHeight - 50;
+                    let cropWidth = (bbox.current.x2 - bbox.current.x1) * window.innerWidth + 100;
+                    let cropHeight = (bbox.current.y2 - bbox.current.y1) * window.innerHeight + 100;
+        
+                    img.onload = function () {
+                        let canvas = document.createElement('canvas');
+                        canvas.width = cropWidth * window.devicePixelRatio;
+                        canvas.height = cropHeight * window.devicePixelRatio;
+        
+                        let ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, startX * window.devicePixelRatio, startY * window.devicePixelRatio, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio, 0, 0, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio);
+        
+                        let croppedBase64 = canvas.toDataURL('image/png');
+                        console.log(croppedBase64);
+                    };
+                }
+                console.log(dataUrl);
+                destroyContext(c);
+            });
+            timeout = null;
+        };
+
+        svgPenSketch.current.penUpCallback = (path, e, coords) => {
+            d3.select(".toolbar").classed("disabled", false);
+            d3.selectAll(".highlighted-word").remove();
+
+            if (coords.length < 2) {
+                return;
+            }
             let scrollCoords = coords.map(coord => [coord[0], coord[1] - window.scrollY]);
 
             let processWords = (wordsOfInterest) => {
-                let words = wordsOfInterest.map(w => w.element);
-                for (let word of words) {
-                    let closestWordRect = word.getBoundingClientRect();
+                let words = new Set([...wordsOfInterest.map(w => w.element)]);
+                let text = "";
 
-                    d3.select("body")
-                    .append("div")
-                    .style("position", "absolute")
-                    .attr("class", "highlighted-word")
-                    .style("top", `${closestWordRect.top + window.scrollY}px`)
-                    .style("left", `${closestWordRect.left}px`)
-                    .style("width", `${closestWordRect.width}px`)
-                    .style("height", `${closestWordRect.height}px`)
-                    .style("border", (d3.select(word).attr("class") === "word" ? "2px solid red" : "1px solid green"));
+                words = [...words].sort((a, b) => {
+                    if (a.getBoundingClientRect().top === b.getBoundingClientRect().top) {
+                        return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                    }
+                    return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                });
+
+                
+                if (wordsOfInterest.length !== 0) {
+                    let prevYCoord = words[0].getBoundingClientRect().top;
+
+                    for (let word of words) {
+                        let closestWordRect = word.getBoundingClientRect();
+                        
+                        if (closestWordRect.top > prevYCoord + 5) {
+                            text += "\n";
+                            prevYCoord = closestWordRect.top;
+                        }
+                        text += word.textContent + " ";
+
+                        d3.select("body")
+                        .append("div")
+                        .style("position", "absolute")
+                        .attr("class", "highlighted-word")
+                        .style("top", `${closestWordRect.top + window.scrollY}px`)
+                        .style("left", `${closestWordRect.left}px`)
+                        .style("width", `${closestWordRect.width}px`)
+                        .style("height", `${closestWordRect.height}px`)
+                        .style("border", (d3.select(word).attr("class") === "word" ? "2px solid red" : "1px solid green"));
+                    }
                 }
+                let pageTop = d3.select(".react-pdf__Page.page-" + index).node().getBoundingClientRect().top;
+                let pathBbox = path.getBoundingClientRect();
+                pathBbox.y -= pageTop;
+                let [clusters, stopIteration] = penCluster.current.add(path.id, pathBbox, text);
+    
+                timeout = setTimeout(() => {
+                    clusterStrokes(clusters, stopIteration);
+                }, 1000);
                 return words;
             };
 
@@ -248,7 +351,7 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                     let rectLines = words.map(word => {
                         let rect = word.getBoundingClientRect();
                         let y = tool === "highlighter" ? rect.top + rect.height / 2 : rect.bottom;
-    
+
                         return {
                             x1: rect.left,
                             y1: y,
@@ -257,11 +360,11 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                             element: word,
                         };
                     });
-    
+
                     if (tool === "pen") {
                         words.forEach(word => {
                             let rect = word.getBoundingClientRect();
-    
+
                             rectLines.push({
                                 x1: rect.left,
                                 y1: rect.top + rect.height / 2,
@@ -272,7 +375,7 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                         });
                     }
                     let svgPoint = svgRef.current.createSVGPoint();
-    
+
                     let allLines = rectLines.map(line => {
                         return {
                             x1: line.x1,
@@ -281,53 +384,52 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                             y2: line.y2,
                         };
                     });
-    
+
                     let workerCode = function () {
                         onmessage = (e) => {
                             let lines = e.data.lines;
                             let coords = e.data.coords;
                             // eslint-disable-next-line no-new-func
                             let findClosestLine = new Function(`return ${e.data.findClosestLine}`)();
-    
+
                             let closestLine = findClosestLine(lines, { x: coords[0], y: coords[1] });
-                            postMessage({...closestLine, coord: coords});
+                            postMessage({ ...closestLine, coord: coords });
                         };
                     };
-    
+
                     let worker = new Worker(URL.createObjectURL(new Blob([`(${workerCode})()`], { type: "application/javascript" })));
-    
+
                     for (let coord of scrollCoords) {
                         svgPoint.x = coord[0];
                         svgPoint.y = coord[1];
                         svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
                         coord = [svgPoint.x, svgPoint.y + window.scrollY];
-    
+
                         worker.postMessage({ lines: allLines, coords: [coord[0], coord[1]], findClosestLine: findClosestLine.toString() });
                     }
                     let length = 0;
                     // Return promise
 
                     return new Promise((resolve, reject) => {
-    
                         worker.onmessage = (e) => {
                             if (e.data !== undefined && e.data.x1 !== undefined) {
-                                wordsOfInterest.push({...rectLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2), coord: e.data.coord});
+                                wordsOfInterest.push({ ...rectLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2), coord: e.data.coord });
                             }
                             length++;
-        
+
                             if (length === scrollCoords.length && wordsOfInterest.length > 0) {
                                 let majorityY = d3.median(wordsOfInterest.map(w => w.element.getBoundingClientRect().bottom));
                                 let wordsOfInterestFiltered = wordsOfInterest.filter(w => w.element.getBoundingClientRect().bottom > majorityY - 5 && w.element.getBoundingClientRect().bottom < majorityY + 5);
-        
+
                                 wordsOfInterestFiltered.sort((a, b) => a.x1 - b.x1);
                                 let prevElement = wordsOfInterestFiltered[0].element;
                                 let leftMost = wordsOfInterestFiltered[0].coord[0];
                                 let rightMost = wordsOfInterestFiltered[0].coord[0];
                                 wordsOfInterest = [];
-        
+
                                 for (let i = 0; i < wordsOfInterestFiltered.length; i++) {
                                     let element = wordsOfInterestFiltered[i].element;
-        
+
                                     if (element === prevElement && i !== wordsOfInterestFiltered.length - 1) {
                                         if (wordsOfInterestFiltered[i].coord[0] < leftMost) {
                                             leftMost = wordsOfInterestFiltered[i].coord[0];
@@ -358,7 +460,7 @@ export default function PenAnnotation({ content, index, tool, colour }) {
 
                                 for (let word of words) {
                                     let rect = word.getBoundingClientRect();
-        
+
                                     if (rect.left > leftMostX && rect.right < rightMostX && rect.bottom > majorityY - 5 && rect.bottom < majorityY + 5) {
                                         wordsOfInterest.push({ element: word });
                                     }
@@ -366,10 +468,13 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                                 processWords(wordsOfInterest);
                                 resolve(wordsOfInterest);
                             } else if (length === scrollCoords.length) {
-
                                 resolve(wordsOfInterest);
                             }
-                            
+
+                            if (length === scrollCoords.length || (wordsOfInterest.length > 0 && length === scrollCoords.length)) {                                
+                                resolve(wordsOfInterest);
+                            }
+
                             if (length === scrollCoords.length) {
                                 worker.terminate();
                             }
@@ -381,9 +486,13 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                 });
                 checkLineWords(words).then(words => {
                     if (words.length === 0) {
-                        let characters = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.character").nodes().filter(word => {
+                        let characters = d3.select(".react-pdf__Page.page-" + index)
+                        .select(".textLayer")
+                        .selectAll("span.character")
+                        .nodes().filter(word => {
                             return word.textContent.trim() !== "";
                         });
+                        
                         checkLineWords(characters);
                     }
                 });
@@ -408,12 +517,12 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                         svgPoint.x = rect.left;
                         svgPoint.y = rect.top - svgBoundingBox.top;
                         svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
-    
+
                         let svgPoint2 = svgRef.current.createSVGPoint();
                         svgPoint2.x = rect.right;
                         svgPoint2.y = rect.bottom - svgBoundingBox.top;
                         svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
-    
+
                         // d3.select(svgRef.current)
                         // .append("rect")
                         // .attr("x", svgPoint.x)
@@ -422,42 +531,42 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                         // .attr("height", svgPoint2.y - svgPoint.y)
                         // .attr("fill", "none")
                         // .attr("stroke", "black");
-    
+
                         let rectShape = ShapeInfo.rectangle(svgPoint.x, svgPoint.y - svgBoundingBox.top, svgPoint2.x - svgPoint.x, svgPoint2.y - svgPoint.y);
                         let intersection = Intersection.intersect(rectShape, shape);
-    
+
                         if (intersection.status === "Intersection") {
                             let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
                             let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
                             let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];
-    
+
                             // d3.select(svgRef.current)
                             // .append("circle")
                             // .attr("cx", center[0])
                             // .attr("cy", center[1])
                             // .attr("r", 5)
                             // .attr("fill", "black");
-    
+
                             // d3.select(svgRef.current)
                             // .append("circle")
                             // .attr("cx", rightCenter[0])
                             // .attr("cy", rightCenter[1])
                             // .attr("r", 5)
                             // .attr("fill", "black");
-    
+
                             // d3.select(svgRef.current)
                             // .append("circle")
                             // .attr("cx", leftCenter[0])
                             // .attr("cy", leftCenter[1])
                             // .attr("r", 5)
                             // .attr("fill", "black");
-    
+
                             if (d3.polygonContains(coords, center) && d3.polygonContains(coords, rightCenter) && d3.polygonContains(coords, leftCenter)) {
                                 wordsOfInterest.push({ element: word });
                             }
                         } else {
                             let rectBoundingBox = word.getBoundingClientRect();
-    
+
                             if (rectBoundingBox.left > pathBoundingBox.x && rectBoundingBox.right < pathBoundingBox.x + pathBoundingBox.width && rectBoundingBox.top > pathBoundingBox.y && rectBoundingBox.bottom < pathBoundingBox.y + pathBoundingBox.height) {
                                 wordsOfInterest.push({ element: word });
                             }
@@ -474,33 +583,7 @@ export default function PenAnnotation({ content, index, tool, colour }) {
             }
 
         };
-    }, [index, takeScreenshot, tool]);
-
-    useEffect(() => {
-        d3.selectAll(".screenshot-container").remove();
-
-        function cropBase64Image(base64, startX, startY, cropWidth, cropHeight) {
-            let img = new Image();
-            img.src = base64;
-            
-            img.onload = function() {
-                let canvas = document.createElement('canvas');
-                canvas.width = cropWidth * window.devicePixelRatio;
-                canvas.height = cropHeight * window.devicePixelRatio;
-
-                let ctx = canvas.getContext('2d');
-                ctx.drawImage(img, startX * window.devicePixelRatio, startY * window.devicePixelRatio, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio, 0, 0, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio);
-    
-                let croppedBase64 = canvas.toDataURL('image/png');
-                console.log(croppedBase64);
-            };
-        }
-        // bbox.current.y1 -= window.scrollY / window.innerHeight;
-        // bbox.current.y2 -= window.scrollY / window.innerHeight;
-        console.log(image);
-        console.log(bbox.current.x1 * window.innerWidth - 50, bbox.current.y1 * window.innerHeight - 50, (bbox.current.x2 - bbox.current.x1) * window.innerWidth + 100, (bbox.current.y2 - bbox.current.y1) * window.innerHeight + 100);
-        cropBase64Image(image, bbox.current.x1 * window.innerWidth - 50, bbox.current.y1 * window.innerHeight - 50, (bbox.current.x2 - bbox.current.x1) * window.innerWidth + 100, (bbox.current.y2 - bbox.current.y1) * window.innerHeight + 100);
-    }, [image]);
+    }, [index, tool]);
 
     useEffect(() => {
         d3.select(svgRef.current).html(content);

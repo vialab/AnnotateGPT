@@ -78,10 +78,11 @@ class Cluster {
 }
 
 class Stroke {
-    constructor(id, bbox) {
+    constructor(id, bbox, text = "") {
         this.timestamp = Date.now();
         this.id = id;
         this.bbox = Stroke.normalizeBoundingBox(bbox);
+        this.annotatedText = text;
     }
 
     static normalizeBoundingBox(bb) {
@@ -99,14 +100,14 @@ export default class PenCluster {
         this.strokes = [];
     }
 
-    add(id, bbox) {
-        // console.clear();
-        this.strokes.push(new Stroke(id, bbox));
+    add(id, bbox, text = "") {
+        console.clear();
+        console.log(text);
+        this.strokes.push(new Stroke(id, bbox, text));
         let clusters = this.strokes.map(point => new Cluster([point]));
         let d = [0];
         let history = [[...clusters]];
-        let stopIteration = 0;
-        console.log(clusters);
+        let stopIteration = [];
 
         while (clusters.length > 1) {
             let minDistance = Infinity;
@@ -135,20 +136,20 @@ export default class PenCluster {
         let maxRatio = -Infinity;
 
         if (history.length < 3) {
-            return history[history.length - 1];
+            stopIteration.push(history.length - 1);
+            return [history, stopIteration];
         } else {
             for (let i = 1; i < d.length - 1; i++) {
                 let ratio = (d[i + 1] - d[i]) * (d[i + 1] - d[i]) / (d[i] - d[i - 1]);
                 
                 if (ratio > maxRatio) {
                     maxRatio = ratio;
-                    stopIteration = i;
+                    stopIteration.push(i);
                 }
             }
         }
-
         console.log(history);
-        console.log(history[stopIteration]);
-        return history[stopIteration];
+        console.log(history[stopIteration[stopIteration.length - 1]]);
+        return [history, stopIteration];
     }
 }

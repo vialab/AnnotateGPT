@@ -26,10 +26,11 @@ export default function App() {
     const svgContent = useRef([]);
 
     function onDocumentLoadSuccess({ numPages }) {
+        numPages = 2;
         setNumPages(numPages);
         svgContent.current = Array(numPages).fill(null);
 
-        let pageContent = Array.from(new Array(2), (el, index) =>
+        let pageContent = Array.from(new Array(numPages), (el, index) =>
             <div className="page-container" key={`pageContainer_${index + 1}`} style={{ position: "relative" }}>
                 <Page
                     key={`page_${index + 1}`}
@@ -39,7 +40,7 @@ export default function App() {
                     className={`page-${index + 1}`}
                 >
                 </Page>
-                { index !== 1 ? <hr style={{ width: "100%" }} /> : null }
+                { index !== numPages - 1 ? <hr style={{ width: "100%" }} /> : null }
             </div>
         );
         setPageContent(pageContent);
@@ -113,7 +114,7 @@ export default function App() {
                 {pageContent}
                 <div className="pen-annotation-container">
 
-                    {Array.from(new Array(2), (el, index) =>
+                    {Array.from(new Array(numPages), (el, index) =>
                         <PenAnnotation index={index + 1} tool={tool} colour={colour} key={`annotation_${index + 1}`} content={svgContent.current[index + 1]} />
                     )}
                 </div>
