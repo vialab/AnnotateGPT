@@ -11,7 +11,7 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
 
     useEffect(() => {
         d3.selectAll("#pen, #highlighter, #palette")
-        .selectAll("*")
+        .selectAll("g")
         .on("pointermove", function () {
             d3.select(d3.select(this).node().closest("svg")).classed("hover", true);
         })
@@ -21,7 +21,7 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
 
         return () => {
             d3.selectAll("#pen, #highlighter, #palette")
-            .selectAll("*")
+            .selectAll("g")
             .on("pointermove", null)
             .on("pointerleave", null);
         };

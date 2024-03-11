@@ -29,7 +29,7 @@ export default function App() {
         setNumPages(numPages);
         svgContent.current = Array(numPages).fill(null);
 
-        let pageContent = Array.from(new Array(numPages), (el, index) =>
+        let pageContent = Array.from(new Array(2), (el, index) =>
             <div className="page-container" key={`pageContainer_${index + 1}`} style={{ position: "relative" }}>
                 <Page
                     key={`page_${index + 1}`}
@@ -39,7 +39,7 @@ export default function App() {
                     className={`page-${index + 1}`}
                 >
                 </Page>
-                <hr style={{ width: "100%" }} />
+                { index !== 1 ? <hr style={{ width: "100%" }} /> : null }
             </div>
         );
         setPageContent(pageContent);
@@ -67,13 +67,24 @@ export default function App() {
 
             // Add words
             words.forEach((word, i) => {
-                d3.select(span)
+                // Split the word into characters and put them in spans
+                let characters = word.split("");
+
+                let wordSpan = d3.select(span)
                 .append("span")
-                .text(word)
                 .style("position", "relative")
                 .style("left", "0px")
                 .style("top", "0px")
                 .attr("class", "word");
+
+                characters.forEach((character, j) => {
+                    wordSpan.append("span")
+                    .text(character)
+                    .style("position", "relative")
+                    .style("left", "0px")
+                    .style("top", "0px")
+                    .attr("class", "character");
+                });
 
                 if (i !== words.length - 1) {
                     d3.select(span).append("span").text(" ").style("position", "relative");
@@ -102,7 +113,7 @@ export default function App() {
                 {pageContent}
                 <div className="pen-annotation-container">
 
-                    {Array.from(new Array(numPages), (el, index) =>
+                    {Array.from(new Array(2), (el, index) =>
                         <PenAnnotation index={index + 1} tool={tool} colour={colour} key={`annotation_${index + 1}`} content={svgContent.current[index + 1]} />
                     )}
                 </div>

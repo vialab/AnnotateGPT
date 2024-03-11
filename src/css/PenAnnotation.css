@@ -14,7 +14,7 @@
     overflow: hidden;
 }
 
-.pen-annotation-layer:first-child {
+.pen-annotation-layer:first-child, .pen-annotation-layer:last-child {
     height: calc(100vh * 1.5 + 12px);
 }
 
