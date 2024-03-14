@@ -1,5 +1,4 @@
 function checkBoundingBoxes(box1, box2) {
-    // Calculate the sides of the boxes
     let left1 = box1.x;
     let right1 = box1.x + box1.width;
     let top1 = box1.y;
@@ -10,10 +9,7 @@ function checkBoundingBoxes(box1, box2) {
     let top2 = box2.y;
     let bottom2 = box2.y + box2.height;
 
-    // Check for intersection
     let intersect = !(left1 > right2 || right1 < left2 || top1 > bottom2 || bottom1 < top2);
-
-    // Check for containment
     let box1ContainsBox2 = left1 <= left2 && right1 >= right2 && top1 <= top2 && bottom1 >= bottom2;
     let box2ContainsBox1 = left2 <= left1 && right2 >= right1 && top2 <= top1 && bottom2 >= bottom1;
 
@@ -97,12 +93,11 @@ class Stroke {
 
 export default class PenCluster {
     constructor() {
-        this.strokes = [];
+        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, "")];
     }
 
     add(id, bbox, text = "") {
         console.clear();
-        console.log(text);
         this.strokes.push(new Stroke(id, bbox, text));
         let clusters = this.strokes.map(point => new Cluster([point]));
         let d = [0];
@@ -131,7 +126,6 @@ export default class PenCluster {
             clusters[pair[0]] = newCluster;
             clusters.splice(pair[1], 1);
             history.push([...clusters]);
-            // console.log(d2, d1, d0);
         }
         let maxRatio = -Infinity;
 
@@ -151,5 +145,9 @@ export default class PenCluster {
         console.log(history);
         console.log(history[stopIteration[stopIteration.length - 1]]);
         return [history, stopIteration];
+    }
+
+    remove(id) {
+        this.strokes = this.strokes.filter(stroke => stroke.id !== id);
     }
 }

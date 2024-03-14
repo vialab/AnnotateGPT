@@ -40,3 +40,7 @@ hr {
     margin-bottom: 10px;
     background-color: #F5F5F5;
 }
+
+.character {
+    user-select: none;
+}

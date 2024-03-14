@@ -52,23 +52,18 @@ export default function App() {
         .selectAll("span[role='presentation']")
         .nodes();
 
-        // Split the text into words and put them in spans
         spanPresentation.forEach((span) => {
             let text = span.textContent;
-            // Get number of leading spaces
             let leadingSpaces = text.match(/^ */)[0].length;
             let trailingSpaces = text.match(/ *$/)[0].length;
             let words = text.split(" ").filter((word) => word !== "");
             d3.select(span).text("");
 
-            // Add leading spaces
             for (let i = 0; i < leadingSpaces; i++) {
                 d3.select(span).append("span").text(" ");
             }
 
-            // Add words
             words.forEach((word, i) => {
-                // Split the word into characters and put them in spans
                 let characters = word.split("");
 
                 let wordSpan = d3.select(span)
