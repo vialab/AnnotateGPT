@@ -42,10 +42,10 @@ function calculateMinDistance(box1, box2) {
     return dx2 + dy2;
 }
 
-class Cluster {
+export class Cluster {
     constructor(strokes) {
         this.strokes = [...strokes];
-        this.lastestTimestamp = Math.max(...strokes.map(point => point.timestamp));
+        this.lastestTimestamp = Math.max(...strokes.map(point => point.endTime));
     }
 
     distanceTo(cluster) {
@@ -54,7 +54,9 @@ class Cluster {
         for (let point1 of this.strokes) {
             for (let point2 of cluster.strokes) {
                 let spatial = calculateMinDistance(point1.bbox, point2.bbox);
-                let dt = point2.timestamp - point1.timestamp;
+
+                
+                let dt = point2.startTime > point1.startTime ? point2.startTime - point1.endTime : point1.startTime - point2.endTime;
                 let temporal = (dt / 1000 > 60) ? 1 : (dt / 1000 / 60);
 
                 let distance = Math.sqrt(spatial + temporal * temporal);
@@ -69,13 +71,14 @@ class Cluster {
 
     merge(cluster) {
         this.strokes = this.strokes.concat(...cluster.strokes);
-        this.lastestTimestamp = Math.max(this.lastestTimestamp, cluster.lastestTimestamp);
+        this.lastestTimestamp = Math.max(this.lastestTimestamp, cluster.endTime);
     }
 }
 
 class Stroke {
-    constructor(id, bbox, text = "") {
-        this.timestamp = Date.now();
+    constructor(id, bbox, time, text = "") {
+        this.startTime = time;
+        this.endTime = Date.now();
         this.id = id;
         this.bbox = Stroke.normalizeBoundingBox(bbox);
         this.annotatedText = text;
@@ -93,12 +96,18 @@ class Stroke {
 
 export default class PenCluster {
     constructor() {
-        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, "")];
+        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, Date.now(), "")];
+        this.stopIteration = [];
+        this.history = [];
     }
 
-    add(id, bbox, text = "") {
-        console.clear();
-        this.strokes.push(new Stroke(id, bbox, text));
+    add(id, bbox, time, text = "") {
+        // console.clear();
+        this.strokes.push(new Stroke(id, bbox, time, text));
+        return this.update();
+    }
+
+    update() {
         let clusters = this.strokes.map(point => new Cluster([point]));
         let d = [0];
         let history = [[...clusters]];
@@ -131,6 +140,8 @@ export default class PenCluster {
 
         if (history.length < 3) {
             stopIteration.push(history.length - 1);
+            this.history = history;
+            this.stopIteration = stopIteration;
             return [history, stopIteration];
         } else {
             for (let i = 1; i < d.length - 1; i++) {
@@ -142,12 +153,25 @@ export default class PenCluster {
                 }
             }
         }
-        console.log(history);
-        console.log(history[stopIteration[stopIteration.length - 1]]);
+        // console.log(history);
+        // console.log(history[stopIteration[stopIteration.length - 1]]);
+        this.history = history;
+        this.stopIteration = stopIteration;
         return [history, stopIteration];
     }
 
     remove(id) {
         this.strokes = this.strokes.filter(stroke => stroke.id !== id);
+        this.history.map(clusters => clusters = clusters.filter(cluster => cluster.strokes = cluster.strokes.filter(stroke => stroke.id !== id)));
+    }
+
+    removeCluster(cluster) {
+        for (let stroke of cluster.strokes) {
+            this.remove(stroke.id);
+        }
+        this.update();
+        this.history = this.history.filter(clusters => clusters.length > 0);
+        
+        console.log(this.history);
     }
 }

@@ -1,14 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import SvgPenSketch from './SvgPenSketch';
 import * as d3 from 'd3';
 import { ShapeInfo, Intersection } from "kld-intersections";
 import PenCluster from './PenCluster';
+
+import Tooltip from './Tooltip.js';
+import { Cluster } from './PenCluster';
 import "./OpenAIUtils";
 
 import './css/PenAnnotation.css';
-
-// use vite
-import { createContext, destroyContext, domToCanvas } from 'modern-screenshot';
 
 function isHorizontalLine(coordinates) {
     if (coordinates.length < 2 || d3.line()(coordinates).length < 100) {
@@ -134,11 +134,13 @@ function checkEnclosed(coords) {
     return false;
 }
 
-export default function PenAnnotation({ content, index, tool, colour }) {
+export default function PenAnnotation({ content, index, tool, colour, onPenDown, onChange }) {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
-    const bbox = useRef({ x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity });
+    const lastCluster = useRef(null);
+    const [clustersState, setClusters] = useState([]);
+    const [lockCluster, setLockCluster] = useState([]);
 
     useEffect(() => {
         svgPenSketch.current = new SvgPenSketch(
@@ -169,32 +171,72 @@ export default function PenAnnotation({ content, index, tool, colour }) {
             document.body.appendChild(container);
         }
     }, []);
+
+    let startTime = useRef(null);
     let timeout = useRef(null);
 
     useEffect(() => {
+        svgPenSketch.current.penStartCallback = (path) => {
+            d3.select(path).classed(tool, true).attr("opacity", 1);
+            startTime.current = Date.now();
+            
+            clearTimeout(timeout.current);
+            
+            if (onPenDown instanceof Function) {
+                onPenDown();
+            }
+        };
+    }, [onPenDown, tool]);
 
-        svgPenSketch.current.eraserUpCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
+    useEffect(() => {
+        svgPenSketch.current.penDownCallback = () => {
+            d3.select(".toolbar").classed("disabled", true);
+        };
+
+        svgPenSketch.current.eraserUpCallback = () => {
             d3.select(".toolbar").classed("disabled", false);
         };
 
         svgPenSketch.current.eraserDownCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
             d3.select(".toolbar").classed("disabled", true);
+            let newClusters = [...clustersState];
+            let newLockCluster = [...lockCluster];
 
             for (let path of affectedPaths) {
                 d3.select(path).remove();
+                
+                let findStroke = newClusters.findIndex(cluster => cluster.strokes.find(stroke => stroke.id === path.id));
+                let findLockStroke = lockCluster.findIndex(cluster => cluster.strokes.find(stroke => stroke.id === path.id));
+                
+                if (findStroke !== -1) {
+                    newClusters[findStroke].strokes = [...newClusters[findStroke].strokes.filter(stroke => stroke.id !== path.id)];
+                    clearTimeout(timeout.current);
+
+                    timeout.current = setTimeout(() => {
+                        setClusters(newClusters);
+                    }, 1000);
+                }
+
+                if (findLockStroke !== -1) {
+                    newLockCluster[findLockStroke].strokes = [...newLockCluster[findLockStroke].strokes.filter(stroke => stroke.id !== path.id)];
+                    clearTimeout(timeout.current);
+
+                    timeout.current = setTimeout(() => {
+                        setLockCluster(newLockCluster);
+                    }, 1000);
+                }
                 penCluster.current.remove(path.id);
             }
-        };
 
-        svgPenSketch.current.penDownCallback = (path, e, coords) => {
-            d3.select(".toolbar").classed("disabled", true);
-            clearTimeout(timeout.current);
-            timeout.current = null;
+            // if (affectedPaths.length !== 0) {
+            // console.log(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
+                
+            // }
         };
 
         let clusterStrokes = async (clusters, stopIteration) => {
             console.log(clusters, stopIteration);
-            let lastCluster = clusters[stopIteration[stopIteration.length - 1]].sort((a, b) => a.lastestTimestamp - b.lastestTimestamp)[clusters[stopIteration[stopIteration.length - 1]].length - 1];
+            let newClusterArray = clusters[stopIteration[stopIteration.length - 1]].sort((a, b) => a.lastestTimestamp - b.lastestTimestamp);
             // let noText = true;
 
             // loop1: for (let i = stopIteration[stopIteration.length - 1]; i < clusters.length; i++) {
@@ -207,113 +249,26 @@ export default function PenAnnotation({ content, index, tool, colour }) {
             //         }
             //     }
             // }
-            console.log(lastCluster);
+            let newClusters = [...clustersState];
+            lastCluster.current = newClusterArray[newClusterArray.length - 1];
 
-            let page = d3.select(".react-pdf__Page.page-" + index).node().cloneNode();
-            let canvasPage = d3.select(".react-pdf__Page.page-" + index).select("canvas").node().cloneNode();
-            d3.select(page).append(() => canvasPage);
-            let annotationPage = d3.select("#layer-" + index).node().cloneNode(true);
-            bbox.current = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+            for (let c of newClusterArray) {
+                c = new Cluster(c.strokes);
+                let findStroke = newClusters.findIndex(cluster => cluster.strokes.find(stroke => stroke.id === c.strokes[0].id));
 
-            // d3.select(annotationPage)
-            // .select("svg")
-            // .html("");
 
-            for (let stroke of lastCluster.strokes) {
-                if (!d3.select(`[id="${stroke.id}"]`).empty()) {
-                    let bb = stroke.bbox;
-                    bbox.current.x1 = Math.min(bb.x, bbox.current.x1);
-                    bbox.current.y1 = Math.min(bb.y, bbox.current.y1);
-                    bbox.current.x2 = Math.max(bb.x + bb.width, bbox.current.x2);
-                    bbox.current.y2 = Math.max(bb.y + bb.height, bbox.current.y2);
-
-                    // let element = d3.select(`[id="${stroke.id}"]`).node().cloneNode(true);
-                    // d3.select(annotationPage).select("svg").node().appendChild(element);
-                }
+                if (findStroke === -1)
+                    newClusters.push(c);
+                else
+                    newClusters[findStroke] = c;
             }
-            let container = d3.select(".screenshot-container").html("").node();
-
-            d3.select(annotationPage)
-            .style("position", "absolute")
-            .style("top", index === 1 ? "0" : "-10px")
-            .style("left", "6px");
-
-            d3.select("body")
-            .append("div")
-            .style("position", "absolute")
-            .attr("class", "highlighted-word")
-            .style("top", `${bbox.current.y1 * window.innerHeight}px`)
-            .style("left", `${bbox.current.x1 * window.innerWidth}px`)
-            .style("width", `${(bbox.current.x2 - bbox.current.x1) * window.innerWidth}px`)
-            .style("height", `${(bbox.current.y2 - bbox.current.y1) * window.innerHeight}px`)
-            .style("border", "2px solid red");
-
-            container.appendChild(page);
-            container.appendChild(annotationPage);
-
-            let context = d3.select(container).select("canvas").node().getContext("2d");
-            context.drawImage(d3.select(".react-pdf__Page.page-" + index).select("canvas").node(), 0, 0);
-            let ids = lastCluster.strokes.map(stroke => stroke.id);
-
-            const createC1 = createContext(container, {
-                workerUrl: "./Worker.js",
-                workerNumber: 1,
-                filter: (node) => {
-                    if (node.tagName === "path")
-                        return ids.includes(node.id);
-                    return true;
-                }
-            });
-
-            const createC2 = createContext(container, {
-                workerUrl: "./Worker.js",
-                workerNumber: 1,
-            });
-
-            let contexts = await Promise.all([createC1, createC2]);
-            let [c1, c2] = contexts;
-            console.log(c1, c2);
-
-            domToCanvas(c1).then(canvas => {
-                // d3.selectAll(".screenshot-container").remove();
-                let dataUrl = canvas.toDataURL('image/png');
-                // console.log(dataUrl);
-
-                if (dataUrl) {
-                    let img = new Image();
-                    img.src = dataUrl;
-
-                    let startX = bbox.current.x1 * window.innerWidth - 50;
-                    let startY = bbox.current.y1 * window.innerHeight - 50;
-                    let cropWidth = (bbox.current.x2 - bbox.current.x1) * window.innerWidth + 100;
-                    let cropHeight = (bbox.current.y2 - bbox.current.y1) * window.innerHeight + 100;
-
-                    img.onload = function () {
-                        let canvas = document.createElement('canvas');
-                        canvas.width = cropWidth * window.devicePixelRatio;
-                        canvas.height = cropHeight * window.devicePixelRatio;
-
-                        let ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX * window.devicePixelRatio, startY * window.devicePixelRatio, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio, 0, 0, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio);
-
-                        let croppedBase64 = canvas.toDataURL('image/png');
-                        console.log(croppedBase64);
-                    };
-                }
-                destroyContext(c1);
-                timeout.current = null;
-            });
-
-            domToCanvas(c2).then(dataUrl => {
-                console.log(dataUrl.toDataURL('image/png'));
-                destroyContext(c2);
-                timeout.current = null;
-            });
+            
+            setClusters(newClusters);
+            // onChange(c, index);
         };
 
         svgPenSketch.current.penUpCallback = (path, e, coords) => {
             d3.select(".toolbar").classed("disabled", false);
-            d3.selectAll(".highlighted-word").remove();
 
             if (coords.length < 2) {
                 return;
@@ -343,30 +298,30 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                         }
                         text += word.textContent + " ";
 
-                        d3.select("body")
-                        .append("div")
-                        .style("position", "absolute")
-                        .attr("class", "highlighted-word")
-                        .style("top", `${closestWordRect.top + window.scrollY}px`)
-                        .style("left", `${closestWordRect.left}px`)
-                        .style("width", `${closestWordRect.width}px`)
-                        .style("height", `${closestWordRect.height}px`)
-                        .style("border", (d3.select(word).attr("class") === "word" ? "2px solid red" : "1px solid green"));
+                        // d3.select("body")
+                        // .append("div")
+                        // .style("position", "absolute")
+                        // .attr("class", "highlighted-word")
+                        // .style("top", `${closestWordRect.top + window.scrollY}px`)
+                        // .style("left", `${closestWordRect.left}px`)
+                        // .style("width", `${closestWordRect.width}px`)
+                        // .style("height", `${closestWordRect.height}px`)
+                        // .style("border", (d3.select(word).attr("class") === "word" ? "2px solid red" : "1px solid green"));
                     }
                 }
-                let pageTop = d3.select(".react-pdf__Page.page-" + index).node().getBoundingClientRect().top;
+                let pageTop = d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top;
                 let pathBbox = path.getBoundingClientRect();
                 pathBbox.y -= pageTop;
-                let [clusters, stopIteration] = penCluster.current.add(path.id, pathBbox, text);
+                let [clusters, stopIteration] = penCluster.current.add(path.id, pathBbox, startTime.current, text);
+                
+                // clusterStrokes(clusters, stopIteration);
+                
 
-                if (timeout.current !== null) {
-                    clearTimeout(timeout.current);
-                }
+                clearTimeout(timeout.current);
 
                 timeout.current = setTimeout(() => {
-                    if (timeout.current !== null)
-                        clusterStrokes(clusters, stopIteration);
-                }, 2000);
+                    clusterStrokes(clusters, stopIteration);
+                }, 1000);
                 return words;
             };
 
@@ -436,7 +391,6 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                         worker.postMessage({ lines: allLines, coords: [coord[0], coord[1]], findClosestLine: findClosestLine.toString() });
                     }
                     let length = 0;
-                    // Return promise
 
                     return new Promise((resolve, reject) => {
                         worker.onmessage = (e) => {
@@ -495,21 +449,20 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                                 }
                             }
 
-                            if (length === scrollCoords.length || (wordsOfInterest.length > 0 && length === scrollCoords.length)) {
-                                resolve(wordsOfInterest);
-                                processWords(wordsOfInterest);
-                            }
-
                             if (length === scrollCoords.length) {
+                                resolve(wordsOfInterest);
                                 worker.terminate();
                             }
                         };
                     });
                 };
+
                 let words = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.word").nodes().filter(word => {
                     return word.textContent.trim() !== "";
                 });
-                checkLineWords(words).then(words => {
+
+                checkLineWords(words)
+                .then(words => {
                     if (words.length === 0) {
                         let characters = d3.select(".react-pdf__Page.page-" + index)
                         .select(".textLayer")
@@ -518,7 +471,10 @@ export default function PenAnnotation({ content, index, tool, colour }) {
                             return word.textContent.trim() !== "";
                         });
 
-                        checkLineWords(characters);
+                        checkLineWords(characters)
+                        .then(char => processWords(char));
+                    } else {
+                        processWords(words);
                     }
                 });
             } else {
@@ -608,7 +564,7 @@ export default function PenAnnotation({ content, index, tool, colour }) {
             }
 
         };
-    }, [index, tool]);
+    }, [index, tool, onChange, clustersState, lockCluster]);
 
     useEffect(() => {
         d3.select(svgRef.current).html(content);
@@ -637,9 +593,38 @@ export default function PenAnnotation({ content, index, tool, colour }) {
         }
     }, [tool]);
 
+    function onClick(cluster) {
+        if (!lockCluster.find(c => c.strokes.find(stroke => {
+            if (!stroke.id || !cluster.strokes[0]) {
+                return false;
+            }
+
+            return stroke.id === cluster.strokes[0].id;
+        }))) {
+            let newCluster = new Cluster(cluster.strokes);
+            newCluster.lastestTimestamp = cluster.lastestTimestamp;
+            newCluster.open = cluster.open;
+            newCluster.x = cluster.x;
+            newCluster.y = cluster.y;
+            setLockCluster([...lockCluster, newCluster]);
+
+            penCluster.current.removeCluster(cluster);
+
+            let newClusters = [...clustersState];
+            let findCluster = newClusters.findIndex(c => c.strokes.find(stroke => stroke.id === cluster.strokes[0].id));
+
+            if (findCluster !== -1) {
+                newClusters.splice(findCluster, 1);
+            }
+            setClusters(newClusters);
+        }
+    }
+
     return (
         <div className={"pen-annotation-layer"} id={"layer-" + index}>
-            <svg ref={svgRef} width={"100%"} height={"100%"} />
+            <svg ref={svgRef} width={"100%"} height={"100%"} style={{ position: "absolute" }} />
+            
+            <Tooltip index={index} onClick={onClick} clusters={[...clustersState, ...lockCluster]} />
         </div>
     );
 };
