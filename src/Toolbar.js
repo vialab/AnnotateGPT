@@ -28,9 +28,11 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
     }, []);
 
     useEffect(() => {
-        d3.selectAll("#pen, #highlighter")
-        .on("click", function () {
-            d3.selectAll("#pen, #highlighter").classed("active", false);
+        let tools = d3.selectAll("#pen, #highlighter");
+        
+        tools
+        .on("click", function () {            
+            tools.classed("active", false);
             d3.select(this).classed("active", true);
 
             if (onToolChange instanceof Function)

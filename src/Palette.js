@@ -10,7 +10,7 @@ export default function Palette({ colour, onChange }) {
     let [ active, setActive ] = useState(false);
 
     useEffect(() => {
-        d3.select("body")
+        d3.select(".react-pdf__Document")
         .on("pointerdown", (e) => {
             if (e.srcElement.closest(".circle-picker")) 
                 return;
@@ -19,7 +19,7 @@ export default function Palette({ colour, onChange }) {
         });
 
         return () => {
-            d3.select("body").on("pointerdown", null);
+            d3.select(".react-pdf__Document").on("pointerdown", null);
         };
     }, []);
 
@@ -28,6 +28,7 @@ export default function Palette({ colour, onChange }) {
 
         d3.select(currentSvgRef)
         .on("click", (e) => {
+            e.preventDefault();
             e.stopPropagation();
             setActive(!active);
         });

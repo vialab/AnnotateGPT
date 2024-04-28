@@ -1,45 +1,56 @@
-function checkBoundingBoxes(box1, box2) {
-    let left1 = box1.x;
-    let right1 = box1.x + box1.width;
-    let top1 = box1.y;
-    let bottom1 = box1.y + box1.height;
+export function checkBoundingBoxes(box1, box2) {
+    // if (isEmpty() || w <= 0 || h <= 0) {
+    //     return false;
+    // }
+    // double x0 = getX();
+    // double y0 = getY();
+    // return (x + w > x0 &&
+    //         y + h > y0 &&
+    //         x < x0 + getWidth() &&
+    //         y < y0 + getHeight());
 
-    let left2 = box2.x;
-    let right2 = box2.x + box2.width;
-    let top2 = box2.y;
-    let bottom2 = box2.y + box2.height;
+    return (box2.x + box2.width > box1.x && box2.y + box2.height > box1.y && box2.x < box1.x + box1.width && box2.y < box1.y + box1.height);
 
-    let intersect = !(left1 > right2 || right1 < left2 || top1 > bottom2 || bottom1 < top2);
-    let box1ContainsBox2 = left1 <= left2 && right1 >= right2 && top1 <= top2 && bottom1 >= bottom2;
-    let box2ContainsBox1 = left2 <= left1 && right2 >= right1 && top2 <= top1 && bottom2 >= bottom1;
+    // let left1 = box1.x;
+    // let right1 = box1.x + box1.width;
+    // let top1 = box1.y;
+    // let bottom1 = box1.y + box1.height;
 
-    return intersect || box1ContainsBox2 || box2ContainsBox1;
+    // let left2 = box2.x;
+    // let right2 = box2.x + box2.width;
+    // let top2 = box2.y;
+    // let bottom2 = box2.y + box2.height;
+
+    // let intersect = !(box1.x > right2 || right1 < left2 || top1 > bottom2 || bottom1 < top2);
+
+    // return intersect;
 }
 
 
-function calculateMinDistance(box1, box2) {
+export function calculateMinDistance(box1, box2) {
     let dx2 = 0, dy2 = 0;
+    let box1ContainsBox2 = box1.x < box2.x && box1.x + box1.width > box2.x + box2.width && box1.y < box2.y && box1.y + box1.height > box2.y + box2.height;
+    let box2ContainsBox1 = box2.x < box1.x && box2.x + box2.width > box1.x + box1.width && box2.y < box1.y && box2.y + box2.height > box1.y + box1.height;
+    // console.log(box1, box2, checkBoundingBoxes(box1, box2), box1ContainsBox2, box2ContainsBox1);
+    // console.log((!checkBoundingBoxes(box1, box2) && !box1ContainsBox2) || box2ContainsBox1);
 
-    if (checkBoundingBoxes(box1, box2)) {
-        dx2 = Math.min(Math.pow(box1.x - (box2.x + box2.width), 2), Math.pow((box1.x + box1.width - box2.x), 2));
-        dy2 = Math.min(Math.pow(box1.y - (box2.y + box2.height), 2), Math.pow((box1.y + box1.height - box2.y), 2));
+    if (box1ContainsBox2 || box2ContainsBox1) {
+        // dx2 = Math.min(Math.pow(box1.x - (box2.x + box2.width), 2), Math.pow((box1.x + box1.width - box2.x), 2));
+        // dy2 = Math.min(Math.pow(box1.y - (box2.y + box2.height), 2), Math.pow((box1.y + box1.height - box2.y), 2));
+        dx2 = Math.min(Math.pow(box2.x - (box1.x + box1.width), 2), Math.pow(box1.x - (box2.x + box2.width), 2));
+        dy2 = Math.min(Math.pow(box2.y - (box1.y + box1.height), 2), Math.pow(box1.y - (box2.y + box2.height), 2));
+        return dx2 + dy2;
     } else {
-        let x_diff_1, x_diff_2, x_diff_3, x_diff_4;
-        x_diff_1 = Math.abs(box1.x - box2.x);
-        x_diff_2 = Math.abs(box1.x - (box2.x + box2.width));
-        x_diff_3 = Math.abs((box1.x + box1.width) - box2.x);
-        x_diff_4 = Math.abs((box1.x + box1.width) - (box2.x + box2.width));
-        
-        let y_diff_1, y_diff_2, y_diff_3, y_diff_4;
-        y_diff_1 = Math.abs(box1.y - box2.y);
-        y_diff_2 = Math.abs(box1.y - (box2.y + box2.height));
-        y_diff_3 = Math.abs((box1.y + box1.height) - box2.y);
-        y_diff_4 = Math.abs((box1.y + box1.height) - (box2.y + box2.height));
-        
-        dx2 = Math.pow(Math.min(x_diff_1, x_diff_2, x_diff_3, x_diff_4), 2);
-        dy2 = Math.pow(Math.min(y_diff_1, y_diff_2, y_diff_3, y_diff_4), 2);
+        const a = box1;
+        const b = box2;
+        const deltas = [a.x - b.x - b.width, a.y - b.y - b.height, b.x - a.x - a.width, b.y - a.y - a.height];
+
+        const sum = deltas.reduce((total, d) => {
+            return d > 0 ? total + d ** 2 : total;
+        }, 0);
+
+        return sum;
     }
-    return dx2 + dy2;
 }
 
 export class Cluster {
@@ -76,12 +87,17 @@ export class Cluster {
 }
 
 class Stroke {
-    constructor(id, bbox, time, text = "") {
+    constructor(id, bbox, type, time, text = "", marginalText = "", textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
         this.startTime = time;
-        this.endTime = Date.now();
+        this.type = type;
+        this.endTime = id === "initial" ? 0 : Date.now();
         this.id = id;
         this.bbox = Stroke.normalizeBoundingBox(bbox);
         this.annotatedText = text;
+        this.marginalText = marginalText;
+        this.textBbox = Stroke.normalizeBoundingBox(textBbox);
+        this.marginalTextBbox = Stroke.normalizeBoundingBox(marginalTextBbox);
+        this.lineBbox = Stroke.normalizeBoundingBox(lineBbox);
     }
 
     static normalizeBoundingBox(bb) {
@@ -93,17 +109,16 @@ class Stroke {
     }
 }
 
-
 export default class PenCluster {
     constructor() {
-        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, Date.now(), "")];
+        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, "intital", 0, "")];
         this.stopIteration = [];
         this.history = [];
     }
 
-    add(id, bbox, time, text = "") {
+    add(id, bbox, type, time, text = "", marginalText = "", textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
         // console.clear();
-        this.strokes.push(new Stroke(id, bbox, time, text));
+        this.strokes.push(new Stroke(id, bbox, type, time, text, marginalText, textBbox, marginalTextBbox, lineBbox));
         return this.update();
     }
 
@@ -167,7 +182,8 @@ export default class PenCluster {
 
     removeCluster(cluster) {
         for (let stroke of cluster.strokes) {
-            this.remove(stroke.id);
+            if (stroke.id !== "initial")
+                this.remove(stroke.id);
         }
         this.update();
         this.history = this.history.filter(clusters => clusters.length > 0);

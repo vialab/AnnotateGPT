@@ -19,7 +19,8 @@
     display: flex;
     align-items: center;
     height: 90px;
-    overflow: hidden;
+    overflow: visible;
+    pointer-events: none;
 }
 
 .palette-container {
@@ -35,11 +36,12 @@
 }
 
 .toolbar svg {
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 #pen {
     transform: translateX(var(--pen-offset));
+    filter: drop-shadow( 5px 10px 1px rgba(0, 0, 0, .2));
 }
 
 #pen.hover, #pen.active {
@@ -48,12 +50,18 @@
 
 #highlighter {
     transform: translateX(var(--highlighter-offset));
+    filter: drop-shadow( 5px 10px 1px rgba(0, 0, 0, .2));
 }
 
 #highlighter.hover, #highlighter.active {
     transform: translateX(calc(var(--highlighter-offset) + var(--offset-active)));
 }
 
+#palette {
+    filter: drop-shadow( 5px 10px 1px rgba(0, 0, 0, .2));
+}
+
 #palette.hover {
     transform: scale(1.05);
+    filter: drop-shadow( 0px 10px 3px rgba(0, 0, 0, .2));
 }
