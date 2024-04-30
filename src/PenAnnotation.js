@@ -183,6 +183,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
     const lockClusterRef = useRef(lockCluster);
     const hoveredCluster = useRef(null);
     const hoverTimeout = useRef(null);
+    const activeCluster = useRef(null);
 
     const handleHover = useCallback(e => {
         if (e.buttons === 0 && e.button === -1) {
@@ -210,6 +211,12 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             }
 
             if (closestCluster) {
+                let id = closestCluster.strokes[closestCluster.strokes.length - 1].id;
+                let findClosestCluster = lockClusterRef.current.find(cluster => cluster.strokes.find(stroke => stroke.id === id));
+
+                if (findClosestCluster?.open) {
+                    return;
+                }
                 let lastStroke = closestCluster.strokes[closestCluster.strokes.length - 1];
                 let closestBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
 
@@ -224,7 +231,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                     }
                 }
                 
-                if (hoveredCluster.current !== lastStroke.id) {
+                if (hoveredCluster.current !== lastStroke.id && activeCluster.current?.strokes[activeCluster.current.strokes.length - 1].id !== lastStroke.id) {
                     clearTimeout(hoverTimeout.current);
 
                     hoverTimeout.current = setTimeout(() => {
@@ -278,6 +285,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                                 onNewActiveCluster(null);
                             }
                         }
+                        activeCluster.current = closestCluster;
                         setClusters([...clustersRef.current]);
                         setLockCluster([...lockClusterRef.current]);
                     }, 1000);
@@ -355,7 +363,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             }
             setClusters([...clustersRef.current]);
             setLockCluster([...lockClusterRef.current]);
-            hoveredCluster.current = null;
+            activeCluster.current = null;
             
             if (onNewActiveCluster instanceof Function)
                 onNewActiveCluster(null);
@@ -366,7 +374,16 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
         svgPenSketch.current._element
         .on("pointermove.hover", (e) => {
             handleHover(e);
+        })
+        .on("pointerleave.hover", () => {
+            clearTimeout(hoverTimeout.current);
         });
+
+        return () => {
+            svgPenSketch.current._element
+            .on("pointermove.hover", null)
+            .on("pointerleave.hover", null);
+        };
     }, [handleHover]);
 
     useEffect(() => {
@@ -471,6 +488,8 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             .duration(1000)
             .attr("opacity", 0)
             .remove();
+
+            activeCluster.current = null;
 
             if (onNewActiveCluster instanceof Function)
                 onNewActiveCluster(null);
@@ -673,9 +692,6 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                         return calculateMinDistance(pathBbox, {x: x1, y: y1, width: x2 - x1, height: y2 - y1});
 
                     });
-
-                    console.log(distances);
-
                     let closestParagraph = paragraphs.current[distances.indexOf(d3.min(distances))];
                     let y1 = d3.min(closestParagraph.map(line => d3.min(line.map(word => word.getBoundingClientRect().top - pageTop))));
                     let y2 = d3.max(closestParagraph.map(line => d3.max(line.map(word => word.getBoundingClientRect().bottom - pageTop))));
@@ -1028,6 +1044,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             }
             setClusters(newClusters);
             clustersRef.current = newClusters;
+            activeCluster.current = newCluster;
 
             if (onNewActiveCluster instanceof Function)
                 onNewActiveCluster(newCluster);
@@ -1036,6 +1053,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                 c.open = false;
             }
             cluster.open = true;
+            activeCluster.current = cluster;
 
             if (onNewActiveCluster instanceof Function)
                 onNewActiveCluster(cluster);

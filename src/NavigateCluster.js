@@ -36,7 +36,7 @@ export default function NavigateCluster({ cluster, annotations }) {
 
             let distances = annotationsRef.current.map(annotation => {
                 let y = d3.mean(annotation.spans.map(span => {
-                    if (span.classList.contains("toolTip")) {
+                    if (span.classList?.contains("toolTip")) {
                         span = d3.select("g.toolTip#" + span.id).node();
                     }
                     return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
@@ -49,7 +49,7 @@ export default function NavigateCluster({ cluster, annotations }) {
 
             if (prevAnnotation && distances[i] !== Infinity) {
                 let y = d3.mean(prevAnnotation.spans.map(span => {
-                    if (span.classList.contains("toolTip")) {
+                    if (span.classList?.contains("toolTip")) {
                         span = d3.select("g.toolTip#" + span.id).node();
                     }
                     return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
@@ -65,7 +65,7 @@ export default function NavigateCluster({ cluster, annotations }) {
     
             if (annotation) {
                 let yCoord = d3.mean(annotation.map(span => {
-                    if (span.classList.contains("toolTip")) {
+                    if (span.classList?.contains("toolTip")) {
                         span = d3.select("g.toolTip#" + span.id).node();
                     }
                     return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
@@ -86,7 +86,7 @@ export default function NavigateCluster({ cluster, annotations }) {
 
             let distances = annotationsRef.current.map(annotation => {
                 let y = d3.mean(annotation.spans.map(span => {
-                    if (span.classList.contains("toolTip")) {
+                    if (span.classList?.contains("toolTip")) {
                         span = d3.select("g.toolTip#" + span.id).node();
                     }
                     return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
@@ -115,7 +115,7 @@ export default function NavigateCluster({ cluster, annotations }) {
     
             if (annotation) {
                 let yCoord = d3.mean(annotation.map(span => {
-                    if (span.classList.contains("toolTip")) {
+                    if (span.classList?.contains("toolTip")) {
                         span = d3.select("g.toolTip#" + span.id).node();
                     }
                     return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
@@ -133,7 +133,7 @@ export default function NavigateCluster({ cluster, annotations }) {
     let findIndex = () =>{
         let distances = annotationsRef.current.map(annotation => {
             let y = d3.mean(annotation.spans.map(span => {
-                if (span.classList.contains("toolTip")) {
+                if (span.classList?.contains("toolTip")) {
                     span = d3.select("g.toolTip#" + span.id).node();
                 }
                 return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
@@ -142,32 +142,34 @@ export default function NavigateCluster({ cluster, annotations }) {
         }).map(d => d <= 0 ? Infinity : d);
 
         index.current = distances.indexOf(Math.min(...distances));
+        resetIndex.current = true;
 
-        if (index.current === 0) {
-            let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
-                if (span.classList.contains("toolTip")) {
-                    span = d3.select("g.toolTip#" + span.id).node();
-                }
-                return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-            }));
-            let distance = Math.floor(window.innerHeight / 2 - Math.round(y));
+        //if (index.current === 0) {
+        //    let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
+        //        if (span.classList?.contains("toolTip")) {
+        //            span = d3.select("g.toolTip#" + span.id).node();
+        //        }
+        //        return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //    }));
+        //    let distance = Math.floor(window.innerHeight / 2 - Math.round(y));
 
-            if (distance > 0) {
-                index.current = 1;
-            }
-        } else if (index.current === annotationsRef.current.length - 1 && annotationsRef.current.length > 0) {
-            let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
-                if (span.classList.contains("toolTip")) {
-                    span = d3.select("g.toolTip#" + span.id).node();
-                }
-                return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-            }));
-            let distance = Math.floor(Math.round(y) - window.innerHeight / 2);
+        //    if (distance > 0) {
+        //        index.current = 1;
+        //        console.log("here");
+        //    }
+        //} else if (index.current === annotationsRef.current.length - 1 && annotationsRef.current.length > 0) {
+        //    let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
+        //        if (span.classList?.contains("toolTip")) {
+        //            span = d3.select("g.toolTip#" + span.id).node();
+        //        }
+        //        return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //    }));
+        //    let distance = Math.floor(Math.round(y) - window.innerHeight / 2);
 
-            if (distance > 0) {
-                index.current = annotationsRef.current.length - 2;
-            }
-        }
+        //    if (distance > 0) {
+        //        index.current = annotationsRef.current.length - 2;
+        //    }
+        //}
 
         if (window.scrollY === 0) {
             index.current = 0;
@@ -203,9 +205,10 @@ export default function NavigateCluster({ cluster, annotations }) {
             let tooltip = d3.select("g.toolTip#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
             tAnnotations.push({ spans: [tooltip] });
         }
+
         let sortAnnotations = tAnnotations.sort((a, b) => {
-            let aY = d3.mean(a.spans.map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2));
-            let bY = d3.mean(b.spans.map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2));
+            let aY = d3.mean(a.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + window.scrollY));
+            let bY = d3.mean(b.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + window.scrollY));
             return aY - bY;
         });
         annotationsRef.current = sortAnnotations;

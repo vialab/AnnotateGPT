@@ -34,6 +34,7 @@ export default function App() {
 
     const svgContent = useRef([]);
     const annotationToolTipRef = useRef(null);
+    const explanationToolTipRef = useRef(null);
     
     const textContent = useRef([]);
     const annotatedTokens = useRef([]);
@@ -54,7 +55,7 @@ export default function App() {
                 <Page
                     key={`page_${index + 1}`}
                     pageNumber={index + 1}
-                    width={window.innerWidth - 450 * 2}
+                    width={window.innerWidth - 400 * 2}
                     onRenderTextLayerSuccess={() => onLoad(index + 1)}
                     className={`page-${index + 1}`}
                 >
@@ -156,17 +157,22 @@ export default function App() {
         }
     }
 
-    function setUpAnnotations(purpose, onDetect, onEnd) {
+    function setUpAnnotations(annotationDescription, purposeTitle, purpose, onDetect, onEnd) {
         rawAnnotationOutput.current.push({ output: "" });
         let index = rawAnnotationOutput.current.length - 1;
         let setUpAnnotatedTokens = [];
+        let cutIndex = [];
         let done = 0;
         let finish = false;
+        let prevToken = "";
+
+        annotatedTokens.current.push({annotationDescription: annotationDescription, purposeTitle: purposeTitle, purpose: purpose, annotations: setUpAnnotatedTokens});
 
         function handleToken(token) {
             rawAnnotationOutput.current[index].output += token;
 
-            if (token.trim() === `"""` || token.trim().startsWith(`"""`) || token.trim().endsWith(`"""`)){
+            if (token.trim().startsWith(`"""`) || token.trim().endsWith(`"""`) || (prevToken + token).trim().startsWith(`"""`) || (prevToken + token).trim().endsWith(`"""`)) {
+                prevToken = "";
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
                 if (lastToken?.state === "start") {
@@ -176,7 +182,7 @@ export default function App() {
                     let callback = (result) => {
                         done++;
                         // console.log(result);
-                        // console.log("Done", done, setUpAnnotatedTokens.length, finish);
+                        // console.log("Done", done, cutIndex.length, setUpAnnotatedTokens.length, finish);
 
                         if (result instanceof Array) {
                             lastToken.spans = result;
@@ -188,11 +194,8 @@ export default function App() {
                             console.log(result);
                         }
 
-                        if (done === setUpAnnotatedTokens.length && finish) {
-                            console.log("Finished annotating", setUpAnnotatedTokens);
-                            if (onEnd instanceof Function) {
-                                onEnd();
-                            }
+                        if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
+                            handleEnd();
                         }
                     };
 
@@ -207,40 +210,76 @@ export default function App() {
                         
                         // Cut any overlapping sentences
                         if (sentence.includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, ""))) {
-                            setUpAnnotatedTokens.splice(setUpAnnotatedTokens.length - 1, 1);
+                            cutIndex.push([setUpAnnotatedTokens.length - 1, i]);
                             return;
                         } else if (lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "").includes(sentence)) {
-                            lastToken.sentence = lastToken.sentence.replace(/[^a-zA-Z0-9\s]/g, "").replace(sentence, "").trim();
+                            cutIndex.push([setUpAnnotatedTokens.length - 1, i]);
+                            return;
                         }
                     }
                     annotate(lastToken.sentence.trim(), callback);
                 } else {
-                    setUpAnnotatedTokens.push({ sentence: "", state: "start" });
+                    setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: "Generating explanation...", explain: false});
                 }
+            } else if (token.trim().startsWith(`{{{`) || token.trim().endsWith(`{{{`) || (prevToken + token).trim().startsWith(`{{{`) || (prevToken + token).trim().endsWith(`{{{`)) {
+                let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
+
+                if (lastToken) {
+                    lastToken.explain = true;
+                    lastToken.explanation = "";
+                }
+                prevToken = "";
+            } else if (token.trim().startsWith(`}}}`) || token.trim().endsWith(`}}}`) || (prevToken + token).trim().startsWith(`}}}`) || (prevToken + token).trim().endsWith(`}}}`)) {
+                let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
+
+                if (lastToken) {
+                    lastToken.explain = false;
+
+                    if ((lastToken.explanation + token).trim().endsWith("}}}")) {
+                        lastToken.explanation = (lastToken.explanation + token).trim().slice(0, -3);
+                    }
+                }
+                prevToken = "";
             } else {
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
                 if (lastToken?.state === "start") {
                     lastToken.sentence += token;
+                } else if (lastToken?.explain === true) {
+                    lastToken.explanation += token;
                 }
+                prevToken = token;
             }
         }
 
         function handleEnd() {
-            if (done === setUpAnnotatedTokens.length) {
+            finish = true;
+
+            if (done + cutIndex.length === setUpAnnotatedTokens.length) {
                 console.log("Finished annotating", setUpAnnotatedTokens);
+                
+                for (let index of cutIndex.reverse()) {
+                    if (setUpAnnotatedTokens[index[1]].explanation === "Generating explanation...") {
+                        setUpAnnotatedTokens[index[1]].explanation = setUpAnnotatedTokens[index[0]].explanation;
+                    }
+                    setUpAnnotatedTokens.splice(index[0], 1);
+                }
+
+                for (let token of setUpAnnotatedTokens) {
+                    if (token.explanation === "Generating explanation...") {
+                        token.explanation = "";
+                    }
+                }
+
                 if (onEnd instanceof Function) {
                     onEnd();
                 }
             }
-            annotatedTokens.current.push(setUpAnnotatedTokens);
-
             console.log(annotatedTokens.current);
             console.log(rawAnnotationOutput.current[index].output);
-            finish = true;
         }
-
-        findAnnotations(purpose, handleToken, handleEnd);
+        let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}": "${purpose}"`;
+        findAnnotations(p, handleToken, handleEnd);
     }
     
     function findMostSimilarSubstring() {
@@ -572,7 +611,7 @@ export default function App() {
                         let span = listOfSpans[i];
     
                         d3.select(span)
-                        .style("background-color", "rgba(252,232,151,1)");
+                        .classed("highlighted", true);
     
                         let space = d3.select(span).node().nextSibling;
 
@@ -582,7 +621,7 @@ export default function App() {
     
                         if (space !== null && space.classList.contains("space") && i !== listOfSpans.length - 1) {
                             d3.select(space)
-                            .style("background-color", "rgba(252,232,151,1)");
+                            .classed("highlighted", true);
                         }
                     }
                     
@@ -621,6 +660,7 @@ export default function App() {
                 let nextPageSlice = nextPage.slice(0, text.length);
                 let fullPage = currPageSlice + " " + nextPageSlice;
                 // console.log(fullPage);
+                fullPage = fullPage.replace(/[^a-zA-Z0-9\s]/g, "");
 
                 executed++;
                 worker.postMessage({ text: fullPage, target: text.toLowerCase(), sameLength: false, index: i });
@@ -632,6 +672,8 @@ export default function App() {
                 if (pageText === "") {
                     continue;
                 }
+                pageText = pageText.replace(/\s+/g, " ");
+
                 executed++;
                 worker.postMessage({ text: pageText, target: text.toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""), sameLength: true, index: i });
             }
@@ -718,6 +760,20 @@ export default function App() {
                             }
 
                             if (wordIndex === substringWords.length) {
+                                for (let j = i + 1; j < wordSpans.length; j++) {
+                                    let nextSpan = wordSpans[j];
+                                    let nextTextContent = nextSpan.textContent.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
+
+                                    if (nextTextContent.trim() === "") {
+                                        break;
+                                    }
+
+                                    if (text.includes(nextTextContent)) {
+                                        listOfSpans.push(nextSpan);
+                                    } else {
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                             word = substringWords[wordIndex].replace(/[^a-zA-Z0-9]/g, "");
@@ -726,7 +782,7 @@ export default function App() {
 
                         for (let span of listOfSpans) {
                             d3.select(span)
-                            .style("background-color", "rgba(252,232,151,1)");
+                            .classed("highlighted", true);
         
                             let space = d3.select(span).node().nextSibling;
 
@@ -736,7 +792,7 @@ export default function App() {
         
                             if (space !== null && (space.classList.contains("space")) && span !== listOfSpans[listOfSpans.length - 1]) {
                                 d3.select(space)
-                                .style("background-color", "rgba(252,232,151,1)");
+                                .classed("highlighted", true);
                             }
                         }
                         
@@ -810,13 +866,13 @@ export default function App() {
                         
                         for (let span of highLightSpans) {
                             d3.select(span)
-                            .style("background-color", "rgba(252,232,151,1)");
+                            .classed("highlighted", true);
     
                             let space = d3.select(span).node().nextSibling;
     
                             if (space !== null && space.classList.contains("space")) {
                                 d3.select(space)
-                                .style("background-color", "rgba(252,232,151,1)");
+                                .classed("highlighted", true);
                             }
                         }
                         
@@ -901,36 +957,110 @@ export default function App() {
         };
     }, [activeCluster]);
 
-    // useEffect(() => {
-    //     function onScroll() {
-    //         if (lastCluster !== null) {
-    //             let lastStroke = lastCluster.strokes[lastCluster.strokes.length - 1];
-    //             let lastStrokeID = lastStroke.id;
+    const explainTooltipTimeout = useRef(null);
+    const hoverAnnotation = useRef(null);
 
-    //             if (!d3.select(`path[id="${lastStrokeID}"]`).empty()) {
-    //                 let lastStrokeBbox = d3.select(`path[id="${lastStrokeID}"]`).node().getBoundingClientRect();
-    //                 let right = d3.select(".react-pdf__Page__canvas")
-    //                 .node()
-    //                 .getBoundingClientRect().right;
+    useEffect(() => {
+        d3.select("body")
+        .on("pointermove", (e) => {
+            let [x, y] = [e.clientX, e.clientY];
 
-    //                 d3.select("#toolTipcanvas")
-    //                 .select("rect")
-    //                 .attr("x", right + 12)
-    //                 .attr("y", (lastStrokeBbox.y + (lastStrokeBbox.height) / 2) - 12);
-    //             }
-    //         }
-    //     }
-    //     document.addEventListener("scroll", onScroll);
+            for (let annotations of annotatedTokens.current) {
+                for (let annotation of annotations.annotations) {
+                    if (annotation.spans) {
+                        for (let span of annotation.spans) {
+                            if (span) {
+                                let rect = span.getBoundingClientRect();
+                                let x1 = rect.left - 5;
+                                let x2 = rect.right + 5;
+                                let y1 = rect.top - 5;
+                                let y2 = rect.bottom + 5;
+        
+                                if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
+                                    if (hoverAnnotation.current !== annotation) {
+                                        let closestTextLayer = span.closest(".textLayer");
+                                        hoverAnnotation.current = annotation;
+                                        clearTimeout(explainTooltipTimeout.current);
+            
+                                        let content = <div style={{ maxWidth: "200px", textAlign: "center", userSelect: "none" }}>
+                                            {annotation.explanation && annotation.explanation.trim() !== "" ? annotation.explanation : `${annotations.annotationDescription}${annotations.annotationDescription.endsWith(".") ? "" : "."} ${annotations.purpose}`}
+                                        </div>;
+                                        explanationToolTipRef.current?.close();
+                                        
+                                        explainTooltipTimeout.current = setTimeout(() => {
 
-    //     return () => {
-    //         d3.select("#toolTipcanvas")
-    //         .select("rect")
-    //         .on("pointerover", null)
-    //         .on("pointerout", null);
+                                            d3.selectAll(".word.highlighted, .space.highlighted")
+                                            .transition()
+                                            .duration(500)
+                                            .style("background", "rgba(252, 232, 151, 0.3)");
 
-    //         document.removeEventListener("scroll", onScroll);
-    //     };
-    // }, [lastCluster]);
+                                            for (let span of annotation.spans) {
+                                                d3.select(span)
+                                                .transition()
+                                                .duration(500)
+                                                .style("background", "rgba(252, 232, 151, 1)");
+
+                                                let space = d3.select(span).node().nextSibling;
+
+                                                if (space === null) {
+                                                    space = span.parentNode.nextSibling?.firstChild;
+                                                }
+                            
+                                                if (space !== null && space.classList.contains("space")) {
+                                                    d3.select(space)
+                                                    .classed("highlighted", true)
+                                                    .transition()
+                                                    .duration(500)
+                                                    .style("background", "rgba(252, 232, 151, 1)");
+                                                }
+                                            }
+
+                                            explanationToolTipRef.current?.open({
+                                                position: {
+                                                    x: closestTextLayer.getBoundingClientRect().left - 10,
+                                                    y: d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)),
+                                                },
+                                                content: content,
+                                                place: "left",
+                                            });
+                                        }, 1000);
+                                    }
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (hoverAnnotation.current !== null) {
+                d3.selectAll(".word.highlighted, .space.highlighted")
+                .transition()
+                .duration(500)
+                .style("background", "rgba(252, 232, 151, 1)");
+            }
+
+            hoverAnnotation.current = null;
+            clearTimeout(explainTooltipTimeout.current);
+            explanationToolTipRef.current?.close();
+        })
+        .on("pointerleave", () => {
+            hoverAnnotation.current = null;
+            clearTimeout(explainTooltipTimeout.current);
+            explanationToolTipRef.current?.close();
+
+            d3.selectAll(".word.highlighted, .space.highlighted")
+            .transition()
+            .duration(500)
+            .style("background", "rgba(252, 232, 151, 1)");
+        });
+
+        return () => {
+            d3.select("body")
+            .on("pointermove", null)
+            .on("pointerleave", null);
+        };
+    }, []);
 
     return (
         <>
@@ -969,6 +1099,14 @@ export default function App() {
                 style={{ zIndex: "1000" }}
                 place={"left"}
                 ref={annotationToolTipRef}
+                imperativeModeOnly={true}
+            />
+
+            <Tooltip 
+                // id="annotationDescription"
+                style={{ zIndex: "1000" }}
+                place={"left"}
+                ref={explanationToolTipRef}
                 imperativeModeOnly={true}
             />
             { loading ? <Loading /> : null}

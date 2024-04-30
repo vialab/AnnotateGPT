@@ -45,7 +45,7 @@
 
 .navigationContainer.disabled .button-55 {
     border: 1px solid rgb(184, 64, 94);
-    cursor: not-allowed;
+    pointer-events: none !important;
 }
 
 .navigationContainer {
@@ -56,10 +56,6 @@
     position: absolute;
     transition: opacity 1s ease-in-out;
     pointer-events: all;
-}
-
-.navigationContainer.disabled svg {
-    pointer-events: none;
 }
 
 .navigationContainer::before {

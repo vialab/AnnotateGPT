@@ -284,7 +284,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
             });
         });
 
-        console.log(lastCluster)
+        console.log(lastCluster);
         
         let [annotation, pageAll] = await Promise.all([cropAnnotation, pageImage]);
         let response = await makeInference(annotation, pageAll, type, annotatedText);
@@ -314,7 +314,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 40))
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
                 .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.length} annotations`);
             },
             exit => exit
@@ -777,7 +777,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                     .duration(1000)
                     .attr("opacity", 0.1);
                 
-                    for (let stroke of cluster.strokes) {
+                    for (let stroke of cluster?.strokes) {
                         let path = d3.select(`path[id="${stroke.id}"]`);
 
                         if (!path.empty()) {
@@ -831,7 +831,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                     .duration(1000)
                     .attr("opacity", 1);
                 
-                    for (let stroke of cluster.strokes) {
+                    for (let stroke of cluster?.strokes) {
                         let path = d3.select(`path[id="${stroke.id}"]`);
 
                         if (!path.empty()) {
@@ -978,7 +978,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             let cluster = clusterRef.current[k];
 
                             if (cluster.purpose) {
-                                let content = <div style={{ maxWidth: "200px", textAlign: "center" }}>
+                                let content = <div style={{ maxWidth: "200px", textAlign: "center", userSelect: "none" }}>
                                     {cluster.purpose.purpose[i * 2 + j]?.purpose}
                                 </div>;
 
@@ -1032,10 +1032,10 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             };
 
                             if (setUpAnnotations instanceof Function) {
-                                let purpose = `${clusterRef.current[k].purpose.annotationDescription}. "${clusterRef.current[k].searching.purposeTitle}": "${clusterRef.current[k].searching.purpose}"`;
-                                setUpAnnotations(purpose, onDetect, onEnd);
+                                setUpAnnotations(clusterRef.current[k].purpose.annotationDescription, clusterRef.current[k].searching.purposeTitle, clusterRef.current[k].searching.purpose, onDetect, onEnd);
                             }
                             updateTooltips(clusterRef.current);
+                            toolTipRef.current?.close();
                         });
 
                         tooltip
@@ -1121,7 +1121,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         };
 
                         if (setUpAnnotations instanceof Function) {
-                            setUpAnnotations(this.value, onDetect, onEnd);
+                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, this.value, "", onDetect, onEnd);
                         }
                         updateTooltips(clusterRef.current);
                     }
@@ -1139,7 +1139,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 120) - glassBBox.height / 2 - padding)
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140) - glassBBox.height / 2 - padding)
                 .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
                 .selectAll("*")
                 .attr("transform", null)
@@ -1163,13 +1163,24 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
 
                 annotateStatus
                 .append("tspan")
-                .classed("lookingFor", true)
+                .classed("lookingFor1", true)
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 40))
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
                 .attr("dy", "0em")
-                .text((d, i) => (clusterRef.current[i].annotating === false)  ? `Done looking for "${clusterRef.current[i].searching ? clusterRef.current[i].searching.purposeTitle : ""}"` : `Looking for "${clusterRef.current[i].searching ? clusterRef.current[i].searching.purposeTitle : ""}"`)
+                .text((d, i) => (clusterRef.current[i].annotating === false)  ? `Done looking for` : `Looking for`)
+                .style("pointer-events", "none");
+
+                annotateStatus
+                .append("tspan")
+                .classed("lookingFor2", true)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .attr("dy", "1.2em")
+                .text((d, i) => `"${clusterRef.current[i].searching?.purposeTitle}"`)
                 .style("pointer-events", "none");
 
                 annotateStatus
@@ -1178,15 +1189,54 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 40))
-                .attr("dy", "1.2em")
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .attr("dy", "3em")
                 .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.length} annotations`)
                 .style("pointer-events", "none");
+
+                annotateStatus
+                .append("tspan")
+                .classed("navagation", true)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .attr("dy", "8em")
+                .style("font-style", "italic")
+                .text("Navigate found annotations with the arrows")
+                .style("pointer-events", "none")
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0);
+
+                tooltip
+                .append("text")
+                .classed("annotationCount", true)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + toolTipSize / 2;
+                })
+                .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2 + 1)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("font-size", "16px")
+                .attr("fill", "white")
+                .style("font-family", "cursive")
+                .style("pointer-events", "none")
+                .text((d, i) => clusterRef.current[i].annotationsFound?.length);
             },
 
             update => {
                 let padding = 12;
                 let topPadding = 40;
+
+                update
+                .select(".annotationCount")
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + toolTipSize / 2;
+                })
+                .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2 + 1)
+                .style("opacity", (d, i) => (clusterRef.current[i].annotating === false && !clusterRef.current[i].open) ? 1 : 0)
+                .text((d, i) => clusterRef.current[i].annotationsFound?.length);
 
                 let annotationStatus = update
                 .select("text.annotateStatus");
@@ -1208,18 +1258,28 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 })
                 .attr("y", function() {
                     let i = index.get(this);
-                    return (clusterRef.current[i].y + 16 + 40);
+                    return (clusterRef.current[i].y + 16 + 10);
                 });
 
                 annotationStatus
-                .select("tspan.lookingFor")
+                .select("tspan.lookingFor1")
                 .transition()
                 .duration(1000)
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 40))
-                .text((d, i) => (clusterRef.current[i].annotating === false)  ? `Done looking for "${clusterRef.current[i].searching ? clusterRef.current[i].searching.purposeTitle : ""}"` : `Looking for "${clusterRef.current[i].searching ? clusterRef.current[i].searching.purposeTitle : ""}"`);
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .text((d, i) => (clusterRef.current[i].annotating === false)  ? `Done looking for` : `Looking for`);
+
+                annotationStatus
+                .select("tspan.lookingFor2")
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .text((d, i) => `"${clusterRef.current[i].searching?.purposeTitle}"`);
 
                 annotationStatus
                 .select("tspan.annotationFound")
@@ -1228,8 +1288,19 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 40))
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
                 .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.length} annotations`);
+
+                annotationStatus
+                .select("tspan.navagation")
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .transition()
+                .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
+                .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0);
 
                 let glass = d3.select(".glass-wrapper")
                 .node();
@@ -1245,7 +1316,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 120) - glassBBox.height / 2 - padding)
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140) - glassBBox.height / 2 - padding)
                 .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0);
 
                 update
@@ -1298,7 +1369,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         };
 
                         if (setUpAnnotations instanceof Function) {
-                            setUpAnnotations(this.value, onDetect, onEnd);
+                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, this.value, "", onDetect, onEnd);
                         }
                         updateTooltips(clusterRef.current);
                     }
@@ -1323,7 +1394,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             let cluster = clusterRef.current[k];
 
                             if (cluster.purpose) {
-                                let content = <div style={{ maxWidth: "200px", textAlign: "center" }}>
+                                let content = <div style={{ maxWidth: "200px", textAlign: "center", userSelect: "none" }}>
                                     {cluster.purpose.purpose[i * 2 + j]?.purpose}
                                 </div>;
                                 
@@ -1363,7 +1434,6 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             const cluster = clusterRef.current[k];
 
                             let onDetect = (result) => {
-                                console.log(clusterRef.current[k], k);
                                 cluster.annotationsFound.push(result);
                                 updateTextTooltips(clusterRef.current);
 
@@ -1378,10 +1448,10 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             };
 
                             if (setUpAnnotations instanceof Function) {
-                                let purpose = `${clusterRef.current[k].purpose.annotationDescription}. "${clusterRef.current[k].searching?.purposeTitle}": "${clusterRef.current[k].searching?.purpose}"`;
-                                setUpAnnotations(purpose, onDetect, onEnd);
+                                setUpAnnotations(clusterRef.current[k].purpose.annotationDescription, clusterRef.current[k].searching.purposeTitle, clusterRef.current[k].searching.purpose, onDetect, onEnd);
                             }
                             updateTooltips(clusterRef.current);
+                            toolTipRef.current?.close();
                         })
                         .transition()
                         .duration(1000)

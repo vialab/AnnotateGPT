@@ -41,6 +41,10 @@ hr {
     background-color: #f5f5f5;
 }
 
+.word.highlighted, .space.highlighted {
+    background: rgba(252, 232, 151, 1);
+}
+
 .character {
     user-select: none;
 }

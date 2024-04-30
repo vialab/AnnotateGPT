@@ -45,7 +45,7 @@ const assistantID = process.env.REACT_APP_ASSISTANT_ID;
 export async function findAnnotations(purpose, callback, endCallback) {
     console.log(purpose);
 
-    for (let token of data.test5) {
+    for (let token of data.test9) {
         // console.log(token);
         await new Promise(r => setTimeout(r, 20));
 
@@ -72,9 +72,11 @@ Here is a step-by-step list for annotating a document:
 1. Retrieve the first section
 2. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
 3. Make a list of sentences for the section using the following format:
- - """ <put sentence here> """
- - """ <put sentence here> """
- - ...
+   """ <put sentence here> """
+   {{{ <put explanation here> }}}
+   """ <put sentence here> """
+   {{{ <put explanation here> }}}
+   ...
 4 Continue to the next section and repeat steps 1-4 for the next section until the end
 
 Lets work in a step by step way to be sure we have all the sentences`
@@ -83,44 +85,44 @@ Lets work in a step by step way to be sure we have all the sentences`
         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
 `Here are some additional sentences that embody the core principle of "Clarify Academic Focus" by aiming to refine content to more effectively convey the primary focus of the work:
 1. """The focus of this thesis is on introducing another way to use a camera, making it less obstructive and interruptive to create a more immersive and fluent experience."""
-- This sentence succeeds in specifying the academic focus but might benefit from an expanded description of how the proposed method makes camera use less obstructive.
+- {{{ This sentence succeeds in specifying the academic focus but might benefit from an expanded description of how the proposed method makes camera use less obstructive. }}}
 2. """The solution presented is to remove the display entirely to hide any distractions and mount the camera where the user does not need to reach for it."""
-- This sentence outlines a key part of the thesis' innovation but could be framed better to highlight how it contributes uniquely to advancing user experience in camera usage.
+- {{{ This sentence outlines a key part of the thesis' innovation but could be framed better to highlight how it contributes uniquely to advancing user experience in camera usage. }}}
 I will continue reading for more sentences that align with the request. Let's scroll further.`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
 `Continuing, I found another set of sentences that align with the purpose of "Clarify Academic Focus":
 1. """Achieving the most immersive experience would require the user not to look at any display."""
-- While this asserts an immersive experience, a clarification such as, “Aiming for an immersive hands-free interface, the device removes all visual displays requiring user interaction” might centralize the focus on a hands-free approach more explicitly.
+- {{{ While this asserts an immersive experience, a clarification such as, “Aiming for an immersive hands-free interface, the device removes all visual displays requiring user interaction” might centralize the focus on a hands-free approach more explicitly. }}}
 2. """Combining eye tracking with image processing algorithms can provide more context and detail making different camera modes possible without needing a display or touching any devices."""
-- This sentence could be modified for clarity on why the integration of eye-tracking enhances the functionality and uniqueness of camera modes, perhaps by specifying what additional data or user feedback is enabled by eye tracking.
+- {{{ This sentence could be modified for clarity on why the integration of eye-tracking enhances the functionality and uniqueness of camera modes, perhaps by specifying what additional data or user feedback is enabled by eye tracking. }}}
 3. """Brain-computer interfaces acquire the wearer’s brain signals and analyze them to execute the desired action."""
-- It might be beneficial to specify what types of actions or commands are typical or particularly innovative in the context of this research, for clarity and focus.
+- {{{ It might be beneficial to specify what types of actions or commands are typical or particularly innovative in the context of this research, for clarity and focus. }}}
 4. """Wireless earbuds are used to hear any feedback from the camera with minimal time to set up and no wires in the way of the user."""
-- Clarification could be given on how this wireless feedback contributes to the focus on creating a more user-centric and intuitive experience.
+- {{{ Clarification could be given on how this wireless feedback contributes to the focus on creating a more user-centric and intuitive experience. }}}
 I will continue reading the document to find more pertinent sentences. Let's move to the next sections.`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
 `The following sentences from the latest section could also be annotated with the purpose of "Clarify Academic Focus" as they may benefit from refinements to better focus on or convey the academic novelty:
 1. """Photo taking, object detection, and translation are the implemented modes."""
-- This sentence briefly lists the modes but could be expanded to clarify how each mode supports the overall academic or practical purpose of the technology.
+- {{{ This sentence briefly lists the modes but could be expanded to clarify how each mode supports the overall academic or practical purpose of the technology. }}}
 2. """These modes present a solution to cover all the use cases for a camera by executing a hand gesture associated with the desired mode."""
-- This sentence could be revised to specify how each mode individually contributes to covering all use cases of a camera, emphasizing the innovative aspect of using hand gestures.
+- {{{ This sentence could be revised to specify how each mode individually contributes to covering all use cases of a camera, emphasizing the innovative aspect of using hand gestures. }}}
 3. """A custom cropping algorithm to reove noise from the image."""
-- This sentence describes a process but could benefit from a clearer explanation of why focusing on the fixation point is innovative or beneficial for reducing visual noise in images.
+- {{{ This sentence describes a process but could benefit from a clearer explanation of why focusing on the fixation point is innovative or beneficial for reducing visual noise in images. }}}
 I will proceed to analyze the final parts of the document for any additional sentences that fit the purpose. Let's scroll further.`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
 `In the conclusion section, several sentences that could benefit from clarification to enhance academic focus include:
 1. """This work presents solutions to create a fluent experience when using a camera."""
-- Detailing the proposed solutions' innovative advancements or technical mechanisms might better underline the academic value of the work.
+- {{{ Detailing the proposed solutions' innovative advancements or technical mechanisms might better underline the academic value of the work. }}}
 2. """It explores combining a brain-computer interface and eye-tracking glasses to create a touchless camera and take pictures with thoughts."""
-- An elaboration on how the integration of these technologies results in a seamless user experience could provide clearer academic insight into the study's novelty.
+- {{{ An elaboration on how the integration of these technologies results in a seamless user experience could provide clearer academic insight into the study's novelty. }}}
 3. """Overall the hardware used replaces touch interactions with touch-less ones allowing the user to be more attentive to the present moment."""
-A more detailed rationale or discussion on how touchless interactions enhance user attentiveness could finalize the academic focus more effectively.`
+- {{{ A more detailed rationale or discussion on how touchless interactions enhance user attentiveness could finalize the academic focus more effectively. }}}`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
@@ -133,9 +135,11 @@ Here is a step-by-step list for annotating a document:
 1. Retrieve the first section
 2. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
 3. Make a list of sentences for the section using the following format:
- - """ <put sentence here> """
- - """ <put sentence here> """
- - ...
+   """ <put sentence here> """
+   {{{ <put explanation here> }}}
+   """ <put sentence here> """
+   {{{ <put explanation here> }}}
+   ...
 4 Continue to the next section and repeat steps 1-4 for the next section until all sections are covered`
         });
 
@@ -169,6 +173,7 @@ Here is a step-by-step list for annotating a document:
 
         let executeRun = (checkFinish) => {
             let newTextDeltaArray = [];
+            totalRuns++;
 
             const run = openai.beta.threads.runs.stream(thread.id, {
                 assistant_id: "asst_AfodGi1mAYA91iYKcsY9Y97v",
@@ -198,7 +203,7 @@ Here is a step-by-step list for annotating a document:
                 }
 
                 await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-                    `Is there a next section? Respond with "yes" if you are done. Otherwise, annotate the next sections.`
+                    `Is there a next section? Respond only with "yes" if you are done. Otherwise, annotate the next sections.`
                 });
 
                 executeRun(true);
@@ -217,8 +222,8 @@ Here is a step-by-step list for annotating a document:
 }
 
 export async function makeInference(image1, image2, type, annotatedText) {
-    console.log(image1, image2)
-    console.log(type, annotatedText)
+    console.log(image1, image2);
+    console.log(type, annotatedText);
 
     return new Promise(
         resolve => {
@@ -330,7 +335,6 @@ Let's work this out in a step by step way to be sure we have the right answer.` 
         try {
             response = await openai.chat.completions.create({
                 model: "gpt-4-turbo",
-                max_tokens: 1028,
                 messages: messages,
                 response_format: {type: "json_object"},
                 // tools: tools,
