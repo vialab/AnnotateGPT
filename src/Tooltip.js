@@ -83,8 +83,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
 
         d3.select(annotationPage)
         .style("position", "absolute")
-        .style("top", index === 1 ? "0" : "-10px")
-        .style("left", "6px");
+        .style("top", index === 1 ? "0" : "-10px");
 
         context.drawImage(d3.select(".react-pdf__Page.page-" + index).select("canvas").node(), 0, 0);
 
@@ -263,11 +262,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
 
                     img.onload = function () {
                         let canvas = document.createElement('canvas');
-                        canvas.width = cropWidth * window.devicePixelRatio;
-                        canvas.height = cropHeight * window.devicePixelRatio;
+                        canvas.width = cropWidth;
+                        canvas.height = cropHeight;
 
                         let ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX * window.devicePixelRatio, startY * window.devicePixelRatio, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio, 0, 0, cropWidth * window.devicePixelRatio, cropHeight * window.devicePixelRatio);
+                        ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
                         let croppedBase64 = canvas.toDataURL('image/png');
                         resolve(croppedBase64);
