@@ -212,6 +212,12 @@ export default function NavigateCluster({ cluster, annotations }) {
             return aY - bY;
         });
         annotationsRef.current = sortAnnotations;
+        console.log(annotationsRef.current);
+
+        for (let i = 0; i < annotationsRef.current.length; i++) {
+            console.log(annotationsRef.current[i].spans);
+            annotationsRef.current[i].spans = annotationsRef.current[i].spans.filter(span => span instanceof Element);
+        }
         findIndex();
 
         return () => {

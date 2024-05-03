@@ -119,10 +119,18 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
         let annotatedText = "";
 
         let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
+            if (word) {
+                if (stroke.type.endsWith("words")) {
+                    return stroke.annotatedText;
+                } else {
+                    return "";
+                }
+            }
             return stroke.annotatedText;
         }).flat());
         annotatedText = word ? [...annotatedTextNodes].map(node => node.textContent).join(" ") : [...annotatedTextNodes].map(node => node.textContent).join("");
-        
+        console.log(annotatedText);
+
         let type = "annotated";
 
         if (circle) {
@@ -775,8 +783,12 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                     .transition()
                     .duration(1000)
                     .attr("opacity", 0.1);
+
+                    if (!cluster) {
+                        return;
+                    }
                 
-                    for (let stroke of cluster?.strokes) {
+                    for (let stroke of cluster.strokes) {
                         let path = d3.select(`path[id="${stroke.id}"]`);
 
                         if (!path.empty()) {
@@ -829,8 +841,12 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                     .transition()
                     .duration(1000)
                     .attr("opacity", 1);
+
+                    if (!cluster) {
+                        return;
+                    }
                 
-                    for (let stroke of cluster?.strokes) {
+                    for (let stroke of cluster.strokes) {
                         let path = d3.select(`path[id="${stroke.id}"]`);
 
                         if (!path.empty()) {

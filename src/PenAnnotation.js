@@ -764,7 +764,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                     let wordsOfInterest = [];
                     let rectLines = words.map(word => {
                         let rect = word.getBoundingClientRect();
-                        let y = tool.current === "highlighter" ? rect.top + rect.height / 2 : rect.bottom;
+                        let y = tool.current === "highlighter" ? rect.top + rect.height / 2 : rect.bottom + 5;
 
                         return {
                             x1: rect.left,
