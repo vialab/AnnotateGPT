@@ -122,7 +122,8 @@ export default function NavigateCluster({ cluster, annotations }) {
                 }));        
                 scrollTo(yCoord - window.innerHeight / 2 + window.scrollY);
             }
-        }        
+        }
+
         d3.select("#bottomButton")
         .classed("disabled", index.current === annotationsRef.current.length - 1);
 
@@ -139,43 +140,43 @@ export default function NavigateCluster({ cluster, annotations }) {
                 return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
             }));
             return Math.floor(Math.abs(Math.round(y) - window.innerHeight / 2));
-        }).map(d => d <= 0 ? Infinity : d);
-
+        });
         index.current = distances.indexOf(Math.min(...distances));
         resetIndex.current = true;
 
-        //if (index.current === 0) {
-        //    let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
-        //        if (span.classList?.contains("toolTip")) {
-        //            span = d3.select("g.toolTip#" + span.id).node();
-        //        }
-        //        return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-        //    }));
-        //    let distance = Math.floor(window.innerHeight / 2 - Math.round(y));
+        // if (index.current === 0) {
+        //     let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
+        //         if (span.classList?.contains("toolTip")) {
+        //             span = d3.select("g.toolTip#" + span.id).node();
+        //         }
+        //         return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //     }));
+        //     let distance = Math.floor(window.innerHeight / 2 - Math.round(y));
+        //     console.log(distance);
 
-        //    if (distance > 0) {
-        //        index.current = 1;
-        //        console.log("here");
-        //    }
-        //} else if (index.current === annotationsRef.current.length - 1 && annotationsRef.current.length > 0) {
-        //    let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
-        //        if (span.classList?.contains("toolTip")) {
-        //            span = d3.select("g.toolTip#" + span.id).node();
-        //        }
-        //        return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-        //    }));
-        //    let distance = Math.floor(Math.round(y) - window.innerHeight / 2);
+        //     if (distance > 0) {
+        //         index.current = 1;
+        //     }
+        // } else if (index.current === annotationsRef.current.length - 1 && annotationsRef.current.length > 0) {
+        //     let y = d3.mean(annotationsRef.current[index.current].spans.map(span => {
+        //         if (span.classList?.contains("toolTip")) {
+        //             span = d3.select("g.toolTip#" + span.id).node();
+        //         }
+        //         return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //     }));
+        //     let distance = Math.floor(Math.round(y) - window.innerHeight / 2);
 
-        //    if (distance > 0) {
-        //        index.current = annotationsRef.current.length - 2;
-        //    }
-        //}
+        //     if (distance > 0) {
+        //         index.current = annotationsRef.current.length - 2;
+        //     }
+        // }
 
         if (window.scrollY === 0) {
             index.current = 0;
         } else if (window.scrollY + window.innerHeight >= document.body.scrollHeight) {
             index.current = annotationsRef.current.length - 1;
         }
+        // console.log(index.current);
 
         d3.select("#topButton")
         .classed("disabled", index.current === 0);
@@ -207,15 +208,16 @@ export default function NavigateCluster({ cluster, annotations }) {
         }
 
         let sortAnnotations = tAnnotations.sort((a, b) => {
+            // console.log(a.spans, b.spans);
             let aY = d3.mean(a.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + window.scrollY));
             let bY = d3.mean(b.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + window.scrollY));
             return aY - bY;
         });
         annotationsRef.current = sortAnnotations;
-        console.log(annotationsRef.current);
+        // console.log(annotationsRef.current);
 
         for (let i = 0; i < annotationsRef.current.length; i++) {
-            console.log(annotationsRef.current[i].spans);
+            // console.log(annotationsRef.current[i].spans);
             annotationsRef.current[i].spans = annotationsRef.current[i].spans.filter(span => span instanceof Element);
         }
         findIndex();

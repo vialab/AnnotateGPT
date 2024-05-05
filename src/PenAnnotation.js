@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import SvgPenSketch from './SvgPenSketch';
 import * as d3 from 'd3';
 import { ShapeInfo, Intersection } from "kld-intersections";
@@ -171,7 +171,7 @@ function getDistanceFromPointToPath(point, path) {
     return minDistance;
 }
 
-export default function PenAnnotation({ content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onErase }) {
+const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback }, ref) => {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
@@ -187,6 +187,11 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
 
     const handleHover = useCallback(e => {
         if (e.buttons === 0 && e.button === -1) {
+            // console.log(activeCluster.current);
+            if (activeCluster.current && d3.select(`g.toolTip[id="toolTip${activeCluster.current?.strokes[activeCluster.current.strokes.length - 1].id}"]`).empty()) {
+                activeCluster.current = null;
+            }
+
             let coords = d3.pointer(e);
             let [x, y] = coords;
             let closestCluster = null;
@@ -211,12 +216,6 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             }
 
             if (closestCluster) {
-                let id = closestCluster.strokes[closestCluster.strokes.length - 1].id;
-                let findClosestCluster = lockClusterRef.current.find(cluster => cluster.strokes.find(stroke => stroke.id === id));
-
-                if (findClosestCluster?.open) {
-                    return;
-                }
                 let lastStroke = closestCluster.strokes[closestCluster.strokes.length - 1];
                 let closestBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
 
@@ -230,12 +229,19 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                         closestBBox.y2 = Math.max(closestBBox.y2, strokeBBox.bottom);
                     }
                 }
-                
+
                 if (hoveredCluster.current !== lastStroke.id && activeCluster.current?.strokes[activeCluster.current.strokes.length - 1].id !== lastStroke.id) {
                     clearTimeout(hoverTimeout.current);
 
                     hoverTimeout.current = setTimeout(() => {
                         let closeClusters = [];
+                        // let id = closestCluster.strokes[closestCluster.strokes.length - 1].id;
+                        // let findClosestCluster = lockClusterRef.current.find(cluster => cluster.strokes.find(stroke => stroke.id === id));
+                        // let ifOpen = findClosestCluster?.open ? true : false;
+                        // console.log(ifOpen, id);
+                        // if (findClosestCluster?.open) {
+                        //     return;
+                        // }
 
                         for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                             let clusterBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
@@ -299,10 +305,6 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
     }, [onNewActiveCluster]);
 
     useEffect(() => {
-        let toolbar = d3.select(".toolbar");
-        let toolTip = d3.selectAll("#toolTipcanvas");
-        let navagation = d3.select(".navigateContainer");
-
         svgPenSketch.current = new SvgPenSketch(
             svgRef.current,
             {
@@ -314,12 +316,6 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             {},
             { eraserMode: "object", eraserSize: "25" }
         );
-        
-        svgPenSketch.current.eraserUpCallback = () => {
-            toolbar.classed("disabled", false);
-            toolTip.classed("disabled", false);
-            navagation.classed("disabled", false);
-        };
 
         if (d3.select(".screenshot-container").empty()) {
             let container = document.createElement("div");
@@ -342,6 +338,22 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
         let toolbar = d3.select(".toolbar");
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
+        
+        svgPenSketch.current.eraserUpCallback = () => {
+            toolbar.classed("disabled", false);
+            toolTip.classed("disabled", false);
+            navagation.classed("disabled", false);
+
+            if (eraseEndCallback instanceof Function) {
+                eraseEndCallback();
+            }
+        };
+    }, [eraseEndCallback]);
+
+    useEffect(() => {
+        let toolbar = d3.select(".toolbar");
+        let toolTip = d3.selectAll("#toolTipcanvas");
+        let navagation = d3.select(".navigateContainer");
 
         svgPenSketch.current.eraseStartCallback = () => {
             toolbar.classed("disabled", true);
@@ -349,13 +361,13 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             navagation.classed("disabled", true);
             clearTimeout(hoverTimeout.current);
 
-            d3.selectAll("g.toolTip")
-            .on("click", null)
-            .style("cursor", "default")
-            .transition()
-            .duration(1000)
-            .attr("opacity", 0)
-            .remove();
+            // d3.selectAll("g.toolTip:not(.found)")
+            // .on("click", null)
+            // .style("cursor", "default")
+            // .transition()
+            // .duration(1000)
+            // .attr("opacity", 0)
+            // .remove();
 
             for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 cluster.disabled = true;
@@ -367,8 +379,12 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             
             if (onNewActiveCluster instanceof Function)
                 onNewActiveCluster(null);
+
+            if (eraseStartCallback instanceof Function) {
+                eraseStartCallback();
+            }
         };
-    }, [onNewActiveCluster]);
+    }, [onNewActiveCluster, eraseStartCallback]);
     
     useEffect(() => {
         svgPenSketch.current._element
@@ -401,8 +417,8 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                     newClusters[findStroke].strokes = [...newClusters[findStroke].strokes.filter(stroke => stroke.id !== path.id)];
                     clearTimeout(timeout.current);
 
-                    if (onErase instanceof Function) {
-                        onErase(newClusters[findStroke]);
+                    if (onEraseCallback instanceof Function) {
+                        onEraseCallback(newClusters[findStroke]);
                     }
                     // timeout.current = setTimeout(() => {
                     setClusters(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
@@ -413,8 +429,8 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                     newLockCluster[findLockStroke].strokes = [...newLockCluster[findLockStroke].strokes.filter(stroke => stroke.id !== path.id)];
                     clearTimeout(timeout.current);
 
-                    if (onErase instanceof Function) {
-                        onErase(newLockCluster[findLockStroke]);
+                    if (onEraseCallback instanceof Function) {
+                        onEraseCallback(newLockCluster[findLockStroke]);
                     }
                     // timeout.current = setTimeout(() => {
                     setLockCluster(newLockCluster.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
@@ -428,7 +444,60 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                 
             // }
         };
-    }, [onErase]);
+    }, [onEraseCallback]);
+
+    useEffect(() => {
+        let toolbar = d3.select(".toolbar");
+        let toolTip = d3.selectAll("#toolTipcanvas");
+        let navagation = d3.select(".navigateContainer");
+        
+        svgPenSketch.current.penStartCallback = (path) => {
+            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+                cluster.disabled = true;
+                cluster.open = false;
+            }
+            // d3.selectAll("g.toolTip:not(.found)")
+            // .on("click", null)
+            // .style("cursor", "default")
+            // .transition()
+            // .duration(1000)
+            // .attr("opacity", 0)
+            // .remove();
+
+            activeCluster.current = null;
+
+            if (onNewActiveCluster instanceof Function)
+                onNewActiveCluster(null);
+            
+            setClusters([...clustersRef.current]);
+            setLockCluster([...lockClusterRef.current]);
+            hoveredCluster.current = null;
+            clearTimeout(hoverTimeout.current);
+
+            if (tool.current === "pen") {
+                d3.select(path)
+                .style("stroke-opacity", 1)
+                .style("stroke-width", 2);
+            } else {
+                d3.select(path)
+                .style("stroke-opacity", 0.2)
+                .style("stroke-width", 25);
+            }
+            d3.select(path).style("stroke", colour.current);
+            d3.select(path).classed(tool.current, true).attr("opacity", 1);
+            toolbar.classed("disabled", true);
+            toolTip.classed("disabled", true);
+            navagation.classed("disabled", true);
+            
+            startTime.current = Date.now();
+            
+            clearTimeout(timeout.current);
+
+            if (penStartCallback instanceof Function) {
+                penStartCallback();
+            }
+        };
+    }, [tool, colour, onNewActiveCluster, penStartCallback]);
 
     let startTime = useRef(null);
     let timeout = useRef(null);    
@@ -474,49 +543,6 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             }
             setClusters(newClusters.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp));
             // onChange(c, index);
-        };
-        
-        svgPenSketch.current.penStartCallback = (path) => {
-            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                cluster.disabled = true;
-                cluster.open = false;
-            }
-            d3.selectAll("g.toolTip")
-            .on("click", null)
-            .style("cursor", "default")
-            .transition()
-            .duration(1000)
-            .attr("opacity", 0)
-            .remove();
-
-            activeCluster.current = null;
-
-            if (onNewActiveCluster instanceof Function)
-                onNewActiveCluster(null);
-            
-            setClusters([...clustersRef.current]);
-            setLockCluster([...lockClusterRef.current]);
-            hoveredCluster.current = null;
-            clearTimeout(hoverTimeout.current);
-
-            if (tool.current === "pen") {
-                d3.select(path)
-                .style("stroke-opacity", 1)
-                .style("stroke-width", 2);
-            } else {
-                d3.select(path)
-                .style("stroke-opacity", 0.2)
-                .style("stroke-width", 25);
-            }
-            d3.select(path).style("stroke", colour.current);
-            d3.select(path).classed(tool.current, true).attr("opacity", 1);
-            toolbar.classed("disabled", true);
-            toolTip.classed("disabled", true);
-            navagation.classed("disabled", true);
-            
-            startTime.current = Date.now();
-            
-            clearTimeout(timeout.current);
         };
 
         svgPenSketch.current.penUpCallback = (path, e, coords) => {        
@@ -753,6 +779,10 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
 
                 // timeout.current = setTimeout(() => {
                 // }, 1000);
+
+                if (penEndCallback instanceof Function) {
+                    penEndCallback();
+                }
                 return words;
             };
 
@@ -994,7 +1024,7 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
                 processWords(wordsOfInterest, type);
             }
         };
-    }, [index, tool, colour, onNewActiveCluster]);
+    }, [index, tool, colour, onNewActiveCluster, penEndCallback]);
 
     useEffect(() => {
         d3.select(svgRef.current).html(content);
@@ -1071,6 +1101,17 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
         }
     }
 
+    useImperativeHandle(ref, () => ({
+        updateClusters: (clusters) => {
+            setClusters(clusters);
+        },
+        updateLockCluster: (clusters) => {
+            setLockCluster(clusters);
+        },
+        clusters: clustersRef,
+        lockClusters: lockClusterRef,
+    }), []);
+
     return (
         <div className={"pen-annotation-layer"} id={"layer-" + index}>
             <svg ref={svgRef} width={"100%"} height={"100%"} style={{ position: "absolute" }} />
@@ -1078,4 +1119,6 @@ export default function PenAnnotation({ content, index, tool, colour, toolTipRef
             <Tooltip index={index} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
         </div>
     );
-};
+});
+
+export default PenAnnotation;

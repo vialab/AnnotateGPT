@@ -311,6 +311,10 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
         .join(
             enter => enter,
             update => {
+                update
+                .select(".annotationCount")
+                .text((d, i) => clusterRef.current[i].annotationsFound?.length || 0);
+                
                 let annotationStatus = update
                 .select("text.annotateStatus");
 
@@ -683,6 +687,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 let tooltip = enter
                 .append("g")
                 .attr("class", "toolTip")
+                .classed("found", (d, i) => clusterRef.current[i].annotationsFound)
                 .attr("id", (d, i) => "toolTip" + clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id)
                 .attr("opacity", 0);
 
@@ -993,7 +998,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             let cluster = clusterRef.current[k];
 
                             if (cluster.purpose) {
-                                let content = <div style={{ maxWidth: "200px", textAlign: "center", userSelect: "none" }}>
+                                let content = <div style={{ maxWidth: "300px", userSelect: "none", fontFamily: "Google Sans,Roboto,sans-serif", fontSize: "15px", letterSpacing: "0.2px", lineHeight: "22px", fontWeight: "400", color: "#E8EDED" }}>
                                     {cluster.purpose.purpose[i * 2 + j]?.purpose}
                                 </div>;
 
@@ -1033,7 +1038,10 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             const cluster = clusterRef.current[k];
 
                             let onDetect = (result) => {
-                                cluster.annotationsFound.push(result);
+                                cluster.annotationsFound = result;
+
+                                console.log(cluster.annotationsFound);
+
                                 updateTextTooltips(clusterRef.current);
 
                                 if (onClusterChange instanceof Function) {
@@ -1122,7 +1130,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         const cluster = clusterRef.current[i];
 
                         let onDetect = (result) => {
-                            cluster.annotationsFound.push(result);
+                            cluster.annotationsFound = result;
                             updateTextTooltips(clusterRef.current);
 
                             if (onClusterChange instanceof Function) {
@@ -1250,7 +1258,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                     return clusterRef.current[i].x + toolTipSize / 2;
                 })
                 .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2 + 1)
-                .style("opacity", (d, i) => (clusterRef.current[i].annotating === false && !clusterRef.current[i].open) ? 1 : 0)
+                .style("opacity", (d, i) => ((clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) && !clusterRef.current[i].open) ? 1 : 0)
                 .text((d, i) => clusterRef.current[i].annotationsFound?.length);
 
                 let annotationStatus = update
@@ -1260,7 +1268,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .transition()
                 .duration((d, i) => clusterRef.current[i].open ? 1000 : 500)
                 .delay((d, i) => clusterRef.current[i].open ? 500 : 0)
-                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && (clusterRef.current[i].annotating || clusterRef.current[i].annotating === false)  ? 1 : 0)
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && (clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) ? 1 : 0)
                 .each(function(d, i) {
                     index.set(this, i);
                 });
@@ -1370,8 +1378,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         const cluster = clusterRef.current[i];
 
                         let onDetect = (result) => {
-                            cluster.annotationsFound.push(result);
+                            cluster.annotationsFound = result;
                             updateTextTooltips(clusterRef.current);
+
+                            
+                            // console.log(cluster.annotationsFound);
 
                             if (onClusterChange instanceof Function) {
                                 onClusterChange(cluster);
@@ -1409,7 +1420,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             let cluster = clusterRef.current[k];
 
                             if (cluster.purpose) {
-                                let content = <div style={{ maxWidth: "200px", textAlign: "center", userSelect: "none" }}>
+                                let content = <div style={{ maxWidth: "300px", userSelect: "none", fontFamily: "Google Sans,Roboto,sans-serif", fontSize: "15px", letterSpacing: "0.2px", lineHeight: "22px", fontWeight: "400", color: "#E8EDED" }}>
                                     {cluster.purpose.purpose[i * 2 + j]?.purpose}
                                 </div>;
                                 
@@ -1449,8 +1460,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             const cluster = clusterRef.current[k];
 
                             let onDetect = (result) => {
-                                cluster.annotationsFound.push(result);
+                                cluster.annotationsFound = result;
                                 updateTextTooltips(clusterRef.current);
+
+                                // console.log(result);
+                                // console.log(cluster.annotationsFound);
 
                                 if (onClusterChange instanceof Function) {
                                     onClusterChange(cluster);
@@ -1791,6 +1805,9 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         .attr("opacity", 1);
                     })
                 );
+
+                update
+                .classed("found", (d, i) => clusterRef.current[i].annotationsFound);
             },
 
             exit => exit
@@ -2043,7 +2060,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 if (cluster["open"] === undefined)
                     cluster["open"] = false;
             }
-            clusterRef.current = clusters.filter(cluster => !cluster.disabled);
+            clusterRef.current = clusters.filter(cluster => !cluster.disabled || cluster.annotationsFound);
             updateTooltips();
         } else {
             clusterRef.current = [];

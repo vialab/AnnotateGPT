@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { createRef, useEffect, useRef, useState } from 'react';
 import { Document, Page } from 'react-pdf';
 import PenAnnotation from './PenAnnotation.js';
 import Toolbar from './Toolbar.js';
@@ -8,6 +8,7 @@ import { Comment, MagnifyingGlass } from "react-loader-spinner";
 import { findAnnotations } from "./OpenAIUtils.js";
 import { pdfjs } from 'react-pdf';
 import { Tooltip } from 'react-tooltip';
+import {autoPlacement} from '@floating-ui/dom';
 
 import 'react-tooltip/dist/react-tooltip.css';
 import './css/App.css';
@@ -42,6 +43,7 @@ export default function App() {
     const toolTipRef = useRef("pen");
     const colourRef = useRef(defaultColour);
     const activeClusterRef = useRef(null);
+    const penAnnotationRef = useRef([]);
 
     function onDocumentLoadSuccess(pdf) {
         let numPages = pdf.numPages;
@@ -63,10 +65,30 @@ export default function App() {
                 { index !== numPages - 1 ? <hr style={{ width: "100%" }} /> : null }
             </div>
         );
+        let penAnnotation = [];
 
-        let penAnnotation = Array.from(new Array(numPages), (el, index) =>
-            <PenAnnotation index={index + 1} tool={toolTipRef} colour={colourRef} key={`annotation_${index + 1}`} content={svgContent.current[index + 1]} toolTipRef={annotationToolTipRef} setUpAnnotations={setUpAnnotations} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onErase={onErase} />
-        );
+        for (let index = 0; index < numPages; index++) {
+            let ref = createRef();
+            penAnnotationRef.current.push(ref);
+
+            penAnnotation.push(<PenAnnotation 
+                index={index + 1}
+                tool={toolTipRef}
+                colour={colourRef}
+                key={`annotation_${index + 1}`}
+                content={svgContent.current[index + 1]}
+                toolTipRef={annotationToolTipRef}
+                setUpAnnotations={setUpAnnotations}
+                onNewActiveCluster={onNewActiveCluster}
+                onClusterChange={onClusterChange}
+                onEraseCallback={onEraseCallback}
+                penStartCallback={penStartCallback}
+                penEndCallback={penEndCallback}
+                eraseStartCallback={eraseStartCallback}
+                eraseEndCallback={eraseEndCallback}
+                ref={ref}
+            />);
+        }
         setPageContent(pageContent);
         setPenAnnotation(penAnnotation);
     }
@@ -133,6 +155,7 @@ export default function App() {
         
         if (textContent.current.every((text) => text !== null)) {
             d3.select("#loader-container")
+            .style("pointer-events", "none")
             .transition()
             .delay(500)
             .duration(1000)
@@ -183,12 +206,31 @@ export default function App() {
                         done++;
                         // console.log(result);
                         // console.log("Done", done, cutIndex.length, setUpAnnotatedTokens.length, finish);
+                        // console.log(setUpAnnotatedTokens);
 
                         if (result instanceof Array) {
                             lastToken.spans = result;
 
+                            loop1: for (let i = 0; i < setUpAnnotatedTokens.length; i++) {
+                                for (let j = i + 1; j < setUpAnnotatedTokens.length; j++) {
+                                    let spans1 = setUpAnnotatedTokens[i].spans;
+                                    let spans2 = setUpAnnotatedTokens[j].spans;
+                                    
+                                    for (let span1 of spans1) {
+                                        for (let span2 of spans2) {
+                                            if (span1 === span2) {
+                                                cutIndex.push(spans1.length > spans2.length ? [j, i] : [i, j]);
+                                                done--;
+                                                break loop1;
+                                            }
+                                        }
+                                    }
+                                
+                                }
+                            }
+
                             if (onDetect instanceof Function) {
-                                onDetect(lastToken);
+                                onDetect([...setUpAnnotatedTokens].filter(annotation => annotation.spans.length !== 0));
                             }
                         } else {
                             console.log(result);
@@ -198,210 +240,214 @@ export default function App() {
                             handleEnd();
                         }
                     };
-
                     
-                    // let workerLevenshteinDistance = () => {
-                    //     // https://github.com/ka-weihe/fastest-levenshtein
-                    //     onmessage = function(e) {
-                    //         const a = e.data.a;
-                    //         const b = e.data.b;
-                    //         const i = e.data.i;
-                    //         const peq = new Uint32Array(0x10000);
+                    let workerLevenshteinDistance = () => {
+                        // https://github.com/ka-weihe/fastest-levenshtein
+                        onmessage = function(e) {
+                            const a = e.data.a;
+                            const b = e.data.b;
+                            const i = e.data.i;
+                            const i2 = e.data.i2;
+                            const peq = new Uint32Array(0x10000);
 
-                    //         const myers_32 = (a, b) => {
-                    //             const n = a.length;
-                    //             const m = b.length;
-                    //             const lst = 1 << (n - 1);
-                    //             let pv = -1;
-                    //             let mv = 0;
-                    //             let sc = n;
-                    //             let i = n;
-                    //             while (i--) {
-                    //                 peq[a.charCodeAt(i)] |= 1 << i;
-                    //             }
-                    //             for (i = 0; i < m; i++) {
-                    //                 let eq = peq[b.charCodeAt(i)];
-                    //                 const xv = eq | mv;
-                    //                 eq |= ((eq & pv) + pv) ^ pv;
-                    //                 mv |= ~(eq | pv);
-                    //                 pv &= eq;
-                    //                 if (mv & lst) {
-                    //                     sc++;
-                    //                 }
-                    //                 if (pv & lst) {
-                    //                     sc--;
-                    //                 }
-                    //                 mv = (mv << 1) | 1;
-                    //                 pv = (pv << 1) | ~(xv | mv);
-                    //                 mv &= xv;
-                    //             }
-                    //             i = n;
-                    //             while (i--) {
-                    //                 peq[a.charCodeAt(i)] = 0;
-                    //             }
-                    //             return sc;
-                    //         };
+                            const myers_32 = (a, b) => {
+                                const n = a.length;
+                                const m = b.length;
+                                const lst = 1 << (n - 1);
+                                let pv = -1;
+                                let mv = 0;
+                                let sc = n;
+                                let i = n;
+                                while (i--) {
+                                    peq[a.charCodeAt(i)] |= 1 << i;
+                                }
+                                for (i = 0; i < m; i++) {
+                                    let eq = peq[b.charCodeAt(i)];
+                                    const xv = eq | mv;
+                                    eq |= ((eq & pv) + pv) ^ pv;
+                                    mv |= ~(eq | pv);
+                                    pv &= eq;
+                                    if (mv & lst) {
+                                        sc++;
+                                    }
+                                    if (pv & lst) {
+                                        sc--;
+                                    }
+                                    mv = (mv << 1) | 1;
+                                    pv = (pv << 1) | ~(xv | mv);
+                                    mv &= xv;
+                                }
+                                i = n;
+                                while (i--) {
+                                    peq[a.charCodeAt(i)] = 0;
+                                }
+                                return sc;
+                            };
 
-                    //         const myers_x = (b, a) => {
-                    //             const n = a.length;
-                    //             const m = b.length;
-                    //             const mhc = [];
-                    //             const phc = [];
-                    //             const hsize = Math.ceil(n / 32);
-                    //             const vsize = Math.ceil(m / 32);
-                    //             for (let i = 0; i < hsize; i++) {
-                    //                 phc[i] = -1;
-                    //                 mhc[i] = 0;
-                    //             }
-                    //             let j = 0;
-                    //             for (; j < vsize - 1; j++) {
-                    //                 let mv = 0;
-                    //                 let pv = -1;
-                    //                 const start = j * 32;
-                    //                 const vlen = Math.min(32, m) + start;
-                    //                 for (let k = start; k < vlen; k++) {
-                    //                     peq[b.charCodeAt(k)] |= 1 << k;
-                    //                 }
-                    //                 for (let i = 0; i < n; i++) {
-                    //                     const eq = peq[a.charCodeAt(i)];
-                    //                     const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                    //                     const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                    //                     const xv = eq | mv;
-                    //                     const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                    //                     let ph = mv | ~(xh | pv);
-                    //                     let mh = pv & xh;
-                    //                     if ((ph >>> 31) ^ pb) {
-                    //                         phc[(i / 32) | 0] ^= 1 << i;
-                    //                     }
-                    //                     if ((mh >>> 31) ^ mb) {
-                    //                         mhc[(i / 32) | 0] ^= 1 << i;
-                    //                     }
-                    //                     ph = (ph << 1) | pb;
-                    //                     mh = (mh << 1) | mb;
-                    //                     pv = mh | ~(xv | ph);
-                    //                     mv = ph & xv;
-                    //                 }
-                    //                 for (let k = start; k < vlen; k++) {
-                    //                     peq[b.charCodeAt(k)] = 0;
-                    //                 }
-                    //             }
-                    //             let mv = 0;
-                    //             let pv = -1;
-                    //             const start = j * 32;
-                    //             const vlen = Math.min(32, m - start) + start;
-                    //             for (let k = start; k < vlen; k++) {
-                    //                 peq[b.charCodeAt(k)] |= 1 << k;
-                    //             }
-                    //             let score = m;
-                    //             for (let i = 0; i < n; i++) {
-                    //                 const eq = peq[a.charCodeAt(i)];
-                    //                 const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                    //                 const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                    //                 const xv = eq | mv;
-                    //                 const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                    //                 let ph = mv | ~(xh | pv);
-                    //                 let mh = pv & xh;
-                    //                 score += (ph >>> (m - 1)) & 1;
-                    //                 score -= (mh >>> (m - 1)) & 1;
-                    //                 if ((ph >>> 31) ^ pb) {
-                    //                     phc[(i / 32) | 0] ^= 1 << i;
-                    //                 }
-                    //                 if ((mh >>> 31) ^ mb) {
-                    //                     mhc[(i / 32) | 0] ^= 1 << i;
-                    //                 }
-                    //                 ph = (ph << 1) | pb;
-                    //                 mh = (mh << 1) | mb;
-                    //                 pv = mh | ~(xv | ph);
-                    //                 mv = ph & xv;
-                    //             }
-                    //             for (let k = start; k < vlen; k++) {
-                    //                 peq[b.charCodeAt(k)] = 0;
-                    //             }
-                    //             return score;
-                    //         };
+                            const myers_x = (b, a) => {
+                                const n = a.length;
+                                const m = b.length;
+                                const mhc = [];
+                                const phc = [];
+                                const hsize = Math.ceil(n / 32);
+                                const vsize = Math.ceil(m / 32);
+                                for (let i = 0; i < hsize; i++) {
+                                    phc[i] = -1;
+                                    mhc[i] = 0;
+                                }
+                                let j = 0;
+                                for (; j < vsize - 1; j++) {
+                                    let mv = 0;
+                                    let pv = -1;
+                                    const start = j * 32;
+                                    const vlen = Math.min(32, m) + start;
+                                    for (let k = start; k < vlen; k++) {
+                                        peq[b.charCodeAt(k)] |= 1 << k;
+                                    }
+                                    for (let i = 0; i < n; i++) {
+                                        const eq = peq[a.charCodeAt(i)];
+                                        const pb = (phc[(i / 32) | 0] >>> i) & 1;
+                                        const mb = (mhc[(i / 32) | 0] >>> i) & 1;
+                                        const xv = eq | mv;
+                                        const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
+                                        let ph = mv | ~(xh | pv);
+                                        let mh = pv & xh;
+                                        if ((ph >>> 31) ^ pb) {
+                                            phc[(i / 32) | 0] ^= 1 << i;
+                                        }
+                                        if ((mh >>> 31) ^ mb) {
+                                            mhc[(i / 32) | 0] ^= 1 << i;
+                                        }
+                                        ph = (ph << 1) | pb;
+                                        mh = (mh << 1) | mb;
+                                        pv = mh | ~(xv | ph);
+                                        mv = ph & xv;
+                                    }
+                                    for (let k = start; k < vlen; k++) {
+                                        peq[b.charCodeAt(k)] = 0;
+                                    }
+                                }
+                                let mv = 0;
+                                let pv = -1;
+                                const start = j * 32;
+                                const vlen = Math.min(32, m - start) + start;
+                                for (let k = start; k < vlen; k++) {
+                                    peq[b.charCodeAt(k)] |= 1 << k;
+                                }
+                                let score = m;
+                                for (let i = 0; i < n; i++) {
+                                    const eq = peq[a.charCodeAt(i)];
+                                    const pb = (phc[(i / 32) | 0] >>> i) & 1;
+                                    const mb = (mhc[(i / 32) | 0] >>> i) & 1;
+                                    const xv = eq | mv;
+                                    const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
+                                    let ph = mv | ~(xh | pv);
+                                    let mh = pv & xh;
+                                    score += (ph >>> (m - 1)) & 1;
+                                    score -= (mh >>> (m - 1)) & 1;
+                                    if ((ph >>> 31) ^ pb) {
+                                        phc[(i / 32) | 0] ^= 1 << i;
+                                    }
+                                    if ((mh >>> 31) ^ mb) {
+                                        mhc[(i / 32) | 0] ^= 1 << i;
+                                    }
+                                    ph = (ph << 1) | pb;
+                                    mh = (mh << 1) | mb;
+                                    pv = mh | ~(xv | ph);
+                                    mv = ph & xv;
+                                }
+                                for (let k = start; k < vlen; k++) {
+                                    peq[b.charCodeAt(k)] = 0;
+                                }
+                                return score;
+                            };
 
-                    //         const distance = (a, b) => {
-                    //             if (a.length < b.length) {
-                    //                 const tmp = b;
-                    //                 b = a;
-                    //                 a = tmp;
-                    //             }
-                    //             if (b.length === 0) {
-                    //                 return a.length;
-                    //             }
-                    //             if (a.length <= 32) {
-                    //                 return myers_32(a, b);
-                    //             }
-                    //             return myers_x(a, b);
-                    //         };
+                            const distance = (a, b) => {
+                                if (a.length < b.length) {
+                                    const tmp = b;
+                                    b = a;
+                                    a = tmp;
+                                }
+                                if (b.length === 0) {
+                                    return a.length;
+                                }
+                                if (a.length <= 32) {
+                                    return myers_32(a, b);
+                                }
+                                return myers_x(a, b);
+                            };
 
-                    //         postMessage({distance: distance(a, b), a, b});
-                    //     };
-                    // };
+                            postMessage({distance: distance(a, b), a, b, i, i2});
+                        };
+                    };
 
-                    // let done2 = 0;
-                    // let executed2 = 0;
-                    // let worker = new Worker(URL.createObjectURL(new Blob([`(${workerLevenshteinDistance})()`])));
+                    let done2 = 0;
+                    let executed2 = 0;
+                    let worker = new Worker(URL.createObjectURL(new Blob([`(${workerLevenshteinDistance})()`])));
 
-                    // worker.onmessage = (e) => {
-                    //     const distance = e.data.distance;
-                    //     const substring = e.data.a;
-                    //     const i = e.data.i;
-                    //     done2++;
+                    worker.onmessage = (e) => {
+                        const distance = e.data.distance;
+                        const substring = e.data.a.length > e.data.b.length ? e.data.a : e.data.b;
+                        const i = e.data.i;
+                        const i2 = e.data.i2;
+                        done2++;
+
+                        // console.log("Distance", distance, e.data.a, e.data.b);
                         
-                    //     if (distance < substring.length / 2) {
-                    //         console.log("Cut", lastToken.sentence.trim());
-                    //         cutIndex.push([i, setUpAnnotatedTokens.length - 1]);
-                    //         worker.terminate();
-                    //         return;
-                    //     }
+                        if (distance < substring.length / 2) {
+                            // console.log("Cut", lastToken.sentence.trim());
+                            cutIndex.push([i, i2]);
+                            worker.terminate();
+                            return;
+                        }
 
-                    //     if (done2 === executed2) {
-                    //         worker.terminate();
-                    //         console.log("Annotating", lastToken.sentence.trim());
-                    //         annotate(lastToken.sentence.trim(), callback);
-                    //     }
-                    // };
+                        if (done2 === executed2) {
+                            worker.terminate();
+                            console.log("Annotating", lastToken.sentence.trim());
+                            annotate(lastToken.sentence.trim(), callback);
+                        }
+                    };
 
                     // console.log("Last Sentence")
                     // console.log(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, ""));
 
                     for (let i = 0; i < setUpAnnotatedTokens.length - 1; i++) {
-                        let sentence = setUpAnnotatedTokens[i].sentence.trim();
-                        // let sentences = setUpAnnotatedTokens[i].sentence.trim();
+                        // let sentence = setUpAnnotatedTokens[i].sentence.trim();
+                        let sentences = setUpAnnotatedTokens[i].sentence.trim();
 
                         // console.log("Sentence", sentence.includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "")))
                         // console.log(sentence)
                         
                         // Cut any overlapping sentences
-                        // for (let sentence of sentences.split(".").filter((sentence) => sentence.trim() !== "")) {
-                        //     // console.log("Filter", sentence, lastToken.sentence.trim());
-                        //     // console.log(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "").includes(sentence.replace(/[^a-zA-Z0-9\s]/g, "")));
-                        //     // console.log(sentence.replace(/[^a-zA-Z0-9\s]/g, "").includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "")));
+                        for (let sentence of sentences.split(".").filter((sentence) => sentence.trim() !== "")) {
+                            // console.log("Filter", sentence, lastToken.sentence.trim());
+                            // console.log(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "").includes(sentence.replace(/[^a-zA-Z0-9\s]/g, "")));
+                            // console.log(sentence.replace(/[^a-zA-Z0-9\s]/g, "").includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "")));
 
-                        //     // executed2++;
-                        //     // worker.postMessage({ a: sentence, b: lastToken.sentence.trim(), i });
+                            for (let sentence2 of lastToken.sentence.trim().split(".").filter((sentence) => sentence.trim() !== "")) {
+                                executed2++;
+                                worker.postMessage({ a: sentence, b: sentence2, i, i2: setUpAnnotatedTokens.length - 1 });
+                            }
 
-                        if (lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "").includes(sentence.replace(/[^a-zA-Z0-9\s]/g, ""))) {
-                            cutIndex.push([i, setUpAnnotatedTokens.length - 1]);
-                            return;
-                        } else if (sentence.replace(/[^a-zA-Z0-9\s]/g, "").includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, ""))) {
-                            cutIndex.push([i, setUpAnnotatedTokens.length - 1]);
-                            return;
+                            // if (lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "").includes(sentence.replace(/[^a-zA-Z0-9\s]/g, ""))) {
+                            //     cutIndex.push([i, setUpAnnotatedTokens.length - 1]);
+                            //     return;
+                            // } else if (sentence.replace(/[^a-zA-Z0-9\s]/g, "").includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, ""))) {
+                            //     cutIndex.push([i, setUpAnnotatedTokens.length - 1]);
+                            //     return;
+                            // }
                         }
-                        // }
-                        // if (sentence.includes(lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, ""))) {
-                        //     cutIndex.push([setUpAnnotatedTokens.length - 1, i]);
-                        //     return;
-                        // } else if (lastToken.sentence.trim().replace(/[^a-zA-Z0-9\s]/g, "").includes(sentence)) {
-                        //     cutIndex.push([setUpAnnotatedTokens.length - 1, i]);
-                        //     return;
-                        // }
                     }
-                    console.log("Annotating", lastToken.sentence.trim());
-                    annotate(lastToken.sentence.trim(), callback);
+
+                    if (setUpAnnotatedTokens.length === 1) {
+                        // console.log("Annotating", lastToken.sentence.trim());
+                        annotate(lastToken.sentence.trim(), callback);
+                    }
+
+                    // console.log("Annotating", lastToken.sentence.trim());
+                    // annotate(lastToken.sentence.trim(), callback);
                 } else {
-                    setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: "Generating explanation...", explain: false});
+                    setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: "Generating explanation...", explain: false, spans: []});
                 }
             } else if (token.trim().startsWith(`{{{`) || token.trim().endsWith(`{{{`) || (prevToken + token).trim().startsWith(`{{{`) || (prevToken + token).trim().endsWith(`{{{`)) {
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
@@ -441,13 +487,58 @@ export default function App() {
                 // FIlter out repeated cut indexes
                 cutIndex = cutIndex.sort((a, b) => b[1] - a[1]);
                 cutIndex = cutIndex.filter((index, i) => i === 0 || index[1] !== cutIndex[i - 1][1]);
-                console.log("Cut Index", cutIndex);
+                
+                for (let index of cutIndex) {
+                    for (let span of setUpAnnotatedTokens[index[1]].spans) {
+                        if (span instanceof Element) {
+                            d3.select(span)
+                            .style("background", null)
+                            .classed("highlighted", false);
+
+                            let space = d3.select(span).node().nextSibling;
+
+                            if (space === null) {
+                                space = span.parentNode.nextSibling?.firstChild;
+                            }
+        
+                            if (space !== null && space.classList.contains("space")) {
+                                d3.select(space)
+                                .classed("highlighted", false)
+                                .style("background", null);
+                            }
+                        }
+                    }
+
+                    for (let span of setUpAnnotatedTokens[index[0]].spans) {
+                        if (span instanceof Element) {
+                            d3.select(span)
+                            .classed("highlighted", true);
+
+                            let space = d3.select(span).node().nextSibling;
+
+                            if (space === null) {
+                                space = span.parentNode.nextSibling?.firstChild;
+                            }
+        
+                            if (space !== null && space.classList.contains("space")) {
+                                d3.select(space)
+                                .classed("highlighted", true);
+                            }
+                        }
+                    }
+
+                    if (setUpAnnotatedTokens[index[0]]?.explanation === "Generating explanation...") {
+                        setUpAnnotatedTokens[index[0]].explanation = setUpAnnotatedTokens[index[1]]?.explanation;
+                    }
+                }
+                // console.log("Cut Index", cutIndex);
 
                 for (let index of cutIndex) {
-                    if (setUpAnnotatedTokens[index[0]].explanation === "Generating explanation...") {
-                        setUpAnnotatedTokens[index[0]].explanation = setUpAnnotatedTokens[index[1]].explanation;
-                    }
+
                     setUpAnnotatedTokens.splice(index[1], 1);
+                }
+                if (onDetect instanceof Function) {
+                    onDetect([...setUpAnnotatedTokens]);
                 }
                 console.log("Finished annotating", setUpAnnotatedTokens);
 
@@ -748,6 +839,9 @@ export default function App() {
                             break;
                         }
                     } else {
+                        if (listOfSpans.length !== 0) {
+                            j--;
+                        }
                         listOfSpans = [];
                         processedText = text.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
                     }
@@ -777,6 +871,7 @@ export default function App() {
                     }
                 } else {
                     if (callback instanceof Function) {
+                        console.log("Not found: " + text);
                         callback("Not found: " + text);
                     }
                 }
@@ -866,6 +961,7 @@ export default function App() {
                             }
                         } else {
                             if (callback instanceof Function) {
+                                console.log("Not found: " + text);
                                 callback("Not found: " + text);
                             }
                         }
@@ -1054,8 +1150,8 @@ export default function App() {
 
     function onClusterChange(cluster) {
         if (cluster) {
-            let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke.id);
-            let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i].id);
+            let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke?.id);
+            let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i]?.id);
 
             if (equal) {
                 setGetActiveAnnotations(activeClusterRef.current.annotationsFound ? [...activeClusterRef.current.annotationsFound] : []);
@@ -1064,7 +1160,7 @@ export default function App() {
         }
     }
 
-    function onErase(cluster) {
+    function onEraseCallback(cluster) {
         if (cluster) {
             let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke.id);
             let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i]?.id);
@@ -1078,6 +1174,66 @@ export default function App() {
                 }
             }
         }
+    }
+
+    function resetToolTips() {
+        d3.select(".react-tooltip")
+        .transition()
+        .duration(200)
+        .style("opacity", 0)
+        .on("end", () => {
+            explanationToolTipRef.current?.close();
+        });
+        hoverAnnotation.current = null;
+
+        for (let penAnnotation of penAnnotationRef.current) {
+            let lockClusters = [...penAnnotation.current.lockClusters.current];
+            let clusters = [...penAnnotation.current.clusters.current];
+            let changed = false;
+            let changedLock = false;
+
+            for (let lockCluster of lockClusters) {
+                if (lockCluster.open || !lockCluster.disabled) {
+                    changedLock = true;
+                }
+                lockCluster.open = false;
+                lockCluster.disabled = true;
+            }
+
+            for (let cluster of clusters) {
+                if (cluster.open || !cluster.disabled) {
+                    changed = true;
+                }
+                cluster.open = false;
+                cluster.disabled = true;
+            }
+
+            if (changedLock) {
+                penAnnotation.current.updateLockCluster(lockClusters);
+            }
+
+            if (changed) {
+                penAnnotation.current.updateClusters(clusters);
+            }
+        }
+    }
+
+    function penStartCallback() {
+        resetToolTips();
+    }
+
+    function penEndCallback() {
+        // explanationToolTipRef.current?.close();
+        // hoverAnnotation.current = null;
+    }
+
+    function eraseStartCallback() {
+        resetToolTips();
+    }
+
+    function eraseEndCallback() {
+        // explanationToolTipRef.current?.close();
+        // hoverAnnotation.current = null;
     }
 
     useEffect(() => {
@@ -1114,6 +1270,7 @@ export default function App() {
 
             for (let annotations of annotatedTokens.current) {
                 for (let annotation of annotations.annotations) {
+                    // console.log(annotation.spans);
                     if (annotation.spans) {
                         for (let span of annotation.spans) {
                             if (span instanceof Element) {
@@ -1124,54 +1281,84 @@ export default function App() {
                                 let y2 = rect.bottom + 5;
         
                                 if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
-                                    if (hoverAnnotation.current !== annotation) {
-                                        let closestTextLayer = span.closest(".textLayer");
-                                        hoverAnnotation.current = annotation;
-                                        clearTimeout(explainTooltipTimeout.current);
-            
-                                        let content = <div style={{ maxWidth: "200px", textAlign: "center", userSelect: "none" }}>
+                                    let closestTextLayer = span.closest(".textLayer");
+                                    clearTimeout(explainTooltipTimeout.current);
+        
+                                    let content = 
+                                    <div style={{ maxWidth: "300px", fontFamily: "Google Sans,Roboto,sans-serif", lineHeight: "22px", pointerEvents: "all" }}>
+                                        <div style={{ fontSize: "16px", letterSpacing: "0.25px", fontWeight: "500", marginBottom: "12px", color: "#F7F9F9" }}>
+                                            <div style={{ display: "flex"}}>
+                                                <img src={"./AnnotateGPT.jpg"} alt="icon" style={{ width: "40px", height: "40px", marginRight: "12px", borderRadius: "50%" }} />
+                                                <div style={{ display: "flex", alignItems: "center" }}>
+                                                    {"AnnotateGPT"}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}}>
                                             {annotation.explanation && annotation.explanation.trim() !== "" ? annotation.explanation : `${annotations.annotationDescription}${annotations.annotationDescription.endsWith(".") ? "" : "."} ${annotations.purpose}`}
-                                        </div>;
-                                        explanationToolTipRef.current?.close();
-                                        
-                                        explainTooltipTimeout.current = setTimeout(() => {
+                                        </div>
+                                    </div>;
+                                    
+                                    explainTooltipTimeout.current = setTimeout(() => {
+                                        // console.log("Hovering over annotation", annotation);
+                                        d3.selectAll(".word.highlighted, .space.highlighted")
+                                        .classed("fade", true);
 
-                                            d3.selectAll(".word.highlighted, .space.highlighted")
-                                            .transition()
-                                            .duration(500)
-                                            .style("background", "rgba(252, 232, 151, 0.3)");
+                                        for (let span of annotation.spans) {
+                                            d3.select(span)
+                                            .classed("fade", false);
 
-                                            for (let span of annotation.spans) {
-                                                d3.select(span)
-                                                .transition()
-                                                .duration(500)
-                                                .style("background", "rgba(252, 232, 151, 1)");
+                                            let space = d3.select(span).node().nextSibling;
 
-                                                let space = d3.select(span).node().nextSibling;
-
-                                                if (space === null) {
-                                                    space = span.parentNode.nextSibling?.firstChild;
-                                                }
-                            
-                                                if (space !== null && space.classList.contains("space")) {
-                                                    d3.select(space)
-                                                    .classed("highlighted", true)
-                                                    .transition()
-                                                    .duration(500)
-                                                    .style("background", "rgba(252, 232, 151, 1)");
-                                                }
+                                            if (space === null) {
+                                                space = span.parentNode.nextSibling?.firstChild;
                                             }
+                        
+                                            if (space !== null && space.classList.contains("space")) {
+                                                d3.select(space)
+                                                .classed("highlighted", true)
+                                                .classed("fade", false);
+                                            }
+                                        }
 
-                                            explanationToolTipRef.current?.open({
-                                                position: {
-                                                    x: closestTextLayer.getBoundingClientRect().left - 10,
-                                                    y: d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)),
-                                                },
-                                                content: content,
-                                                place: "left",
-                                            });
-                                        }, 1000);
-                                    }
+                                        d3.select(".explanation-tooltip")
+                                        .style("position", "absolute")
+                                        .style("z-index", "1000")
+                                        .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
+                                        .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px")
+                                        .style("opacity", 0);
+
+                                        if (hoverAnnotation.current !== annotation) {
+                                            if (d3.select(".react-tooltip").empty()) {
+                                                explanationToolTipRef.current?.open({
+                                                    anchorSelect: ".explanation-tooltip",
+                                                    content: content,
+                                                    place: "left",
+                                                });
+                                            } else {
+                                                d3.select(".react-tooltip")
+                                                .transition()
+                                                .duration(200)
+                                                .style("opacity", 0)
+                                                .on("end", () => {
+                                                    d3.select(".react-tooltip")
+                                                    .transition()
+                                                    .duration(200)
+                                                    .style("opacity", 1)
+                                                    .on("start", () => {
+                                                        explanationToolTipRef.current?.open({
+                                                            anchorSelect: ".explanation-tooltip",
+                                                            content: content,
+                                                            place: "left",
+                                                        });
+                                                    });
+                                                });
+                                            }
+                                        }
+                                        hoverAnnotation.current = annotation;
+
+                                    }, 1000);
+                                    
                                     return;
                                 }
                             }
@@ -1182,24 +1369,12 @@ export default function App() {
 
             if (hoverAnnotation.current !== null) {
                 d3.selectAll(".word.highlighted, .space.highlighted")
-                .transition()
-                .duration(500)
-                .style("background", "rgba(252, 232, 151, 1)");
+                .classed("fade", false);
             }
 
-            hoverAnnotation.current = null;
+            // hoverAnnotation.current = null;
             clearTimeout(explainTooltipTimeout.current);
-            explanationToolTipRef.current?.close();
-        })
-        .on("pointerleave", () => {
-            hoverAnnotation.current = null;
-            clearTimeout(explainTooltipTimeout.current);
-            explanationToolTipRef.current?.close();
-
-            d3.selectAll(".word.highlighted, .space.highlighted")
-            .transition()
-            .duration(500)
-            .style("background", "rgba(252, 232, 151, 1)");
+            // explanationToolTipRef.current?.close();
         });
 
         return () => {
@@ -1211,6 +1386,8 @@ export default function App() {
 
     return (
         <>
+            <div className="explanation-tooltip" />
+
             <Document file="./leu2022a.pdf" onLoadSuccess={onDocumentLoadSuccess}>
                 {pageContent}
 
@@ -1243,7 +1420,7 @@ export default function App() {
 
             <Tooltip 
                 // id="annotationDescription"
-                style={{ zIndex: "1000" }}
+                style={{ zIndex: "1000", padding: "16px", borderRadius: "8px", background: "#22262b" }}
                 place={"left"}
                 ref={annotationToolTipRef}
                 imperativeModeOnly={true}
@@ -1251,10 +1428,16 @@ export default function App() {
 
             <Tooltip 
                 // id="annotationDescription"
-                style={{ zIndex: "1000" }}
+                style={{ zIndex: "1000", padding: "16px", borderRadius: "8px", background: "#22262b" }}
                 place={"left"}
                 ref={explanationToolTipRef}
                 imperativeModeOnly={true}
+                
+                middlewares={[
+                    autoPlacement({
+                        allowedPlacements: ["left"],
+                    }),
+                ]}
             />
             { loading ? <Loading /> : null}
         </>

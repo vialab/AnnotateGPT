@@ -45,18 +45,18 @@ const assistantID = process.env.REACT_APP_ASSISTANT_ID;
 export async function findAnnotations(purpose, callback, endCallback) {
     console.log(purpose);
 
-    // for (let token of data.test11) {
-    //     // console.log(token);
-    //     // await new Promise(r => setTimeout(r, 20));
+    for (let token of data.test9) {
+        // console.log(token);
+        await new Promise(r => setTimeout(r, 10));
 
-    //     if (callback instanceof Function) {
-    //         callback(token);
-    //     }
-    // }
-    // if (endCallback instanceof Function)
-    //     endCallback();
+        if (callback instanceof Function) {
+            callback(token);
+        }
+    }
+    if (endCallback instanceof Function)
+        endCallback();
 
-    // return;
+    return;
 
     try {
         const thread = await openai.beta.threads.create();
@@ -225,41 +225,41 @@ export async function makeInference(image1, image2, type, annotatedText) {
     console.log(image1, image2);
     console.log(type, annotatedText);
 
-    // return new Promise(
-    //     resolve => {
-    //         setTimeout(() => {
-    //             console.log("Resolving promise...");
+    return new Promise(
+        resolve => {
+            setTimeout(() => {
+                console.log("Resolving promise...");
 
-    //             resolve(
-    //                 JSON.parse(`{
-    //                     "annotationDescription": "The user has circled the title of a thesis or document that reads 'TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES' BY BENEDICT LEUNG. Additionally, there is a notation that reads 'Better title' suggesting a critique or a suggested improvement on the given title.",
-    //                     "purpose": [
-    //                         {
-    //                             "persona": "Thesis Supervisor",
-    //                             "purpose": "The annotation indicates a supervisor's recommendation to revise or improve the thesis title to better reflect the content or appeal more effectively to the target audience. It suggests a need for a tighter, perhaps more academic or marketable title in line with the conventions or expectations of their field.",
-    //                             "purposeTitle": "Title Improvement Suggestion"
-    //                         },
-    //                         {
-    //                             "persona": "Peer Reviewer",
-    //                             "purpose": "This marking from a peer reviewer suggests that the current title may not be effectively capturing the essence of the work or it could be more precise. It implies that the title should be scrutinized and potentially modified to better convey the unique aspects of the research presented.",
-    //                             "purposeTitle": "Title Clarity Enhancement"
-    //                         },
-    //                         {
-    //                             "persona": "Future Researcher",
-    //                             "purpose": "The annotation by a fellow researcher could be aiming to flag this title as a significant reference for future research. They might be suggesting an alternative title that could possibly make the work more discoverable in academic searches or more straightforward for future citations.",
-    //                             "purposeTitle": "Optimization for Future Referencing"
-    //                         },
-    //                         {
-    //                             "persona": "Student Critique",
-    //                             "purpose": "A student could have annotated this during a peer-to-peer review session, indicating that the title might be improved for better engagement or clarity. This reflects a learning angle, where suggestions are made to help enhance academic presentation skills.",
-    //                             "purposeTitle": "Peer-to-Peer Academic Enhancement"
-    //                         }
-    //                     ]
-    //                 }`)
-    //             );
-    //         }, 1000);
-    //     } 
-    // );
+                resolve(
+                    JSON.parse(`{
+                        "annotationDescription": "The user has circled the title of a thesis or document that reads 'TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES' BY BENEDICT LEUNG. Additionally, there is a notation that reads 'Better title' suggesting a critique or a suggested improvement on the given title.",
+                        "purpose": [
+                            {
+                                "persona": "Thesis Supervisor",
+                                "purpose": "The annotation indicates a supervisor's recommendation to revise or improve the thesis title to better reflect the content or appeal more effectively to the target audience. It suggests a need for a tighter, perhaps more academic or marketable title in line with the conventions or expectations of their field.",
+                                "purposeTitle": "Title Improvement Suggestion"
+                            },
+                            {
+                                "persona": "Peer Reviewer",
+                                "purpose": "This marking from a peer reviewer suggests that the current title may not be effectively capturing the essence of the work or it could be more precise. It implies that the title should be scrutinized and potentially modified to better convey the unique aspects of the research presented.",
+                                "purposeTitle": "Title Clarity Enhancement"
+                            },
+                            {
+                                "persona": "Future Researcher",
+                                "purpose": "The annotation by a fellow researcher could be aiming to flag this title as a significant reference for future research. They might be suggesting an alternative title that could possibly make the work more discoverable in academic searches or more straightforward for future citations.",
+                                "purposeTitle": "Optimization for Future Referencing"
+                            },
+                            {
+                                "persona": "Student Critique",
+                                "purpose": "A student could have annotated this during a peer-to-peer review session, indicating that the title might be improved for better engagement or clarity. This reflects a learning angle, where suggestions are made to help enhance academic presentation skills.",
+                                "purposeTitle": "Peer-to-Peer Academic Enhancement"
+                            }
+                        ]
+                    }`)
+                );
+            }, 1000);
+        } 
+    );
 
     // eslint-disable-next-line no-unreachable
     let messages = [
