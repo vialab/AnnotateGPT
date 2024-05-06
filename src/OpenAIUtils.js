@@ -203,7 +203,7 @@ Here is a step-by-step list for annotating a document:
                 }
 
                 await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-                    `Is there a next section? Respond only with "yes" if you are done. Otherwise, annotate the next sections. Do not repeat any sentences.`
+                    `Is there a next section? Respond only with "yes" if you are done. Otherwise, annotate the next sections. Do not repeat any previously mentioned sentences.`
                 });
 
                 executeRun(true);

@@ -187,8 +187,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
 
     const handleHover = useCallback(e => {
         if (e.buttons === 0 && e.button === -1) {
-            // console.log(activeCluster.current);
-            if (activeCluster.current && d3.select(`g.toolTip[id="toolTip${activeCluster.current?.strokes[activeCluster.current.strokes.length - 1].id}"]`).empty()) {
+            if (activeCluster.current && d3.select(`g.toolTip[id="toolTip${activeCluster.current?.strokes[activeCluster.current.strokes.length - 1]?.id}"]`).empty()) {
                 activeCluster.current = null;
             }
 
@@ -198,7 +197,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
 
             loop1: for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 for (let stroke of cluster.strokes) {
-                    if (stroke.id !== "initial") {
+                    if (stroke.id !== "initial" && stroke.id) {
                         let path = d3.select(`path[id="${stroke.id}"]`).node();
 
                         if (path) {

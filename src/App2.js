@@ -1179,7 +1179,7 @@ export default function App() {
     }
 
     function resetToolTips() {
-        d3.select(".react-tooltip")
+        d3.select(".react-tooltip#annotationExplanation")
         .transition()
         .duration(200)
         .style("opacity", 0)
@@ -1400,13 +1400,10 @@ export default function App() {
                                             // console.log("Hovering over annotation", annotation);
                                             
                                             if (activeAnnotation.current !== annotation) {
-                                                if (d3.select(".react-tooltip").empty()) {
+                                                if (d3.select(".react-tooltip#annotationExplanation").empty()) {
                                                     d3.select(".explanation-tooltip")
-                                                    .style("position", "absolute")
-                                                    .style("z-index", "1000")
                                                     .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
-                                                    .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px")
-                                                    .style("opacity", 0);
+                                                    .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
 
                                                     explanationToolTipRef.current?.open({
                                                         anchorSelect: ".explanation-tooltip",
@@ -1414,30 +1411,34 @@ export default function App() {
                                                         place: "left",
                                                     });
                                                 } else {
-                                                    d3.select(".react-tooltip")
+                                                    d3.select(".react-tooltip#annotationExplanation")
                                                     .transition()
                                                     .duration(300)
                                                     .style("opacity", 0)
                                                     .on("end", () => {
-                                                        d3.select(".explanation-tooltip")
-                                                        .style("position", "absolute")
-                                                        .style("z-index", "1000")
-                                                        .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
-                                                        .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px")
-                                                        .style("opacity", 0);
-                                                        
-                                                        d3.select(".react-tooltip")
-                                                        .transition()
-                                                        .delay(100)
-                                                        .duration(200)
-                                                        .style("opacity", 1)
-                                                        .on("start", () => {
+                                                        setTimeout(() => {
                                                             explanationToolTipRef.current?.open({
-                                                                anchorSelect: ".explanation-tooltip",
+                                                                position: { x: -1000, y: -1000 },
                                                                 content: content,
                                                                 place: "left",
                                                             });
-                                                        });
+                                                            d3.select(".explanation-tooltip")
+                                                            .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
+                                                            .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+                                                            
+                                                            d3.select(".react-tooltip#annotationExplanation")
+                                                            .transition()
+                                                            .delay(300)
+                                                            .duration(300)
+                                                            .style("opacity", 1)
+                                                            .on("start", () => {
+                                                                explanationToolTipRef.current?.open({
+                                                                    anchorSelect: ".explanation-tooltip",
+                                                                    content: content,
+                                                                    place: "left",
+                                                                });
+                                                            });
+                                                        }, 200);
                                                     });
                                                 }
                                             } else {
@@ -1449,7 +1450,7 @@ export default function App() {
                                             }
                                             activeAnnotation.current = annotation;
 
-                                        }, 1000);
+                                        }, 600);
                                     }
                                     return;
                                 }
@@ -1479,7 +1480,7 @@ export default function App() {
 
     return (
         <>
-            <div className="explanation-tooltip" />
+            <div className="explanation-tooltip" style={{ opacity: "0", zIndex: "1000", position: "absolute" }} />
 
             <Document file="./leu2022a.pdf" onLoadSuccess={onDocumentLoadSuccess}>
                 {pageContent}
@@ -1520,7 +1521,7 @@ export default function App() {
             />
 
             <Tooltip 
-                // id="annotationDescription"
+                id="annotationExplanation"
                 style={{ zIndex: "1000", padding: "16px", borderRadius: "8px", background: "#22262b" }}
                 place={"left"}
                 ref={explanationToolTipRef}
