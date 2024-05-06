@@ -333,58 +333,6 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             document.body.appendChild(container);
         }
     }, []);
-
-    useEffect(() => {
-        let toolbar = d3.select(".toolbar");
-        let toolTip = d3.selectAll("#toolTipcanvas");
-        let navagation = d3.select(".navigateContainer");
-        
-        svgPenSketch.current.eraserUpCallback = () => {
-            toolbar.classed("disabled", false);
-            toolTip.classed("disabled", false);
-            navagation.classed("disabled", false);
-
-            if (eraseEndCallback instanceof Function) {
-                eraseEndCallback();
-            }
-        };
-    }, [eraseEndCallback]);
-
-    useEffect(() => {
-        let toolbar = d3.select(".toolbar");
-        let toolTip = d3.selectAll("#toolTipcanvas");
-        let navagation = d3.select(".navigateContainer");
-
-        svgPenSketch.current.eraseStartCallback = () => {
-            toolbar.classed("disabled", true);
-            toolTip.classed("disabled", true);
-            navagation.classed("disabled", true);
-            clearTimeout(hoverTimeout.current);
-
-            // d3.selectAll("g.toolTip:not(.found)")
-            // .on("click", null)
-            // .style("cursor", "default")
-            // .transition()
-            // .duration(1000)
-            // .attr("opacity", 0)
-            // .remove();
-
-            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                cluster.disabled = true;
-                cluster.open = false;
-            }
-            setClusters([...clustersRef.current]);
-            setLockCluster([...lockClusterRef.current]);
-            activeCluster.current = null;
-            
-            if (onNewActiveCluster instanceof Function)
-                onNewActiveCluster(null);
-
-            if (eraseStartCallback instanceof Function) {
-                eraseStartCallback();
-            }
-        };
-    }, [onNewActiveCluster, eraseStartCallback]);
     
     useEffect(() => {
         svgPenSketch.current._element
@@ -401,6 +349,34 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             .on("pointerleave.hover", null);
         };
     }, [handleHover]);
+
+    useEffect(() => {
+        let toolbar = d3.select(".toolbar");
+        let toolTip = d3.selectAll("#toolTipcanvas");
+        let navagation = d3.select(".navigateContainer");
+
+        svgPenSketch.current.eraseStartCallback = () => {
+            toolbar.classed("disabled", true);
+            toolTip.classed("disabled", true);
+            navagation.classed("disabled", true);
+            clearTimeout(hoverTimeout.current);
+
+            // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+            //     cluster.disabled = true;
+            //     cluster.open = false;
+            // }
+            // setClusters([...clustersRef.current]);
+            // setLockCluster([...lockClusterRef.current]);
+            // activeCluster.current = null;
+            
+            // if (onNewActiveCluster instanceof Function)
+            //     onNewActiveCluster(null);
+
+            if (eraseStartCallback instanceof Function) {
+                eraseStartCallback();
+            }
+        };
+    }, [onNewActiveCluster, eraseStartCallback]);
 
     useEffect(() => {
         svgPenSketch.current.eraserDownCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
@@ -446,31 +422,40 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         };
     }, [onEraseCallback]);
 
+    
+    useEffect(() => {
+        let toolbar = d3.select(".toolbar");
+        let toolTip = d3.selectAll("#toolTipcanvas");
+        let navagation = d3.select(".navigateContainer");
+        
+        svgPenSketch.current.eraserUpCallback = () => {
+            toolbar.classed("disabled", false);
+            toolTip.classed("disabled", false);
+            navagation.classed("disabled", false);
+
+            if (eraseEndCallback instanceof Function) {
+                eraseEndCallback();
+            }
+        };
+    }, [eraseEndCallback]);
+
     useEffect(() => {
         let toolbar = d3.select(".toolbar");
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
         
         svgPenSketch.current.penStartCallback = (path) => {
-            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                cluster.disabled = true;
-                cluster.open = false;
-            }
-            // d3.selectAll("g.toolTip:not(.found)")
-            // .on("click", null)
-            // .style("cursor", "default")
-            // .transition()
-            // .duration(1000)
-            // .attr("opacity", 0)
-            // .remove();
+            // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+            //     cluster.disabled = true;
+            //     cluster.open = false;
+            // }
+            // activeCluster.current = null;
 
-            activeCluster.current = null;
-
-            if (onNewActiveCluster instanceof Function)
-                onNewActiveCluster(null);
+            // if (onNewActiveCluster instanceof Function)
+            //     onNewActiveCluster(null);
             
-            setClusters([...clustersRef.current]);
-            setLockCluster([...lockClusterRef.current]);
+            // setClusters([...clustersRef.current]);
+            // setLockCluster([...lockClusterRef.current]);
             hoveredCluster.current = null;
             clearTimeout(hoverTimeout.current);
 

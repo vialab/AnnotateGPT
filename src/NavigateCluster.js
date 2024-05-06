@@ -131,7 +131,7 @@ export default function NavigateCluster({ cluster, annotations }) {
         .classed("disabled", index.current === 0);
     };
 
-    let findIndex = () =>{
+    let findIndex = () => {
         let distances = annotationsRef.current.map(annotation => {
             let y = d3.mean(annotation.spans.map(span => {
                 if (span.classList?.contains("toolTip")) {
@@ -202,7 +202,7 @@ export default function NavigateCluster({ cluster, annotations }) {
     useEffect(() => {
         let tAnnotations = [...annotations];
 
-        if (cluster) {
+        if (cluster && tAnnotations.length > 0) {
             let tooltip = d3.select("g.toolTip#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
             tAnnotations.push({ spans: [tooltip] });
         }

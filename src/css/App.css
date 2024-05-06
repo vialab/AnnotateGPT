@@ -86,3 +86,52 @@ input {
 .react-tooltip {
     --rt-opacity: 1;
 }
+
+.annotationMessageContainer {
+    width: 300px;
+    font-family: 'Google Sans', Roboto, sans-serif;
+    line-height: 22px;
+    pointer-events: all;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.annotationMessageHeader {
+    font-size: 16px;
+    letter-spacing: 0.25px;
+    font-weight: 500;
+    color: #F7F9F9;
+    margin-bottom: 8px;
+}
+
+.annotationMessageContainer textarea {
+    height: 31px;
+    padding: 8px;
+    padding-left: 10px;
+    border-radius: 16px;
+    font-family: 'Google Sans', Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 15px;
+    letter-spacing: 0.2px;
+    font-weight: 400;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+}
+
+.rateButton {
+    width: 32px;
+    height: 32px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.rateButton:hover {
+    background-color: #ada8b62d;
+    cursor: pointer;
+    transition: all 0.3s;
+}

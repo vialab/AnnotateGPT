@@ -9,6 +9,7 @@ import { findAnnotations } from "./OpenAIUtils.js";
 import { pdfjs } from 'react-pdf';
 import { Tooltip } from 'react-tooltip';
 import {autoPlacement} from '@floating-ui/dom';
+import { RxCheck, RxCross2 } from "react-icons/rx";
 
 import 'react-tooltip/dist/react-tooltip.css';
 import './css/App.css';
@@ -20,6 +21,146 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.js',
     import.meta.url,
 ).toString();
+
+let workerLevenshteinDistance = () => {
+    // https://github.com/ka-weihe/fastest-levenshtein
+    onmessage = function(e) {
+        const a = e.data.a;
+        const b = e.data.b;
+        const i = e.data.i;
+        const i2 = e.data.i2;
+        const peq = new Uint32Array(0x10000);
+
+        const myers_32 = (a, b) => {
+            const n = a.length;
+            const m = b.length;
+            const lst = 1 << (n - 1);
+            let pv = -1;
+            let mv = 0;
+            let sc = n;
+            let i = n;
+            while (i--) {
+                peq[a.charCodeAt(i)] |= 1 << i;
+            }
+            for (i = 0; i < m; i++) {
+                let eq = peq[b.charCodeAt(i)];
+                const xv = eq | mv;
+                eq |= ((eq & pv) + pv) ^ pv;
+                mv |= ~(eq | pv);
+                pv &= eq;
+                if (mv & lst) {
+                    sc++;
+                }
+                if (pv & lst) {
+                    sc--;
+                }
+                mv = (mv << 1) | 1;
+                pv = (pv << 1) | ~(xv | mv);
+                mv &= xv;
+            }
+            i = n;
+            while (i--) {
+                peq[a.charCodeAt(i)] = 0;
+            }
+            return sc;
+        };
+
+        const myers_x = (b, a) => {
+            const n = a.length;
+            const m = b.length;
+            const mhc = [];
+            const phc = [];
+            const hsize = Math.ceil(n / 32);
+            const vsize = Math.ceil(m / 32);
+            for (let i = 0; i < hsize; i++) {
+                phc[i] = -1;
+                mhc[i] = 0;
+            }
+            let j = 0;
+            for (; j < vsize - 1; j++) {
+                let mv = 0;
+                let pv = -1;
+                const start = j * 32;
+                const vlen = Math.min(32, m) + start;
+                for (let k = start; k < vlen; k++) {
+                    peq[b.charCodeAt(k)] |= 1 << k;
+                }
+                for (let i = 0; i < n; i++) {
+                    const eq = peq[a.charCodeAt(i)];
+                    const pb = (phc[(i / 32) | 0] >>> i) & 1;
+                    const mb = (mhc[(i / 32) | 0] >>> i) & 1;
+                    const xv = eq | mv;
+                    const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
+                    let ph = mv | ~(xh | pv);
+                    let mh = pv & xh;
+                    if ((ph >>> 31) ^ pb) {
+                        phc[(i / 32) | 0] ^= 1 << i;
+                    }
+                    if ((mh >>> 31) ^ mb) {
+                        mhc[(i / 32) | 0] ^= 1 << i;
+                    }
+                    ph = (ph << 1) | pb;
+                    mh = (mh << 1) | mb;
+                    pv = mh | ~(xv | ph);
+                    mv = ph & xv;
+                }
+                for (let k = start; k < vlen; k++) {
+                    peq[b.charCodeAt(k)] = 0;
+                }
+            }
+            let mv = 0;
+            let pv = -1;
+            const start = j * 32;
+            const vlen = Math.min(32, m - start) + start;
+            for (let k = start; k < vlen; k++) {
+                peq[b.charCodeAt(k)] |= 1 << k;
+            }
+            let score = m;
+            for (let i = 0; i < n; i++) {
+                const eq = peq[a.charCodeAt(i)];
+                const pb = (phc[(i / 32) | 0] >>> i) & 1;
+                const mb = (mhc[(i / 32) | 0] >>> i) & 1;
+                const xv = eq | mv;
+                const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
+                let ph = mv | ~(xh | pv);
+                let mh = pv & xh;
+                score += (ph >>> (m - 1)) & 1;
+                score -= (mh >>> (m - 1)) & 1;
+                if ((ph >>> 31) ^ pb) {
+                    phc[(i / 32) | 0] ^= 1 << i;
+                }
+                if ((mh >>> 31) ^ mb) {
+                    mhc[(i / 32) | 0] ^= 1 << i;
+                }
+                ph = (ph << 1) | pb;
+                mh = (mh << 1) | mb;
+                pv = mh | ~(xv | ph);
+                mv = ph & xv;
+            }
+            for (let k = start; k < vlen; k++) {
+                peq[b.charCodeAt(k)] = 0;
+            }
+            return score;
+        };
+
+        const distance = (a, b) => {
+            if (a.length < b.length) {
+                const tmp = b;
+                b = a;
+                a = tmp;
+            }
+            if (b.length === 0) {
+                return a.length;
+            }
+            if (a.length <= 32) {
+                return myers_32(a, b);
+            }
+            return myers_x(a, b);
+        };
+
+        postMessage({distance: distance(a, b), a, b, i, i2});
+    };
+};
 
 export default function App() {
     const defaultColour = "#000000";
@@ -225,7 +366,6 @@ export default function App() {
                                             }
                                         }
                                     }
-                                
                                 }
                             }
 
@@ -235,150 +375,10 @@ export default function App() {
                         } else {
                             console.log(result);
                         }
-
+                        
                         if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
                             handleEnd();
                         }
-                    };
-                    
-                    let workerLevenshteinDistance = () => {
-                        // https://github.com/ka-weihe/fastest-levenshtein
-                        onmessage = function(e) {
-                            const a = e.data.a;
-                            const b = e.data.b;
-                            const i = e.data.i;
-                            const i2 = e.data.i2;
-                            const peq = new Uint32Array(0x10000);
-
-                            const myers_32 = (a, b) => {
-                                const n = a.length;
-                                const m = b.length;
-                                const lst = 1 << (n - 1);
-                                let pv = -1;
-                                let mv = 0;
-                                let sc = n;
-                                let i = n;
-                                while (i--) {
-                                    peq[a.charCodeAt(i)] |= 1 << i;
-                                }
-                                for (i = 0; i < m; i++) {
-                                    let eq = peq[b.charCodeAt(i)];
-                                    const xv = eq | mv;
-                                    eq |= ((eq & pv) + pv) ^ pv;
-                                    mv |= ~(eq | pv);
-                                    pv &= eq;
-                                    if (mv & lst) {
-                                        sc++;
-                                    }
-                                    if (pv & lst) {
-                                        sc--;
-                                    }
-                                    mv = (mv << 1) | 1;
-                                    pv = (pv << 1) | ~(xv | mv);
-                                    mv &= xv;
-                                }
-                                i = n;
-                                while (i--) {
-                                    peq[a.charCodeAt(i)] = 0;
-                                }
-                                return sc;
-                            };
-
-                            const myers_x = (b, a) => {
-                                const n = a.length;
-                                const m = b.length;
-                                const mhc = [];
-                                const phc = [];
-                                const hsize = Math.ceil(n / 32);
-                                const vsize = Math.ceil(m / 32);
-                                for (let i = 0; i < hsize; i++) {
-                                    phc[i] = -1;
-                                    mhc[i] = 0;
-                                }
-                                let j = 0;
-                                for (; j < vsize - 1; j++) {
-                                    let mv = 0;
-                                    let pv = -1;
-                                    const start = j * 32;
-                                    const vlen = Math.min(32, m) + start;
-                                    for (let k = start; k < vlen; k++) {
-                                        peq[b.charCodeAt(k)] |= 1 << k;
-                                    }
-                                    for (let i = 0; i < n; i++) {
-                                        const eq = peq[a.charCodeAt(i)];
-                                        const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                                        const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                                        const xv = eq | mv;
-                                        const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                                        let ph = mv | ~(xh | pv);
-                                        let mh = pv & xh;
-                                        if ((ph >>> 31) ^ pb) {
-                                            phc[(i / 32) | 0] ^= 1 << i;
-                                        }
-                                        if ((mh >>> 31) ^ mb) {
-                                            mhc[(i / 32) | 0] ^= 1 << i;
-                                        }
-                                        ph = (ph << 1) | pb;
-                                        mh = (mh << 1) | mb;
-                                        pv = mh | ~(xv | ph);
-                                        mv = ph & xv;
-                                    }
-                                    for (let k = start; k < vlen; k++) {
-                                        peq[b.charCodeAt(k)] = 0;
-                                    }
-                                }
-                                let mv = 0;
-                                let pv = -1;
-                                const start = j * 32;
-                                const vlen = Math.min(32, m - start) + start;
-                                for (let k = start; k < vlen; k++) {
-                                    peq[b.charCodeAt(k)] |= 1 << k;
-                                }
-                                let score = m;
-                                for (let i = 0; i < n; i++) {
-                                    const eq = peq[a.charCodeAt(i)];
-                                    const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                                    const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                                    const xv = eq | mv;
-                                    const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                                    let ph = mv | ~(xh | pv);
-                                    let mh = pv & xh;
-                                    score += (ph >>> (m - 1)) & 1;
-                                    score -= (mh >>> (m - 1)) & 1;
-                                    if ((ph >>> 31) ^ pb) {
-                                        phc[(i / 32) | 0] ^= 1 << i;
-                                    }
-                                    if ((mh >>> 31) ^ mb) {
-                                        mhc[(i / 32) | 0] ^= 1 << i;
-                                    }
-                                    ph = (ph << 1) | pb;
-                                    mh = (mh << 1) | mb;
-                                    pv = mh | ~(xv | ph);
-                                    mv = ph & xv;
-                                }
-                                for (let k = start; k < vlen; k++) {
-                                    peq[b.charCodeAt(k)] = 0;
-                                }
-                                return score;
-                            };
-
-                            const distance = (a, b) => {
-                                if (a.length < b.length) {
-                                    const tmp = b;
-                                    b = a;
-                                    a = tmp;
-                                }
-                                if (b.length === 0) {
-                                    return a.length;
-                                }
-                                if (a.length <= 32) {
-                                    return myers_32(a, b);
-                                }
-                                return myers_x(a, b);
-                            };
-
-                            postMessage({distance: distance(a, b), a, b, i, i2});
-                        };
                     };
 
                     let done2 = 0;
@@ -447,14 +447,14 @@ export default function App() {
                     // console.log("Annotating", lastToken.sentence.trim());
                     // annotate(lastToken.sentence.trim(), callback);
                 } else {
-                    setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: "Generating explanation...", explain: false, spans: []});
+                    setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: ["Generating explanation..."], explain: false, spans: []});
                 }
             } else if (token.trim().startsWith(`{{{`) || token.trim().endsWith(`{{{`) || (prevToken + token).trim().startsWith(`{{{`) || (prevToken + token).trim().endsWith(`{{{`)) {
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
                 if (lastToken) {
                     lastToken.explain = true;
-                    lastToken.explanation = "";
+                    lastToken.explanation[0] = "";
                 }
                 prevToken = "";
             } else if (token.trim().startsWith(`}}}`) || token.trim().endsWith(`}}}`) || (prevToken + token).trim().startsWith(`}}}`) || (prevToken + token).trim().endsWith(`}}}`)) {
@@ -463,8 +463,14 @@ export default function App() {
                 if (lastToken) {
                     lastToken.explain = false;
 
-                    if ((lastToken.explanation + token).trim().endsWith("}}}")) {
-                        lastToken.explanation = (lastToken.explanation + token).trim().slice(0, -3);
+                    if ((lastToken.explanation[0] + token).trim().endsWith("}}}")) {
+                        lastToken.explanation[0] = (lastToken.explanation[0] + token).trim().slice(0, -3);
+                    }
+                }
+
+                for (let index of cutIndex) {
+                    if (setUpAnnotatedTokens[index[0]]?.explanation[0] === "Generating explanation...") {
+                        setUpAnnotatedTokens[index[0]].explanation[0] = setUpAnnotatedTokens[index[1]]?.explanation[0];
                     }
                 }
                 prevToken = "";
@@ -474,7 +480,7 @@ export default function App() {
                 if (lastToken?.state === "start") {
                     lastToken.sentence += token;
                 } else if (lastToken?.explain === true) {
-                    lastToken.explanation += token;
+                    lastToken.explanation[0] += token;
                 }
                 prevToken = token;
             }
@@ -526,10 +532,6 @@ export default function App() {
                             }
                         }
                     }
-
-                    if (setUpAnnotatedTokens[index[0]]?.explanation === "Generating explanation...") {
-                        setUpAnnotatedTokens[index[0]].explanation = setUpAnnotatedTokens[index[1]]?.explanation;
-                    }
                 }
                 // console.log("Cut Index", cutIndex);
 
@@ -543,8 +545,8 @@ export default function App() {
                 console.log("Finished annotating", setUpAnnotatedTokens);
 
                 for (let token of setUpAnnotatedTokens) {
-                    if (token.explanation === "Generating explanation...") {
-                        token.explanation = "";
+                    if (token.explanation[0] === "Generating explanation...") {
+                        token.explanation[0] = "";
                     }
                 }
 
@@ -1261,7 +1263,9 @@ export default function App() {
     }, [activeCluster]);
 
     const explainTooltipTimeout = useRef(null);
+    const highlightTimeout = useRef(null);
     const hoverAnnotation = useRef(null);
+    const activeAnnotation = useRef(null);
 
     useEffect(() => {
         d3.select("body")
@@ -1282,83 +1286,171 @@ export default function App() {
         
                                 if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
                                     let closestTextLayer = span.closest(".textLayer");
-                                    clearTimeout(explainTooltipTimeout.current);
-        
-                                    let content = 
-                                    <div style={{ maxWidth: "300px", fontFamily: "Google Sans,Roboto,sans-serif", lineHeight: "22px", pointerEvents: "all" }}>
-                                        <div style={{ fontSize: "16px", letterSpacing: "0.25px", fontWeight: "500", marginBottom: "12px", color: "#F7F9F9" }}>
-                                            <div style={{ display: "flex"}}>
-                                                <img src={"./AnnotateGPT.jpg"} alt="icon" style={{ width: "40px", height: "40px", marginRight: "12px", borderRadius: "50%" }} />
-                                                <div style={{ display: "flex", alignItems: "center" }}>
-                                                    {"AnnotateGPT"}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}}>
-                                            {annotation.explanation && annotation.explanation.trim() !== "" ? annotation.explanation : `${annotations.annotationDescription}${annotations.annotationDescription.endsWith(".") ? "" : "."} ${annotations.purpose}`}
-                                        </div>
-                                    </div>;
+                                        
+                                    if (hoverAnnotation.current !== annotation) {
+                                        clearTimeout(explainTooltipTimeout.current);
+                                        clearTimeout(highlightTimeout.current);
                                     
-                                    explainTooltipTimeout.current = setTimeout(() => {
-                                        // console.log("Hovering over annotation", annotation);
-                                        d3.selectAll(".word.highlighted, .space.highlighted")
-                                        .classed("fade", true);
-
-                                        for (let span of annotation.spans) {
-                                            d3.select(span)
-                                            .classed("fade", false);
-
-                                            let space = d3.select(span).node().nextSibling;
-
-                                            if (space === null) {
-                                                space = span.parentNode.nextSibling?.firstChild;
-                                            }
-                        
-                                            if (space !== null && space.classList.contains("space")) {
-                                                d3.select(space)
-                                                .classed("highlighted", true)
+                                        highlightTimeout.current = setTimeout(() => {
+                                            d3.selectAll(".word.highlighted, .space.highlighted")
+                                            .classed("fade", true);
+    
+                                            for (let span of annotation.spans) {
+                                                d3.select(span)
                                                 .classed("fade", false);
+    
+                                                let space = d3.select(span).node().nextSibling;
+    
+                                                if (space === null) {
+                                                    space = span.parentNode.nextSibling?.firstChild;
+                                                }
+                            
+                                                if (space !== null && space.classList.contains("space")) {
+                                                    d3.select(space)
+                                                    .classed("highlighted", true)
+                                                    .classed("fade", false);
+                                                }
                                             }
+                                        }, 1000);
+                                        hoverAnnotation.current = annotation;                                        
+
+                                        function generateContent() {
+                                            let firstMessage = annotation.explanation && annotation.explanation[0].trim() !== "" ? annotation.explanation[0] : `${annotations.annotationDescription}${annotations.annotationDescription.endsWith(".") ? "" : "."} ${annotations.purpose}`;
+
+                                            let annotationMessages = [
+                                                <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}}>
+                                                    <div className="annotationMessageHeader">
+                                                        <div style={{ display: "flex"}}>
+                                                            <img src={"./AnnotateGPT.jpg"} alt="icon" style={{ width: "32px", height: "32px", marginRight: "12px", borderRadius: "50%", userSelect: "none" }} />
+                                                            <div style={{ display: "flex", alignItems: "center", width: "100%", gap: "10px"}}>
+                                                                <div style={{ width: "-webkit-fill-available" }} >{"AnnotateGPT"}</div>
+                                                                
+                                                                { 
+                                                                    annotation.explanation[0] !== "Generating explanation..." ?
+                                                                        <>
+                                                                            <div className="rateButton">
+                                                                                <RxCheck size={25} style={{ color: "#2eb086", strokeWidth: "1" }} />
+                                                                            </div>
+                                                                            <div className="rateButton" style={{ paddingLeft: "6px", paddingTop: "6px" }}>
+                                                                                <RxCross2 size={25} style={{ color: "#b8405e", strokeWidth: "1" }} />
+                                                                            </div>
+                                                                        </>
+                                                                        : null
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {firstMessage}
+                                                </div>
+                                            ];
+
+                                            for (let i = 1; i < annotation.explanation.length; i++) {
+                                                annotationMessages.push(
+                                                    <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}}>
+                                                        <div className="annotationMessageHeader">
+                                                            <div style={{ display: "flex"}}>
+                                                                <img src={"./user.jpg"} alt="icon" style={{ width: "32px", height: "32px", marginRight: "12px", borderRadius: "50%", userSelect: "none" }} />
+                                                                <div style={{ display: "flex", alignItems: "center" }}>
+                                                                    {"You"}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        {annotation.explanation[i]}
+                                                    </div>
+                                                );
+                                            }
+
+                                            let content = 
+                                            <div className="annotationMessageContainer">
+                                                { annotationMessages }
+                                                { annotation.explanation[0] !== "Generating explanation..." ? <textarea onInput={auto_grow} onKeyDown={onKeyDown} placeholder="Reply" /> : null }
+                                            </div>;
+
+                                            return content;
                                         }
 
-                                        d3.select(".explanation-tooltip")
-                                        .style("position", "absolute")
-                                        .style("z-index", "1000")
-                                        .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
-                                        .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px")
-                                        .style("opacity", 0);
+                                        function auto_grow(e) {
+                                            let element = e.target;
+                                            element.style.height = "5px";
+                                            element.style.height = (element.scrollHeight) + "px";
+                                        }
 
-                                        if (hoverAnnotation.current !== annotation) {
-                                            if (d3.select(".react-tooltip").empty()) {
+                                        function onKeyDown(e) {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+
+                                                if (e.target.value.trim() !== "") {
+                                                    annotation.explanation.push(e.target.value.trim());
+                                                    e.target.value = "";
+                                                    
+                                                    let content = generateContent();
+
+                                                    explanationToolTipRef.current?.open({
+                                                        anchorSelect: ".explanation-tooltip",
+                                                        content: content,
+                                                        place: "left",
+                                                    });
+                                                }
+                                            }
+                                        }
+            
+                                        let content = generateContent();
+                                        
+                                        explainTooltipTimeout.current = setTimeout(() => {
+                                            // console.log("Hovering over annotation", annotation);
+                                            
+                                            if (activeAnnotation.current !== annotation) {
+                                                if (d3.select(".react-tooltip").empty()) {
+                                                    d3.select(".explanation-tooltip")
+                                                    .style("position", "absolute")
+                                                    .style("z-index", "1000")
+                                                    .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
+                                                    .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px")
+                                                    .style("opacity", 0);
+
+                                                    explanationToolTipRef.current?.open({
+                                                        anchorSelect: ".explanation-tooltip",
+                                                        content: content,
+                                                        place: "left",
+                                                    });
+                                                } else {
+                                                    d3.select(".react-tooltip")
+                                                    .transition()
+                                                    .duration(300)
+                                                    .style("opacity", 0)
+                                                    .on("end", () => {
+                                                        d3.select(".explanation-tooltip")
+                                                        .style("position", "absolute")
+                                                        .style("z-index", "1000")
+                                                        .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) + window.scrollY + "px")
+                                                        .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px")
+                                                        .style("opacity", 0);
+                                                        
+                                                        d3.select(".react-tooltip")
+                                                        .transition()
+                                                        .delay(100)
+                                                        .duration(200)
+                                                        .style("opacity", 1)
+                                                        .on("start", () => {
+                                                            explanationToolTipRef.current?.open({
+                                                                anchorSelect: ".explanation-tooltip",
+                                                                content: content,
+                                                                place: "left",
+                                                            });
+                                                        });
+                                                    });
+                                                }
+                                            } else {
                                                 explanationToolTipRef.current?.open({
                                                     anchorSelect: ".explanation-tooltip",
                                                     content: content,
                                                     place: "left",
                                                 });
-                                            } else {
-                                                d3.select(".react-tooltip")
-                                                .transition()
-                                                .duration(200)
-                                                .style("opacity", 0)
-                                                .on("end", () => {
-                                                    d3.select(".react-tooltip")
-                                                    .transition()
-                                                    .duration(200)
-                                                    .style("opacity", 1)
-                                                    .on("start", () => {
-                                                        explanationToolTipRef.current?.open({
-                                                            anchorSelect: ".explanation-tooltip",
-                                                            content: content,
-                                                            place: "left",
-                                                        });
-                                                    });
-                                                });
                                             }
-                                        }
-                                        hoverAnnotation.current = annotation;
+                                            activeAnnotation.current = annotation;
 
-                                    }, 1000);
-                                    
+                                        }, 1000);
+                                    }
                                     return;
                                 }
                             }
@@ -1367,13 +1459,14 @@ export default function App() {
                 }
             }
 
-            if (hoverAnnotation.current !== null) {
-                d3.selectAll(".word.highlighted, .space.highlighted")
-                .classed("fade", false);
-            }
+            // if (hoverAnnotation.current !== null) {
+            d3.selectAll(".word.highlighted, .space.highlighted")
+            .classed("fade", false);
+            // }
 
-            // hoverAnnotation.current = null;
+            hoverAnnotation.current = null;
             clearTimeout(explainTooltipTimeout.current);
+            clearTimeout(highlightTimeout.current);
             // explanationToolTipRef.current?.close();
         });
 
