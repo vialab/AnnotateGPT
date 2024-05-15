@@ -1,0 +1,368 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(57, 57, 58, 0.5);
+    backdrop-filter: saturate(180%) blur(5px);
+    box-shadow: 0 0px 1px 1px hsla(0, 0%, 100%, .1);
+}
+
+.ReactModal__Overlay {
+    opacity: 0;
+    transition: opacity 500ms ease-in-out;
+    z-index: 5;
+}
+
+.ReactModal__Overlay--after-open {
+    opacity: 1;
+}
+
+.ReactModal__Overlay--before-close {
+    opacity: 0;
+}
+
+.modal {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    outline: none;
+}
+
+.contentContainer {
+    width: 70%;
+    height: max-content;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    padding: 30px;
+    gap: 15px;
+    user-select: none;
+    overflow: hidden;
+    background-color: rgba(57, 57, 58, 0.9);
+    backdrop-filter: saturate(180%) blur(5px);
+    box-shadow: inset 0 0px 20px 20px hsla(0, 0%, 100%, 0.1);
+    color: white;
+}
+
+.contentContainer * {
+    letter-spacing: 0.5px;
+}
+
+.contentContainer iframe {
+    width: 100%;
+    height: 70vh;
+    border-radius: 10px;
+    border: none;
+}
+
+.contentContainer .bottom {
+    position: inherit;
+    margin: 0;
+    display: flex;
+    gap: 15px;
+}
+
+.contentContainer h3 {
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: #E58F65;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.studyInfo {
+    width: 30px;
+    height: 30px;
+    border: 1px solid white;
+    position: absolute;
+    top: 0;
+    right: 0;
+    border-radius: 50%;
+    margin: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.contentContainer .modalButton {
+    margin-bottom: 0;
+    transform: scale(0.85);
+}
+
+.contentContainer .prevButton {
+    transform: rotate(180deg) scale(0.85);
+}
+
+.contentContainer .modalButton.cancel, .contentContainer .modalButton.disabled.enable.cancel {
+    border-color: #b8405e;
+}
+
+.contentContainer .modalButton.confirm, .contentContainer .modalButton.disabled.enable.confirm {
+    border-color: #2eb086;
+}
+
+.contentContainer .modalButton.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    border-color: rgb(184, 64, 94);
+    transition: border-color 1s ease-in-out, opacity 1s ease-in-out;
+}
+
+.contentContainer .modalButton.disabled.enable {
+    border-color: white;
+    opacity: 1;
+    pointer-events: all;
+}
+
+.contentContainer .modalButton.disabled::before {
+    width: 100%;
+    top: 50%;
+    left: 0em;
+    content: "";
+    height: .2em;
+    border-radius: 3px;
+    background: rgb(184, 64, 94);
+    position: absolute;
+    transform: rotate(-45deg);
+}
+
+.contentContainer .modalButton.disabled::after {
+    width: 100%;
+    top: 50%;
+    left: 0em;
+    content: "";
+    height: .2em;
+    border-radius: 3px;
+    background: rgb(184, 64, 94);
+    position: absolute;
+    transform: rotate(45deg);
+}
+
+.contentContainer .modalButton.disabled.enable::before,
+.contentContainer .modalButton.disabled.enable::after {
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.checkmark {
+    stroke-width: 1.6;
+    stroke: #fff;
+    stroke-miterlimit: 10;
+}
+
+.checkmark__check {
+    stroke-dasharray: 34;
+    stroke-dashoffset: 34;
+    transform: translateX(-1px) translateY(-1px);
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.checkmark__circle {
+    stroke-dasharray: 82;
+    stroke-dashoffset: 82;
+    transform: rotate(180deg);
+    transform-origin: center;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    
+    animation: strokeCircleReverse 0s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.modalButton.animated .checkmark .checkmark__circle {
+    animation: strokeCircle 0.35s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.modalButton.animated .checkmark .checkmark__check {
+    animation: stroke 0.45s cubic-bezier(0.65, 0, 0.45, 1) forwards 0.35s;
+}
+
+.modalButton.reverse .checkmark .checkmark__circle {
+    animation: strokeCircleReverse 0.45s cubic-bezier(0.65, 0, 0.45, 1) forwards 0.35s;
+}
+
+.modalButton.reverse .checkmark .checkmark__check {
+    animation: strokeReverse 0.35s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+@keyframes stroke {
+    0% {
+        stroke-dashoffset: 34;
+    }
+
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes strokeReverse {
+    0% {
+        stroke-dashoffset: 0;
+    }
+
+    100% {
+        stroke-dashoffset: 34;
+    }
+}
+
+@keyframes strokeCircle {
+    0% {
+        stroke-dashoffset: 0;
+    }
+
+    100% {
+        stroke-dashoffset: 82;
+    }
+}
+
+@keyframes strokeCircleReverse {
+    0% {
+        stroke-dashoffset: 82;
+    }
+
+    100% {
+        stroke-dashoffset: 0;
+    }
+}
+
+.close-container {
+    position: relative;
+    width: 63px;
+    height: 63px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.leftright, .rightleft {
+    height: 2px;
+    width: 30px;
+    position: absolute;
+    background-color: white;
+    border-radius: 2px;
+}
+
+.leftright {
+    transform: rotate(45deg);
+}
+
+.rightleft {
+    transform: rotate(-45deg);
+}
+
+.modalButton.reverse .close-container .leftright {
+    animation: rotate 0.7s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.modalButton.animated .close-container .leftright {
+    animation: rotateReverse 0.7s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.modalButton.reverse .close-container .rightleft {
+    animation: rotateReverse 0.7s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.modalButton.animated .close-container .rightleft {
+    animation: rotate 0.7s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+@keyframes rotate {
+    0% {
+        transform: rotate(-45deg);
+    }
+
+    100% {
+        transform: rotate(45deg);
+    }
+}
+
+@keyframes rotateReverse {
+    0% {
+        transform: rotate(45deg);
+    }
+
+    100% {
+        transform: rotate(-45deg);
+    }
+}
+
+.round {
+    border: 2px solid #fff;
+    width: 70px;
+    height: 70px;
+    border-radius: 20px;
+    position: relative;
+    background: transparent;
+    cursor: pointer;
+    transition: opacity 0.3s ease-in-out;
+}
+
+#cta {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.arrow {
+    margin-left: 0px;
+    width: 17px;
+    height: 25px;
+    background-size: cover;
+    left: 30%;
+}
+
+.next {
+    background-image: url(data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHN0eWxlPi5zdDB7ZmlsbDojZmZmfTwvc3R5bGU+PHBhdGggY2xhc3M9InN0MCIgZD0iTTMxOS4xIDIxN2MyMC4yIDIwLjIgMTkuOSA1My4yLS42IDczLjdzLTUzLjUgMjAuOC03My43LjZsLTE5MC0xOTBjLTIwLjEtMjAuMi0xOS44LTUzLjIuNy03My43UzEwOSA2LjggMTI5LjEgMjdsMTkwIDE5MHoiLz48cGF0aCBjbGFzcz0ic3QwIiBkPSJNMzE5LjEgMjkwLjVjMjAuMi0yMC4yIDE5LjktNTMuMi0uNi03My43cy01My41LTIwLjgtNzMuNy0uNmwtMTkwIDE5MGMtMjAuMiAyMC4yLTE5LjkgNTMuMi42IDczLjdzNTMuNSAyMC44IDczLjcuNmwxOTAtMTkweiIvPjwvc3ZnPg==);
+}
+
+@keyframes bounceAlpha {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+
+    25% {
+        opacity: 0;
+        transform: translateX(100%) scale(0.5);
+    }
+
+    26% {
+        opacity: 0;
+        transform: translateX(-100%) scale(0.5);
+    }
+
+    55% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.round.animated .arrow {
+    animation-name: bounceAlpha;
+    animation-duration: 1.4s;
+    animation-iteration-count: 1;
+    animation-timing-function: linear;
+}
+
+.round.animated .arrow.primera {
+    animation-name: bounceAlpha;
+    animation-duration: 1.4s;
+    animation-delay: 0.1s;
+    animation-iteration-count: 1;
+    animation-timing-function: linear;
+}
+
+.round.animated.infinite .arrow {
+    animation-iteration-count: infinite;
+}
+
+.round.animated.infinite .arrow.primera {
+    animation-iteration-count: infinite;
+}

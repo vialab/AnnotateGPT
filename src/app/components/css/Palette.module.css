@@ -1,0 +1,38 @@
+.circle-picker {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    background: rgb(255, 255, 255);
+    border: 0px solid rgba(0, 0, 0, 0.25);
+    box-shadow: rgba(0, 0, 0, 0.25) 0px 1px 4px;
+    border-radius: 4px;
+    position: relative;
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+.circle-picker > span {
+    pointer-events: none;
+}
+
+.circle-picker > span > div {
+    margin: auto !important;
+}
+
+.circle-picker > span > div > span > div {
+    pointer-events: all;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#palette {
+    display: block;
+    filter: drop-shadow( 5px 10px 1px rgba(0, 0, 0, .2));
+}
+
+#palette.hover {
+    transform: scale(1.05);
+    filter: drop-shadow( 0px 10px 3px rgba(0, 0, 0, .2));
+}

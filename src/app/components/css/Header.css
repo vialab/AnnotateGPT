@@ -1,0 +1,98 @@
+#header {
+    --header-inner-height: 80px;
+    --header-outer-height: 80px;
+    --header-height-difference: calc(var(--header-outer-height) - var(--header-inner-height));
+
+    min-height: var(--header-outer-height);
+    height: var(--header-outer-height);
+    position: sticky;
+    top: calc(var(--header-height-difference) * -1);
+    display: flex;
+    align-items: center;
+    background-color: rgba(57, 57, 58, .5);
+    backdrop-filter: blur(3px) saturate(180%);
+    box-shadow: 0 0px 1px 1px hsla(0,0%,100%,.1);
+    z-index: 5;
+    transition: all 0.3s;
+    
+}
+
+#headerInner {
+    width: 100%;
+    height: var(--header-inner-height);
+    min-height: var(--header-inner-height);
+    max-height: var(--header-inner-height);
+    position: sticky;
+    top: 0;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+    gap: 30px;
+    transition: all 0.3s;
+    container: headerInner / size;
+}
+
+@container headerInner (height > 0px) {
+    .headerlinks {
+        font-size: clamp(0em, 30cqh, 18px);
+    }
+}
+
+#header .headerlinks {
+    /* height: 100%; */
+    position: relative;
+    z-index: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+
+#header .headerlinks:hover {
+    color: #fff;
+    cursor: pointer;
+}
+
+#header .headerlinks:after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 2em;
+    background: transparent;
+    content: "";
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 1;
+    pointer-events: none;
+}
+
+#header .headerlinks:after {
+    border-bottom: 1px solid white;
+    transform: translateX(-50%) translateY(-30%);
+}
+
+#header .headerlinks:hover:after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-50%);
+}
+
+.svg {
+    width: 180px;
+    height: 95%;
+    overflow: visible;
+}
+
+.graphic {
+    transform-origin: center;
+    transition: transform 0.2s;
+    cursor: pointer;
+    user-select: none;
+    will-change: transform;
+    pointer-events: visible;
+}
+
+.graphic:hover {
+    transform: scale(1.05);
+}
