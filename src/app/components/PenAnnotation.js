@@ -1157,4 +1157,5 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     );
 });
 
+PenAnnotation.displayName = "PenAnnotation";
 export default PenAnnotation;

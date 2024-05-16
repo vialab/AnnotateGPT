@@ -16,7 +16,7 @@ import Toolbar from './Toolbar.js';
 import NavigateCluster from './NavigateCluster.js';
 import Loading from './Loading.js';
 import { findAnnotations } from "./js/OpenAIUtils.js";
-import { googleSans } from '../page.js';
+import { googleSans } from "@/app/page.js";
 
 import 'react-tooltip/dist/react-tooltip.css';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
@@ -24,8 +24,8 @@ import 'react-pdf/dist/Page/TextLayer.css';
 import './css/AnnotateGPT.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url,
+    'pdfjs-dist/build/pdf.worker.min.js',
+    import.meta.url,
 ).toString();
 
 let workerLevenshteinDistance = () => {
@@ -229,13 +229,13 @@ export default function AnnotateGPT() {
         return content;
     }, []);
 
-    function onDocumentLoadSuccess(pdf) {
+    async function onDocumentLoadSuccess(pdf) {
         let numPages = pdf.numPages;
         // numPages = 8;
         // setNumPages(numPages);
+          
         svgContent.current = Array(numPages).fill(null);
         textContent.current = Array(numPages).fill(null);
-        console.log(pdf)
 
         let pageContent = Array.from(new Array(numPages), (el, index) =>
             <div className="page-container" key={`pageContainer_${index + 1}`} style={{ position: "relative" }}>
@@ -613,7 +613,11 @@ export default function AnnotateGPT() {
                 console.log(rawAnnotationOutput.current[index].output);
             }
         }
-        let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}": "${purpose}"`;
+        let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"`;
+
+        if (purpose.trim() !== "") {
+            p += `: "${purpose}"`;
+        }
         findAnnotations(p, handleToken, handleEnd);
     }
     
@@ -1600,10 +1604,10 @@ export default function AnnotateGPT() {
                 }
             }
 
-            // if (hoverAnnotation.current !== null) {
-            d3.selectAll(".word.highlighted, .space.highlighted")
-            .classed("fade", false);
-            // }
+            if (hoverAnnotation.current !== null) {
+                d3.selectAll(".word.highlighted, .space.highlighted")
+                .classed("fade", false);
+            }
 
             hoverAnnotation.current = null;
             clearTimeout(explainTooltipTimeout.current);

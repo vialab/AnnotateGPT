@@ -12,7 +12,6 @@ const noNoteTest = process.env.NEXT_PUBLIC_NO_NOTE_TEST;
 const noNoteTestCrop = process.env.NEXT_PUBLIC_NO_NOTE_TEST_CROP;
 const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
 const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
-const vectorStoreID = process.env.NEXT_PUBLIC_VECTOR_STORE_ID;
 
 // makeInference(noNoteTest, noNoteTestCrop, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
 // makeInference(test, cropTest, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
@@ -73,15 +72,16 @@ export async function findAnnotations(purpose, callback, endCallback) {
 
 Here is a step-by-step list for annotating a document:
 
-1. Retrieve the first section
-2. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
-3. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
+1. Describe what to look for in the document
+2. Retrieve the first section
+3. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
+4. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
    """ <put sentence here> """
    {{{ <put explanation here> }}}
    """ <put sentence here> """
    {{{ <put explanation here> }}}
    ...
-4 Continue to the next section and repeat steps 1-4 for the next section until the end
+5. Continue to the next section and repeat steps 1-4 for the next section until the end
 
 Lets work in a step by step way to be sure we have all the sentences`
         });
@@ -136,15 +136,16 @@ I will proceed to analyze the final parts of the document for any additional sen
 
 Here is a step-by-step list for annotating a document:
 
-1. Retrieve the first section
-2. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
-3. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
+1. Describe what to look for in the document
+2. Retrieve the first section
+3. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
+4. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
    """ <put sentence here> """
    {{{ <put explanation here> }}}
    """ <put sentence here> """
    {{{ <put explanation here> }}}
    ...
-4 Continue to the next section and repeat steps 1-4 for the next section until the end
+5. Continue to the next section and repeat steps 1-4 for the next section until the end
 
 Lets work in a step by step way to be sure we have all the sentences`
         });
@@ -223,15 +224,16 @@ ${purpose}
 
 Here is a step-by-step list for annotating a document:
 
-1. Retrieve the first section
-2. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
-3. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
+1. Describe what to look for in the document
+2. Retrieve the first section
+3. Find all sentences that could be annotated. Directly quote senteces from the document without rephrasing.
+4. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
    """ <put sentence here> """
    {{{ <put explanation here> }}}
    """ <put sentence here> """
    {{{ <put explanation here> }}}
    ...
-4 Continue to the next section and repeat steps 1-4 for the next section until all sections are covered`
+5. Continue to the next section and repeat steps 1-4 for the next section until all sections are covered`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
@@ -378,14 +380,12 @@ export async function makeInference(image1, image2, type, annotatedText) {
 
                 return file;
             }
-            let uploadPromises = [];
-
             console.log("Uploading files...");
 
-            uploadPromises.push(getFile(image1));
-            uploadPromises.push(getFile(image2));
-
-            [file1, file2] = await Promise.all(uploadPromises);
+            [file1, file2] = await Promise.all([
+                getFile(image1),
+                getFile(image2)
+            ]);
             console.log("Done uploading files");
             
             const thread = await openai.beta.threads.create({
@@ -458,13 +458,20 @@ export async function makeInference(image1, image2, type, annotatedText) {
                 ],
             });
 
-            let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
-            console.log("Checking vector store status...", vectorStore.status);
-        
-            while (vectorStore.status !== "completed") {
-                await new Promise(r => setTimeout(r, 1000));
-                vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+            const purposeAssistant = await openai.beta.assistants.retrieve(assistantPurposeID);
+            const vectorStoreID = purposeAssistant.tool_resources.file_search.vector_store_ids[0];
+            
+            if (vectorStoreID) {
+                let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
                 console.log("Checking vector store status...", vectorStore.status);
+            
+                while (vectorStore.status !== "completed") {
+                    await new Promise(r => setTimeout(r, 1000));
+                    vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+                    console.log("Checking vector store status...", vectorStore.status);
+                }
+            } else {
+                console.log("Vector store is not available");
             }
             console.log("Running GPT-4 Vision...");
             
@@ -555,8 +562,13 @@ export async function makeInference(image1, image2, type, annotatedText) {
             console.error(error);
             
             try {
-                openai.files.del(file1.id);
-                openai.files.del(file2.id);
+                if (file1.id) {
+                    openai.files.del(file1.id);
+                }
+
+                if (file2.id) {
+                    openai.files.del(file2.id);
+                }
             } catch (error) {
                 console.error(error);
             }

@@ -1185,7 +1185,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .style("pointer-events", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined === undefined ? "all" : "none")
                 .append("input")
                 .attr("type", "text")
-                .attr("placeholder", "Enter annotation purpose")
+                .attr("placeholder", "Why did you annotate this?")
                 .style("float", "inline-start")
                 .style("border", "1px solid black")
                 .style("border-radius", "6px")
@@ -1223,7 +1223,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         };
 
                         if (setUpAnnotations instanceof Function) {
-                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, this.value, "", onDetect, onEnd, penAnnnotationRef);
+                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
                         }
 
                         fetch("/api/storeHistory", {
@@ -1494,7 +1494,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         };
 
                         if (setUpAnnotations instanceof Function) {
-                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, this.value, "", onDetect, onEnd, penAnnnotationRef);
+                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
                         }
 
                         fetch("/api/storeHistory", {

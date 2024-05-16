@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 import { useEffect, cloneElement } from "react";
 import * as d3 from "d3";
 import localFont from "next/font/local";
@@ -12,7 +12,7 @@ import "./css/Header.css";
 export const mistrully = localFont({
     src: "./css/Mistrully.otf",
     display: 'swap',
-})
+});
   
 export default function Header({ children }) {
     useEffect(() => {

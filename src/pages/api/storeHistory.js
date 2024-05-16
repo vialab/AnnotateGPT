@@ -6,23 +6,41 @@ import OpenAI from "openai";
 const dataFilePath = path.join(process.cwd(), "./history.txt");
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
-const vectorStoreID = process.env.NEXT_PUBLIC_VECTOR_STORE_ID;
+const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 
 async function updateHistory() {
     try {
+        const purposeAssistant = await openai.beta.assistants.retrieve(purposeAssistantID);
+        const vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
+        
+        if (!vectorStoreID) {
+            throw new Error("Vector store is not available");
+        }
         const file = createReadStream(dataFilePath);
 
         async function deleteFiles() {
             try {
-                const vectorStoreFiles = await openai.beta.vectorStores.files.list(
+                const vectorStoreFilesPromise = openai.beta.vectorStores.files.list(
                     vectorStoreID
                 );
+
+                const openAIFilesPromise = openai.files.list();
+
+                const [vectorStoreFiles, allFiles] = await Promise.all([
+                    vectorStoreFilesPromise,
+                    openAIFilesPromise,
+                ]);
+
+                const openAIFiles = allFiles.data.map((file) => file.id);
         
                 for (let file of vectorStoreFiles.data) {
-                    openai.files.del(file.id);
+                    openai.beta.vectorStores.files.del(vectorStoreID, file.id);
+
+                    if (openAIFiles.includes(file.id))
+                        openai.files.del(file.id);
                 }
             } catch (error) {
-                console.log(error.error.message);
+                console.log(error.message);
             }
         }
         deleteFiles();
@@ -57,7 +75,7 @@ export default async function handler(req, res) {
                     res.status(200).send("Initial history file already created!");
                 } else {
                     historyStatus = "empty";
-                    await fsPromises.writeFile("history.txt", `No history`)
+                    await fsPromises.writeFile("history.txt", `No history`);
                         
                     await updateHistory();
                     res.status(200).send("Initial history file created!");
