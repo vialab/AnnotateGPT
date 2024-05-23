@@ -87,7 +87,7 @@ export class Cluster {
 }
 
 class Stroke {
-    constructor(id, bbox, type, time, text = "", marginalText = "", textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
+    constructor(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
         this.startTime = time;
         this.type = type;
         this.endTime = id === "initial" ? 0 : Date.now();
@@ -100,23 +100,28 @@ class Stroke {
         this.lineBbox = Stroke.normalizeBoundingBox(lineBbox);
     }
 
-    static normalizeBoundingBox(bb) {
-        bb.x = bb.x / window.innerWidth;
-        bb.y = bb.y / window.innerHeight;
-        bb.width = bb.width / window.innerWidth;
-        bb.height = bb.height / window.innerHeight;
-        return bb;
+    static normalizeBoundingBox(bbox) {
+        return {
+            x: bbox.x / window.innerWidth,
+            y: bbox.y / window.innerHeight,
+            width: bbox.width / window.innerWidth,
+            height: bbox.height / window.innerHeight,
+            top: bbox.y / window.innerHeight,
+            right: (bbox.x + bbox.width) / window.innerWidth,
+            bottom: (bbox.y + bbox.height) / window.innerHeight,
+            left: bbox.x / window.innerWidth
+        };
     }
 }
 
 export default class PenCluster {
     constructor() {
-        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, "intital", 0, "")];
+        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, "intital", 0)];
         this.stopIteration = [];
         this.history = [];
     }
 
-    add(id, bbox, type, time, text = "", marginalText = "", textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
+    add(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
         // console.clear();
         this.strokes.push(new Stroke(id, bbox, type, time, text, marginalText, textBbox, marginalTextBbox, lineBbox));
         return this.update();

@@ -54,14 +54,14 @@ function wrap(text, width = -1) {
     });
 }
 
-export default function Tooltip({ clusters, index, onClick, onInference, onNewActiveCluster, onClusterChange, toolTipRef, setUpAnnotations, penAnnnotationRef }) {
+export default function Tooltip({ clusters, index, onClick, onInference, onNewActiveCluster, onClusterChange, toolTipRef, setUpAnnotations, penAnnnotationRef, onEndAnnotate }) {
     let ref = useRef(null);
     let openTimeout = useRef(null);
     let closeTimeout = useRef(null);
     let clusterRef = useRef(clusters);
     const toolTipSize = 25;
 
-    const inferPurpose = useCallback(async (lastCluster, callback) => {
+    const inferPurpose = useCallback(async (lastCluster) => {
         let bbox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
         let annotationPage1 = d3.select("#layer-" + index).node().cloneNode(true);
         let annotationPage2 = d3.select("#layer-" + index).node().cloneNode(true);
@@ -351,9 +351,9 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
 
         console.log(lastCluster);
         
-        let [annotation, pageAll] = await Promise.all([cropAnnotation, pageImage]);
-        let response = await makeInference(annotation, pageAll, type, annotatedText);
-        return response;
+        let [annotationWithText, annotationWithoutText] = await Promise.all([cropAnnotation, pageImage]);
+        let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText);
+        return { rawText, result, images: [annotationWithText, annotationWithoutText] };
     }, [index]);
     
     const updateTextTooltips = useCallback(() => {
@@ -826,11 +826,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
 
                         inferPurpose(clusterRef.current[i])
                         .then((response) => {
-                            cluster.purpose = response;
+                            cluster.purpose = response.result;
                             // updateTooltips(clusters);
                             
                             if (onInference instanceof Function) {
-                                onInference(cluster);
+                                onInference(cluster, response.rawText, response.images);
                             }
                         });
                     }
@@ -1107,9 +1107,13 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 }
                             };
 
-                            let onEnd = () => {
+                            let onEnd = (rawText) => {
                                 cluster.annotating = false;
                                 updateTooltips(clusterRef.current);
+
+                                if (onEndAnnotate instanceof Function) {
+                                    onEndAnnotate(cluster, rawText);
+                                }
                             };
 
                             if (setUpAnnotations instanceof Function) {
@@ -1217,9 +1221,13 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             }
                         };
 
-                        let onEnd = () => {
+                        let onEnd = (rawText) => {
                             cluster.annotating = false;
                             updateTooltips(clusterRef.current);
+
+                            if (onEndAnnotate instanceof Function) {
+                                onEndAnnotate(cluster, rawText);
+                            }
                         };
 
                         if (setUpAnnotations instanceof Function) {
@@ -1488,9 +1496,13 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             }
                         };
 
-                        let onEnd = () => {
+                        let onEnd = (rawText) => {
                             cluster.annotating = false;
                             updateTooltips(clusterRef.current);
+
+                            if (onEndAnnotate instanceof Function) {
+                                onEndAnnotate(cluster, rawText);
+                            }
                         };
 
                         if (setUpAnnotations instanceof Function) {
@@ -1591,9 +1603,13 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 }
                             };
 
-                            let onEnd = () => {
+                            let onEnd = (rawText) => {
                                 cluster.annotating = false;
                                 updateTooltips(clusterRef.current);
+
+                                if (onEndAnnotate instanceof Function) {
+                                    onEndAnnotate(cluster, rawText);
+                                }
                             };
 
                             if (setUpAnnotations instanceof Function) {
@@ -1926,11 +1942,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                     
                                     inferPurpose(clusterRef.current[i])
                                     .then((response) => {
-                                        cluster.purpose = response;
+                                        cluster.purpose = response.result;
                                         // updateTooltips(clusters);
                                         
                                         if (onInference instanceof Function) {
-                                            onInference(cluster);
+                                            onInference(cluster, response.rawText, response.images);
                                         }
                                     });
                                 }
@@ -2196,7 +2212,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
         //         .remove()
         //     ),
         // );
-    }, [onClick, inferPurpose, onInference, toolTipRef, setUpAnnotations, updateTextTooltips, onNewActiveCluster, onClusterChange, penAnnnotationRef]);
+    }, [onClick, inferPurpose, onInference, toolTipRef, setUpAnnotations, updateTextTooltips, onNewActiveCluster, onClusterChange, penAnnnotationRef, onEndAnnotate]);
 
 
     useEffect(() => {

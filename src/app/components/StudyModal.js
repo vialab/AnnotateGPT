@@ -22,7 +22,7 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
 
     let onSettings = useRef(false);
 
-    let [ modalContent, setModalContent ] = useReducer(modalReducer, { mainContent: null, bottomContent: null, modalIndex: 0, studyState: "preStudy" });
+    let [ modalContent, setModalContent ] = useReducer(modalReducer, { mainContent: null, bottomContent: null, modalIndex: 0, studyState: "preStudy", currentTask: 0 });
 
     useEffect(() => {
         setModalContent({ type: "start" });
@@ -79,16 +79,24 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
             let studyState = "preStudy";
 
             switch (state.studyState) {
-                case "preStudy":
+                case "preStudy": {
+                    setModalIsOpen(false);
                     studyState = "postTask";
                     break;
-                case "postTask":
-                    studyState = "postStudy";
+                } case "postTask": {
+                    if (state.currentTask === 1) {
+                        setModalIsOpen(true);
+                        studyState = "postStudy";
+                    } else {
+                        setModalIsOpen(false);
+                        studyState = "postTask";
+                    }
                     break;
-                case "postStudy":
+                } case "postStudy": {
+                    setModalIsOpen(false);
                     studyState = "finishStudy";
                     break;
-                default:
+                } default:
                     studyState = state.studyState;
             }
             return studyState;
@@ -166,31 +174,30 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                 let content = getContent("preStudy");
 
                 return {
-                    mainContent: content[0].content,
+                    mainContent: content[0]?.content,
                     bottomContent: [generateNextButton(content[0], 0, handleNext)],
                     modalIndex: 0,
-                    callback: content[0].callback,
-                    studyState: "preStudy"
+                    callback: content[0]?.callback,
+                    studyState: "preStudy",
+                    currentTask: 0,
                 };
-            }
-            case "show": {
+            } case "show": {
                 let modalIndex = state.modalIndex;
                 let content = getContent();
 
                 let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
 
-                if (content[modalIndex].prev) {
+                if (content[modalIndex]?.prev) {
                     bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
                 }
 
                 return {
                     ...state,
-                    mainContent: content[modalIndex].content,
+                    mainContent: content[modalIndex]?.content,
                     bottomContent: bottomContent,
-                    callback: content[modalIndex].callback,
+                    callback: content[modalIndex]?.callback,
                 };
-            }
-            case "next": {
+            } case "next": {
                 let modalIndex = state.modalIndex + 1;
 
                 let content = getContent();
@@ -198,19 +205,23 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                 if (modalIndex < content.length) {
                     let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
     
-                    if (content[modalIndex].prev) {
+                    if (content[modalIndex]?.prev) {
                         bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
                     }
                     
                     return {
                         ...state,
-                        mainContent: content[modalIndex].content,
+                        mainContent: content[modalIndex]?.content,
                         bottomContent: bottomContent,
                         modalIndex: modalIndex,
-                        callback: content[modalIndex].callback,
+                        callback: content[modalIndex]?.callback,
                     };
                 } else {
-                    setModalIsOpen(false);
+                    let currentTask = state.currentTask;
+
+                    if (state.studyState === "postTask") {
+                        currentTask++;
+                    }
                     let studyState = getNextStudyState();
 
                     if (studyState === "finishStudy") {
@@ -223,6 +234,7 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                             modalIndex: 0,
                             callback: null,
                             studyState: "finishStudy",
+                            currentTask: 0,
                         };
                     } else {
                         let content = getContent(studyState);
@@ -234,12 +246,12 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                             modalIndex: 0,
                             callback: content[0]?.callback,
                             studyState: studyState,
+                            currentTask: currentTask,
                         };
                     }
                 }
-            }
-            case "prev": {
-                let modalIndex = state.modalIndex - 1;
+            } case "prev": {
+                let modalIndex = Math.max(state.modalIndex - 1, 0);
 
                 let content = getContent();
                 let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
@@ -250,13 +262,12 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                 
                 return {
                     ...state,
-                    mainContent: content[modalIndex].content,
+                    mainContent: content[modalIndex]?.content,
                     bottomContent: bottomContent,
                     modalIndex: modalIndex,
-                    callback: content[modalIndex].callback,
+                    callback: content[modalIndex]?.callback,
                 };
-            }
-            case "settings": {
+            } case "settings": {
                 let ifModalIsOpen = modalIsOpen;
 
                 let settingsContent = <>
@@ -310,6 +321,58 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                     mainContent: settingsContent,
                     bottomContent: bottomContent,
                 };
+            } case "withdraw": {
+                let ifModalIsOpen = modalIsOpen;
+                
+                let withdrawContent = <>
+                    <div style={{ width: "100%", display: "flex", gap: "20px", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                        <p>Are you sure you want to withdraw?</p>
+                    </div>
+                </>;
+
+                let exitTransition = (e, callback) => {
+                    if (!ifModalIsOpen) {
+                        setModalIsOpen(ifModalIsOpen);
+                    }
+                    d3.select(e.target.closest(".bottom"))
+                    .selectAll(".modalButton")
+                    .style("pointer-events", "none");
+
+                    d3.select(".contentContainer")
+                    .interrupt("revealContent")
+                    .transition("hideContent")
+                    .duration(500)
+                    .style("opacity", "0")
+                    .on("end", () => {
+                        callback();
+                    });
+                };
+
+                let bottomContent = [
+                    generatePrevButton({ confirm: true }, 0, (e) => {
+                        exitTransition(e, () => {
+                            setModalContent({ type: "show" });
+                            setModalIsOpen(ifModalIsOpen);
+                        });
+                    }),
+                    generateNextButton({ confirm: true }, 0, (e) => {
+                        exitTransition(e, () => {
+                            setModalIsOpen(false);
+
+                            if (onFinish instanceof Function) {
+                                onFinish();
+                            }
+                        });
+                    }),
+                ];
+
+                setModalIsOpen(true);
+
+                return {
+                    ...state,
+                    mainContent: withdrawContent,
+                    bottomContent: bottomContent,
+                };
             }
             default:
         }
@@ -317,27 +380,27 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
     
     useEffect(() => {
         preStudyContent.current = [
-            {
-                "content": <>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Pre Study Questionnaire</h3>
-                    <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSfZgJz4b0MjiIblc-hrb4QKoZvQ0S0J9Ddw0xHgqxENAUMQRA/viewform?usp=pp_url&entry.1500102265=" + pid} title="preStudy" />
-                </>,
-                "prev": false,
-            },
-            {
-                "content": <div style={{ textAlign: "center" }}>
-                    Have you submitted the questionnaire?
-                </div>,
-                "prev": true,
-                "confirm": true,
-                "disableNext": true,
-                "callback": () => {
-                    setTimeout(() => {
-                        d3.select(".modalButton.disabled")
-                        .classed("enable", true);
-                    }, 1000);
-                },
-            },
+            // {
+            //     "content": <>
+            //         <h3 style={{width: "100%", textAlign: "center"}}>Pre Study Questionnaire</h3>
+            //         <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSfZgJz4b0MjiIblc-hrb4QKoZvQ0S0J9Ddw0xHgqxENAUMQRA/viewform?usp=pp_url&entry.1500102265=" + pid} title="preStudy" />
+            //     </>,
+            //     "prev": false,
+            // },
+            // {
+            //     "content": <div style={{ textAlign: "center" }}>
+            //         Have you submitted the questionnaire?
+            //     </div>,
+            //     "prev": true,
+            //     "confirm": true,
+            //     "disableNext": true,
+            //     "callback": () => {
+            //         setTimeout(() => {
+            //             d3.select(".modalButton.disabled")
+            //             .classed("enable", true);
+            //         }, 1000);
+            //     },
+            // },
             {
                 "content": 
                 <div>
@@ -347,6 +410,30 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                     </ul>
                 </div>,
                 "prev": true,
+            },
+        ];
+
+        postTaskContent.current = [
+            {
+                "content": 
+                <div>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Post Task Questionnaire</h3>
+                    <ul> 
+                        <li style={{ margin: "30px 0px" }}>Bla bla bla</li>
+                    </ul>
+                </div>,
+            },
+        ];
+
+        postStudyContent.current = [
+            {
+                "content": 
+                <div>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Post Study Questionnaire</h3>
+                    <ul> 
+                        <li style={{ margin: "30px 0px" }}>Bla bla bla</li>
+                    </ul>
+                </div>,
             },
         ];
     }, [pid]);
@@ -419,7 +506,6 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                 }, 100);
             }
         });
-
 
         d3.selectAll(".modalButton .checkmark .checkmark__check")
         .on("animationstart", (e) => {
@@ -532,68 +618,73 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
 
     useImperativeHandle(ref, () => ({
         pid: pid,
+        setModalIsOpen: setModalIsOpen,
+        setModalContent: setModalContent,
     }), [pid]);
 
     return (
-        <Modal
-            isOpen={modalIsOpen}
-            className="modal"
-            overlayClassName="overlay"
-            closeTimeoutMS={500}
-            onRequestClose={() => setModalIsOpen(false)}
-            onAfterOpen={() => { setUp(); setUpButtons(); }}
-            shouldCloseOnEsc={false}
-            shouldFocusAfterRender={true}
-            shouldCloseOnOverlayClick={false}
-        >
-            <div className={"contentContainer " + googleSans.className}>
-                <div className="studyInfo" data-tooltip-id="my-tooltip"><span>?</span></div>
-                {modalContent.mainContent}
+        <>
+            <Modal
+                isOpen={modalIsOpen}
+                className="modal"
+                overlayClassName="overlay"
+                closeTimeoutMS={500}
+                onRequestClose={() => setModalIsOpen(false)}
+                onAfterOpen={() => { setUp(); setUpButtons(); }}
+                shouldCloseOnEsc={false}
+                shouldFocusAfterRender={true}
+                shouldCloseOnOverlayClick={false}
+            >
+                <div className={"contentContainer " + googleSans.className}>
+                    <div className="studyInfo" data-tooltip-id="my-tooltip"><span>?</span></div>
+                    {modalContent.mainContent}
 
-                <div className={"bottom"}>
-                    {modalContent.bottomContent}
+                    <div className={"bottom"}>
+                        {modalContent.bottomContent}
+                    </div>
                 </div>
-            </div>
-            <Tooltip style={{ padding: "16px", borderRadius: "8px", background: "#22262b" }} id="my-tooltip" openEvents={{ click: true }} closeEvents={{ click: true }} globalCloseEvents={{ clickOutsideAnchor: true, resize: true, escape: true, scroll: true }} place="bottom-end">
-                <div className={googleSans.className} style={{ display: "flex", flexDirection: "column", fontSize: "1em", userSelect: "none", letterSpacing: "0.5px" }}>
-                    <span>
-                        <b>Project Title:</b>
-                    </span>
-                    <span style={{ paddingLeft: "10px" }}> AnnotateGPT: </span>
-                    <span style={{ paddingLeft: "10px" }}> Implicit Pen Annotation </span>
-                    <span style={{ paddingLeft: "10px" }}> Assisted by Large Language Models </span>
-                    <span style={{ paddingTop: "10px" }}>
-                        <b>REB File #:</b>
-                    </span>
-                    <span style={{ paddingLeft: "10px" }}> TBD </span>
-                    <span style={{ paddingTop: "10px" }}>
-                        <b>Supervisors:</b>
-                    </span>
-                    <span style={{ paddingLeft: "10px", marginBottom: "5px", display: "flex", gap: "5px", alignItems: "center", height: "1.3em" }}>
-                        Christopher Collins
-                        <a style={{ display: "contents", color: "black" }} href="mailto: christopher.collins@ontariotechu.ca">
-                            <ImMail4 style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
-                        </a>
-                        <a style={{ display: "contents", color: "black" }} href="https://vialab.ca/team/christopher-collins" target="_blank" rel="noreferrer">
-                            <ImInfo style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
-                        </a>
-                    </span>
-                    <span style={{ paddingLeft: "10px", display: "flex", gap: "5px", alignItems: "center", height: "1.3em" }}>
-                        Mariana Shimabukuro
-                        <a style={{ display: "contents", color: "black" }} href="mailto: mariana.shimabukuro@ontariotechu.ca">
-                            <ImMail4 style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
-                        </a>
-                        <a style={{ display: "contents", color: "black" }} href="https://vialab.ca/team/mariana-shimabukuro" target="_blank" rel="noreferrer">
-                            <ImInfo style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
-                        </a>
-                    </span>
-                    <span style={{ paddingTop: "10px" }}>
-                        <b>Lab:</b>
-                    </span>
-                    <span style={{ paddingLeft: "10px" }}> <a href="https://vialab.ca" target="_blank" rel="noreferrer" style={{ pointerEvents: "all", color: "white", textDecoration: "underline" }}>Vialab</a> (Ontario Tech University, UA 4150) </span>
-                </div>
-            </Tooltip>
-        </Modal>
+                <Tooltip style={{ padding: "16px", borderRadius: "8px", background: "#22262b" }} id="my-tooltip" openEvents={{ click: true }} closeEvents={{ click: true }} globalCloseEvents={{ clickOutsideAnchor: true, resize: true, escape: true, scroll: true }} place="bottom-end">
+                    <div className={googleSans.className} style={{ display: "flex", flexDirection: "column", fontSize: "1em", userSelect: "none", letterSpacing: "0.5px" }}>
+                        <span>
+                            <b>Project Title:</b>
+                        </span>
+                        <span style={{ paddingLeft: "10px" }}> AnnotateGPT: </span>
+                        <span style={{ paddingLeft: "10px" }}> Implicit Pen Annotation </span>
+                        <span style={{ paddingLeft: "10px" }}> Assisted by Large Language Models </span>
+                        <span style={{ paddingTop: "10px" }}>
+                            <b>REB File #:</b>
+                        </span>
+                        <span style={{ paddingLeft: "10px" }}> TBD </span>
+                        <span style={{ paddingTop: "10px" }}>
+                            <b>Supervisors:</b>
+                        </span>
+                        <span style={{ paddingLeft: "10px", marginBottom: "5px", display: "flex", gap: "5px", alignItems: "center", height: "1.3em" }}>
+                            Christopher Collins
+                            <a style={{ display: "contents", color: "black" }} href="mailto: christopher.collins@ontariotechu.ca">
+                                <ImMail4 style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
+                            </a>
+                            <a style={{ display: "contents", color: "black" }} href="https://vialab.ca/team/christopher-collins" target="_blank" rel="noreferrer">
+                                <ImInfo style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
+                            </a>
+                        </span>
+                        <span style={{ paddingLeft: "10px", display: "flex", gap: "5px", alignItems: "center", height: "1.3em" }}>
+                            Mariana Shimabukuro
+                            <a style={{ display: "contents", color: "black" }} href="mailto: mariana.shimabukuro@ontariotechu.ca">
+                                <ImMail4 style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
+                            </a>
+                            <a style={{ display: "contents", color: "black" }} href="https://vialab.ca/team/mariana-shimabukuro" target="_blank" rel="noreferrer">
+                                <ImInfo style={{ width: "auto", height: "100%", cursor: "pointer", pointerEvents: "visible", color: "white" }} />
+                            </a>
+                        </span>
+                        <span style={{ paddingTop: "10px" }}>
+                            <b>Lab:</b>
+                        </span>
+                        <span style={{ paddingLeft: "10px" }}> <a href="https://vialab.ca" target="_blank" rel="noreferrer" style={{ pointerEvents: "all", color: "white", textDecoration: "underline" }}>Vialab</a> (Ontario Tech University, UA 4150) </span>
+                    </div>
+                </Tooltip>
+            </Modal>
+        </>
+        
     );
 });
 

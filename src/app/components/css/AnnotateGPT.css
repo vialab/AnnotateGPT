@@ -128,6 +128,10 @@ input {
 .rateContainer {
     display: flex;
     gap: 10px;
+    min-width: 74px;
+    height: 32px;
+    justify-content: space-around;
+    align-items: center;
 }
 
 .rateButton {
@@ -137,10 +141,61 @@ input {
     justify-content: center;
     align-items: center;
     border-radius: 50%;
+    transition: all 0.3s;
 }
 
 .rateButton:hover {
-    background-color: #ada8b62d;
     cursor: pointer;
+}
+
+.rateButton::after {
+    content: "";
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    position: absolute;
+    z-index: -1;
     transition: all 0.3s;
+}
+
+.rateButton:hover::after{
+    background-color: #ada8b62d;
+}
+
+.rateButton:hover:active::after {
+    width: 24px;
+    height: 24px;
+}
+
+.shimmerBGContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.shimmerBG {
+    width: calc(100vw - 100vw * 0.45);
+    height: 100vh;
+    animation-duration: 2.2s;
+    animation-fill-mode: forwards;
+    animation-iteration-count: infinite;
+    animation-name: shimmer;
+    animation-timing-function: linear;
+    background: #ddd;
+    background: linear-gradient(to right, #F6F6F6 8%, #F0F0F0 18%, #F6F6F6 33%);
+    background-size: 1200px 100%;
+    border-radius: 1em;
+    border: rgba(0, 0, 0, 0.54) 1px solid;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1200px 0;
+    }
+    100% {
+        background-position: 1200px 0;
+    }
 }

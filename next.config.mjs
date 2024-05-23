@@ -12,19 +12,18 @@ const nextConfig = {
                             {
                                 name: "prefixIds",
                                 params: {
-                                  prefixIds: false,
-                                  prefixClassNames: false
+                                    prefixIds: false,
+                                    prefixClassNames: false
                                 }
                             }
                         ],
                     }
                 }
             }
-        })
+        });
 
-
-        return config
+        return config;
     },
-}
+};
 
 export default nextConfig;

@@ -189,7 +189,7 @@ function getDistanceFromPointToPath(point, path) {
     return minDistance;
 }
 
-const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback }, ref) => {
+const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
@@ -412,7 +412,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 eraseStartCallback();
             }
         };
-    }, [onNewActiveCluster, eraseStartCallback]);
+    }, [eraseStartCallback]);
 
     useEffect(() => {
         svgPenSketch.current.eraserDownCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
@@ -430,7 +430,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                     clearTimeout(timeout.current);
 
                     if (onEraseCallback instanceof Function) {
-                        onEraseCallback(newClusters[findStroke]);
+                        onEraseCallback(newClusters[findStroke], path.id, index);
                     }
                     // timeout.current = setTimeout(() => {
                     setClusters(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
@@ -442,7 +442,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                     clearTimeout(timeout.current);
 
                     if (onEraseCallback instanceof Function) {
-                        onEraseCallback(newLockCluster[findLockStroke]);
+                        onEraseCallback(newLockCluster[findLockStroke], path.id, index);
                     }
                     // timeout.current = setTimeout(() => {
                     setLockCluster(newLockCluster.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
@@ -456,7 +456,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 
             // }
         };
-    }, [onEraseCallback]);
+    }, [onEraseCallback, index]);
 
     
     useEffect(() => {
@@ -519,7 +519,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 penStartCallback();
             }
         };
-    }, [tool, colour, onNewActiveCluster, penStartCallback]);
+    }, [tool, colour, penStartCallback]);
 
     let startTime = useRef(null);
     let timeout = useRef(null);    
@@ -807,7 +807,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 // }, 1000);
 
                 if (penEndCallback instanceof Function) {
-                    penEndCallback();
+                    penEndCallback({ path, stroke: penCluster.current.strokes[penCluster.current.strokes.length - 1], page: index });
                 }
                 return words;
             };
@@ -1126,7 +1126,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         }
     }
 
-    function onInference(cluster) {
+    function onInference(cluster, rawText, images) {
         let findCluster = lockClusterRef.current.findIndex(c => c.strokes.find(stroke => stroke.id === cluster.strokes[0].id));
 
         if (findCluster !== -1) {
@@ -1134,6 +1134,16 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             newLockCluster[findCluster].purpose = cluster.purpose;
             // newLockCluster[findCluster].open = cluster.open;
             setLockCluster(newLockCluster);
+
+            if (onInferenceCallback instanceof Function) {
+                onInferenceCallback(newLockCluster[findCluster], rawText, images);
+            }
+        }
+    }
+
+    function onEndAnnotate(cluster, rawText) {
+        if (onEndAnnotateCallback instanceof Function) {
+            onEndAnnotateCallback(cluster, rawText);
         }
     }
 
@@ -1152,7 +1162,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         <div className={"pen-annotation-layer"} id={"layer-" + index}>
             <svg ref={svgRef} width={"100%"} height={"100%"} style={{ position: "absolute" }} />
             
-            <Tooltip penAnnnotationRef={ref} index={index} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
+            <Tooltip penAnnnotationRef={ref} index={index} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} onEndAnnotate={onEndAnnotate} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
         </div>
     );
 });

@@ -1,35 +1,80 @@
 #header {
-    --header-inner-height: 80px;
-    --header-outer-height: 80px;
-    --header-height-difference: calc(var(--header-outer-height) - var(--header-inner-height));
+    --headerWidth: 100vw;
+    --headerHeight: 80px;
+    --logoDisplay: flex;
+    --borderRadius: 0;
+    --padding: 5px;
 
-    min-height: var(--header-outer-height);
-    height: var(--header-outer-height);
+    width: -webkit-fill-available;
+    height: 80px;
+    min-height: 80px;
     position: sticky;
-    top: calc(var(--header-height-difference) * -1);
+    top: -100px;
     display: flex;
+    justify-content: center;
     align-items: center;
-    background-color: rgba(57, 57, 58, .5);
-    backdrop-filter: blur(3px) saturate(180%);
-    box-shadow: 0 0px 1px 1px hsla(0,0%,100%,.1);
     z-index: 5;
-    transition: all 0.3s;
-    
+    will-change: top;
+
+    animation: heightChange linear forwards;
+    animation-timeline: view();
+    animation-range-start: calc(100vh + 80px);
+    animation-range-end: calc(100vh + 340px);
+}
+
+@keyframes heightChange {
+    0%, 100% {
+        --headerWidth: fit-content;
+        --headerHeight: 50px;
+        --logoDisplay: none;
+        --borderRadius: 30px;
+        --padding: 25px;
+    }
+    100% {
+        top: 0px;
+    }
+}
+
+#header:hover .graphic {
+    animation: enter 0.5s forwards;
+}
+
+#header .graphic {
+    animation: exit 0.5s forwards;
+}
+
+@keyframes enter {
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(var(--x), var(--y));
+    }
+}
+
+@keyframes exit {
+    from {
+        transform: translate(var(--x), var(--y));
+    }
+    to {
+        transform: translate(0, 0);
+    }
 }
 
 #headerInner {
-    width: 100%;
-    height: var(--header-inner-height);
-    min-height: var(--header-inner-height);
-    max-height: var(--header-inner-height);
-    position: sticky;
-    top: 0;
+    width: var(--headerWidth);
+    height: var(--headerHeight);
     display: flex;
     justify-content: left;
     align-items: center;
     gap: 30px;
-    transition: all 0.3s;
-    container: headerInner / size;
+    padding: var(--padding);
+    overflow: hidden;
+    background-color: rgba(57, 57, 58, .5);
+    backdrop-filter: blur(3px) saturate(180%);
+    box-shadow: 0 0px 1px 1px hsla(0,0%,100%,.1);
+    border-radius: var(--borderRadius);
+    will-change: width, height;
 }
 
 @container headerInner (height > 0px) {
@@ -78,21 +123,66 @@
     transform: translateX(-50%) translateY(-50%);
 }
 
+#header #headerLogo {
+    width: 200px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 20px;
+    display: var(--logoDisplay);
+}
+
 .svg {
-    width: 180px;
-    height: 95%;
+    width: 200px;
+    height: 85%;
     overflow: visible;
 }
 
 .graphic {
     transform-origin: center;
-    transition: transform 0.2s;
     cursor: pointer;
     user-select: none;
     will-change: transform;
     pointer-events: visible;
+    transition: transform 0.3s;
+    transform: scale(1.05);
 }
 
 .graphic:hover {
-    transform: scale(1.05);
+    transform: scale(1.1);
+}
+
+.graphic {
+    transform: translate(var(--x), var(--y)) scale(1.05);
+}
+
+#header #penIcon {
+    animation: enterPen 0.5s forwards;
+}
+
+#header:hover #penIcon {
+    animation: exitPen 0.5s forwards;
+}
+
+#penIcon {
+    translate: var(--penX, 0) var(--penY, 0);
+}
+
+@keyframes enterPen {
+    from {
+        translate: var(--penX, 0) var(--penY, 0);
+    }
+    to {
+        translate: 0 0;
+    }
+}
+
+@keyframes exitPen {
+    from {
+        translate: 0 0;
+    }
+    to {
+        translate: var(--penX, 0) var(--penY, 0);
+    }
 }

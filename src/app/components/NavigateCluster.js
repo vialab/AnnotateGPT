@@ -270,7 +270,7 @@ export default function NavigateCluster({ cluster, annotations }) {
 
     return (
         <div className="navigateContainer">
-            <div className="navigationContainer" id="topButton" style={{ opacity: annotations?.length === 0 ? 0 : 1 }}>
+            <div className="navigationContainer" id="topButton" style={{ opacity: annotations?.length === 0 ? 0 : 1, pointerEvents: annotations?.length === 0 ? "none" : "all" }}>
                 <svg className="button-55" style={{ pointerEvents: annotations?.length === 0 ? "none" : "all" }} onClick={onPrev} height="40px" width="40px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="10 10 600 600">
                     <g id="SVGRepo_iconCarrier"> 
                         <path d="M 209.3749 389.8736 c 3.4272 2.4696 10.836 -0.6048 18.7488 -7.812 c 14.1624 -12.9528 28.5264 -25.9056 42.0336 -39.6144 c 20.8656 -21.1176 41.1768 -42.7896 61.6896 -64.2096 c 33.768 40.0176 73.332 75.6 109.7712 113.6016 c 1.7136 1.8144 5.7456 3.3264 7.5096 3.3264 c 3.4776 0 2.6712 -3.7296 0.4536 -8.2152 c -7.4088 -14.7672 -19.2528 -29.7864 -32.4576 -43.8984 c -25.704 -27.3672 -51.0048 -55.0368 -77.868 -81.4968 l -0.1008 -0.1008 l 0 0 c -3.7296 -3.6792 -9.7272 -3.6288 -13.4064 0.1008 c -6.3504 6.4512 -12.7008 13.0032 -18.9 19.656 c -4.2336 3.9816 -8.4672 7.9128 -12.6504 11.8944 c -26.5608 25.4016 -52.7184 51.2064 -77.112 78.5232 C 210.0805 379.4409 205.5949 387.2024 209.3749 389.8736 z"></path>
@@ -278,7 +278,7 @@ export default function NavigateCluster({ cluster, annotations }) {
                 </svg>
             </div>
 
-            <div className="navigationContainer" id="bottomButton" style={{ opacity: annotations?.length === 0 ? 0 : 1 }}>
+            <div className="navigationContainer" id="bottomButton" style={{ opacity: annotations?.length === 0 ? 0 : 1, pointerEvents: annotations?.length === 0 ? "none" : "all" }}>
                 <svg className="button-55" style={{ pointerEvents: annotations?.length === 0 ? "none" : "all" }} onClick={onNext} height="40px" width="40px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="10 10 600 600">
                     <g id="SVGRepo_iconCarrier"> 
                         <path d="M 209.3749 389.8736 c 3.4272 2.4696 10.836 -0.6048 18.7488 -7.812 c 14.1624 -12.9528 28.5264 -25.9056 42.0336 -39.6144 c 20.8656 -21.1176 41.1768 -42.7896 61.6896 -64.2096 c 33.768 40.0176 73.332 75.6 109.7712 113.6016 c 1.7136 1.8144 5.7456 3.3264 7.5096 3.3264 c 3.4776 0 2.6712 -3.7296 0.4536 -8.2152 c -7.4088 -14.7672 -19.2528 -29.7864 -32.4576 -43.8984 c -25.704 -27.3672 -51.0048 -55.0368 -77.868 -81.4968 l -0.1008 -0.1008 l 0 0 c -3.7296 -3.6792 -9.7272 -3.6288 -13.4064 0.1008 c -6.3504 6.4512 -12.7008 13.0032 -18.9 19.656 c -4.2336 3.9816 -8.4672 7.9128 -12.6504 11.8944 c -26.5608 25.4016 -52.7184 51.2064 -77.112 78.5232 C 210.0805 379.4409 205.5949 387.2024 209.3749 389.8736 z"></path>

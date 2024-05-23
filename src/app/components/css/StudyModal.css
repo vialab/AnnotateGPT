@@ -9,7 +9,7 @@
 .ReactModal__Overlay {
     opacity: 0;
     transition: opacity 500ms ease-in-out;
-    z-index: 5;
+    z-index: 6;
 }
 
 .ReactModal__Overlay--after-open {
@@ -464,4 +464,63 @@
 .contentContainer .field input:valid~label:after {
     width: 100%;
     z-index: 1;
+}
+
+.studyMenu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    transform: skew(-30deg);
+    margin: -10px 0 0 -100px;
+	padding: 15px 40px 10px 120px;
+    background-color: #1d1d1d;
+	border-radius: 0.5vw;
+    overflow: hidden;
+	display: flex;
+	gap: 15px;
+    z-index: 3;
+	animation: 1s 1 forwards reveal;
+}
+
+.studyMenu > * {
+	transform: skew(30deg);
+}
+
+.withdraw, .continue {
+	width: 60px;
+	height: 60px;
+	color: white;
+	border-radius: 20px;
+	cursor: pointer;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.withdraw {
+	background-color: #B8405E;
+}
+
+.continue {
+	background-color: #2EB086;
+}
+
+.continue > svg {
+	width: 30px;
+	height: 30px;
+}
+
+.withdraw > svg {
+	width: 30px;
+	height: 30px;
+	margin-left: 5px;
+}
+
+@keyframes reveal {
+	0% {
+	  opacity: 0;
+	}
+	100% {
+	  opacity: 1;
+	}
 }

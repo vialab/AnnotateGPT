@@ -168,7 +168,7 @@ let workerLevenshteinDistance = () => {
     };
 };
 
-export default function AnnotateGPT() {
+export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, onReplyCallback }) {
     const defaultColour = "#000000";
 
     // const [numPages, setNumPages] = useState();
@@ -272,6 +272,8 @@ export default function AnnotateGPT() {
                 penEndCallback={penEndCallback}
                 eraseStartCallback={eraseStartCallback}
                 eraseEndCallback={eraseEndCallback}
+                onInferenceCallback={onInference}
+                onEndAnnotateCallback={endAnnotateCallback}
                 ref={ref}
             />);
         }
@@ -385,7 +387,7 @@ export default function AnnotateGPT() {
         function handleToken(token) {
             rawAnnotationOutput.current[index].output += token;
 
-            if (token.trim().startsWith(`"""`) || token.trim().endsWith(`"""`) || (prevToken + token).trim().startsWith(`"""`) || (prevToken + token).trim().endsWith(`"""`)) {
+            if (token.trim().startsWith(`***`) || token.trim().endsWith(`***`) || (prevToken + token).trim().startsWith(`***`) || (prevToken + token).trim().endsWith(`***`)) {
                 prevToken = "";
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
@@ -486,7 +488,7 @@ export default function AnnotateGPT() {
                 } else {
                     setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: ["Generating explanation..."], explain: false, spans: []});
                 }
-            } else if (token.trim().startsWith(`{{{`) || token.trim().endsWith(`{{{`) || (prevToken + token).trim().startsWith(`{{{`) || (prevToken + token).trim().endsWith(`{{{`)) {
+            } else if (token.trim().startsWith(`{{`) || token.trim().endsWith(`{{`) || (prevToken + token).trim().startsWith(`{{`) || (prevToken + token).trim().endsWith(`{{`)) {
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
                 if (lastToken) {
@@ -494,7 +496,7 @@ export default function AnnotateGPT() {
                     lastToken.explanation[0] = "";
                 }
                 prevToken = "";
-            } else if (token.trim().startsWith(`}}}`) || token.trim().endsWith(`}}}`) || (prevToken + token).trim().startsWith(`}}}`) || (prevToken + token).trim().endsWith(`}}}`)) {
+            } else if (token.trim().startsWith(`}}`) || token.trim().endsWith(`}}`) || (prevToken + token).trim().startsWith(`}}`) || (prevToken + token).trim().endsWith(`}}`)) {
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
                 if (lastToken) {
@@ -607,7 +609,7 @@ export default function AnnotateGPT() {
                 }
 
                 if (onEnd instanceof Function) {
-                    onEnd();
+                    onEnd(rawAnnotationOutput.current[index].output);
                 }
                 console.log(annotatedTokens.current);
                 console.log(rawAnnotationOutput.current[index].output);
@@ -1222,7 +1224,7 @@ export default function AnnotateGPT() {
         }
     }
 
-    function onEraseCallback(cluster) {
+    function onEraseCallback(cluster, pathID, page) {
         if (cluster) {
             let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke.id);
             let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i]?.id);
@@ -1234,6 +1236,10 @@ export default function AnnotateGPT() {
                     setGetActiveAnnotations([]);
                     setActiveCluster(null);
                 }
+            }
+
+            if (onECallback instanceof Function) {
+                onECallback({ cluster, id: pathID, page });
             }
         }
     }
@@ -1284,9 +1290,12 @@ export default function AnnotateGPT() {
         resetToolTips();
     }
 
-    function penEndCallback() {
+    function penEndCallback(param) {
         // explanationToolTipRef.current?.close();
         // hoverAnnotation.current = null;
+        if (pEndCallback instanceof Function) {
+            pEndCallback(param);
+        }
     }
 
     function eraseStartCallback() {
@@ -1296,6 +1305,18 @@ export default function AnnotateGPT() {
     function eraseEndCallback() {
         // explanationToolTipRef.current?.close();
         // hoverAnnotation.current = null;
+    }
+
+    function onInference(cluster, rawText, images) {
+        if (onInferenceCallback instanceof Function) {
+            onInferenceCallback(cluster, rawText, images);
+        }
+    }
+
+    function endAnnotateCallback(cluster, rawText) {
+        if (onEndAnnotateCallback instanceof Function) {
+            onEndAnnotateCallback(cluster, rawText);
+        }
     }
 
     useEffect(() => {
@@ -1418,6 +1439,14 @@ export default function AnnotateGPT() {
                                                 }
                                             }
                                             annotation.accepted = true;
+
+                                            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+                                                    
+                                            if (cluster) {
+                                                if (onReplyCallback instanceof Function) {
+                                                    onReplyCallback(cluster, "accept " + j);
+                                                }
+                                            }
                                         }
 
                                         function rejectAnnotation() {
@@ -1456,6 +1485,14 @@ export default function AnnotateGPT() {
                                             // console.log(annotations.ref?.current.lockClusters.current);
 
                                             annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+
+                                            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+                                                    
+                                            if (cluster) {
+                                                if (onReplyCallback instanceof Function) {
+                                                    onReplyCallback(cluster, "reject " + j);
+                                                }
+                                            }
                                         }
 
                                         function generateContent() {
@@ -1472,10 +1509,10 @@ export default function AnnotateGPT() {
                                                                 { 
                                                                     annotation.explanation[0] !== "Generating explanation..." && (annotation.accepted !== false && annotation.accepted !== true)?
                                                                         <div className="rateContainer">
-                                                                            <div className="rateButton">
+                                                                            <div className="rateButton" style={{ paddingRight: "1.5px", paddingTop: "1px" }}>
                                                                                 <RxCheck size={25} style={{ color: "#2eb086", strokeWidth: "1" }} onClick={acceptAnnotation} />
                                                                             </div>
-                                                                            <div className="rateButton" style={{ paddingLeft: "1px" }}>
+                                                                            <div className="rateButton" style={{ paddingLeft: "1.5px", paddingTop: "1px" }}>
                                                                                 <RxCross2 size={25} style={{ color: "#b8405e", strokeWidth: "1" }} onClick={rejectAnnotation} />
                                                                             </div>
                                                                         </div>
@@ -1522,9 +1559,10 @@ export default function AnnotateGPT() {
                                         function onKeyDown(e) {
                                             if (e.key === "Enter") {
                                                 e.preventDefault();
+                                                let value = e.target.value.trim();
 
-                                                if (e.target.value.trim() !== "") {
-                                                    annotation.explanation.push(e.target.value.trim());
+                                                if (value !== "") {
+                                                    annotation.explanation.push(value);
                                                     e.target.value = "";
                                                     
                                                     let content = generateContent();
@@ -1534,6 +1572,13 @@ export default function AnnotateGPT() {
                                                         content: content,
                                                         place: "left",
                                                     });
+                                                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+                                                    
+                                                    if (cluster) {
+                                                        if (onReplyCallback instanceof Function) {
+                                                            onReplyCallback(cluster, "comment " + j);
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
@@ -1620,7 +1665,7 @@ export default function AnnotateGPT() {
             .on("pointermove", null)
             .on("pointerleave", null);
         };
-    }, []);
+    }, [onReplyCallback]);
 
     return (
         <div className="annotateContainer" ref={containerRef}>
@@ -1629,6 +1674,7 @@ export default function AnnotateGPT() {
             <Document 
                 file="./leu2022a.pdf"
                 onLoadSuccess={onDocumentLoadSuccess}
+                loading={<div className="shimmerBGContainer" ><div className="shimmerBG" /></div>}
             >
                 {pageContent}
 
@@ -1661,7 +1707,7 @@ export default function AnnotateGPT() {
 
             <Tooltip 
                 // id="annotationDescription"
-                style={{ zIndex: "1000", padding: "16px", borderRadius: "8px", background: "#22262b" }}
+                style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "#22262b" }}
                 place={"left"}
                 ref={annotationToolTipRef}
                 imperativeModeOnly={true}
@@ -1669,7 +1715,7 @@ export default function AnnotateGPT() {
 
             <Tooltip 
                 id="annotationExplanation"
-                style={{ zIndex: "1000", padding: "16px", borderRadius: "8px", background: "#22262b" }}
+                style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "#22262b" }}
                 place={"left"}
                 ref={explanationToolTipRef}
                 imperativeModeOnly={true}

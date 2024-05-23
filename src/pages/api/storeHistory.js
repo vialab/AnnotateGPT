@@ -20,27 +20,21 @@ async function updateHistory() {
 
         async function deleteFiles() {
             try {
-                const vectorStoreFilesPromise = openai.beta.vectorStores.files.list(
-                    vectorStoreID
-                );
-
-                const openAIFilesPromise = openai.files.list();
-
-                const [vectorStoreFiles, allFiles] = await Promise.all([
-                    vectorStoreFilesPromise,
-                    openAIFilesPromise,
-                ]);
-
-                const openAIFiles = allFiles.data.map((file) => file.id);
+                const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
         
                 for (let file of vectorStoreFiles.data) {
-                    openai.beta.vectorStores.files.del(vectorStoreID, file.id);
+                    openai.files.del(file.id)
+                    .catch((error) => {
+                        openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                        .catch((error) => {
+                            console.error(error.error.message, "in vector store");
+                        });
 
-                    if (openAIFiles.includes(file.id))
-                        openai.files.del(file.id);
+                        console.error(error.error.message, "in files");
+                    });
                 }
             } catch (error) {
-                console.log(error.message);
+                console.error(error);
             }
         }
         deleteFiles();
@@ -71,13 +65,17 @@ export default async function handler(req, res) {
             let action = req.body.action;
 
             if (action === "clear") {
-                if (historyStatus === "empty") {
-                    res.status(200).send("Initial history file already created!");
+                if (historyStatus !== "full") {
+                    if (historyStatus === "empty") {
+                        res.status(200).send("Initial history file already created!");
+                    } else {
+                        historyStatus = "empty";
+                        await fsPromises.writeFile("history.txt", `No history`);
+                            
+                        await updateHistory();
+                        res.status(200).send("Initial history file created!");
+                    }
                 } else {
-                    historyStatus = "empty";
-                    await fsPromises.writeFile("history.txt", `No history`);
-                        
-                    await updateHistory();
                     res.status(200).send("Initial history file created!");
                 }
             } else if (action === "update") {
