@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import localFont from "next/font/local";
-import useSWR from "swr";
+import { parse } from 'csv-parse';
 import { HiOutlineChevronDoubleRight } from "react-icons/hi";
 import { ImExit } from "react-icons/im";
+import * as d3 from "d3";
 
 import AnnotateGPT from "../app/components/AnnotateGPT.js";
 import Header from "../app/components/Header.js";
@@ -17,6 +18,8 @@ export const googleSans = localFont({
 
 export default function Home() {
     const [state, setState] = useState("home");
+    const [svgContent, setSvgContent] = useState([]);
+    const [screen, setScreen] = useState({ width: 0, height: 0 });
     const studyModalRef = useRef(null);
     const success = useRef(false);
 
@@ -29,7 +32,7 @@ export default function Home() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                action: "clear"
+                action: "clear",
             })
         })
         .then(res => res.text())
@@ -44,10 +47,47 @@ export default function Home() {
 
     let startStudy = useCallback(() => {
         setState("study");
+
+        fetch("/api/storeHistory", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                action: "forceClear",
+            })
+        })
+        .then(res => res.text())
+        .then(data => {
+            console.log(data);
+        })
+        .catch(err => {
+            console.error(err);
+        });
     }, []);
 
     let onFinish = useCallback(() => {
+        let pid = studyModalRef.current?.pid ?? "test";
         setState("home");
+
+        // Move history file to history folder
+        fetch("/api/storeHistory", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                action: "move",
+                pid: pid
+            })
+        })
+        .then(res => res.text())
+        .then(data => {
+            console.log(data);
+        })
+        .catch(err => {
+            console.error(err);
+        });
     }, []);
 
     let withdraw = useCallback(() => {
@@ -84,10 +124,15 @@ export default function Home() {
         let marginalText = param.stroke.marginalText.map( element => element.innerText).join(" ").replace(/"/g, `""`);
 
         let strokeData = `${param.path.id},createStroke,${param.page},${param.stroke.startTime},${param.stroke.endTime},${param.stroke.type},"${annotatedText}","${marginalText}","${param.path.outerHTML.replace(/"/g, `""`)}"`;
+        let bbox = d3.select(".page-container").node().getBoundingClientRect();
 
         sendData(JSON.stringify({
             action: "penStroke",
-            data: strokeData
+            data: strokeData,
+            screen: {
+                width: bbox.width,
+                height: bbox.height
+            }
         }));
     };
 
@@ -117,7 +162,7 @@ export default function Home() {
             data: clusterData
         }));
 
-        let inferenceData = `inference,${timestamp},"${rawText.replace(/"/g, `""`)}","${images[0]}","${images[1]}"`;
+        let inferenceData = `${cluster.strokes[cluster.strokes.length - 1].id},inference,${timestamp},"${rawText.replace(/"/g, `""`)}","${images[0]}","${images[1]}"`;
 
         sendData(JSON.stringify({
             action: "openai",
@@ -142,7 +187,7 @@ export default function Home() {
             data: clusterData
         }));
 
-        let annotateData = `annotate,${timestamp},"${rawText.replace(/"/g, `""`)}",,`;
+        let annotateData = `${cluster.strokes[cluster.strokes.length - 1].id},annotate,${timestamp},"${rawText.replace(/"/g, `""`)}",,`;
 
         sendData(JSON.stringify({
             action: "openai",
@@ -168,6 +213,42 @@ export default function Home() {
         }));
     };
 
+    let fileHandler = (file) => {
+        // Read CSV file
+        let reader = new FileReader();
+
+        reader.onload = (e) => {
+            let lines = e.target.result.split("\n");
+            let [width, height] = lines[0].split(" ");
+            let csv = lines.slice(1);
+
+            parse(csv.join("\n"), {
+                delimiter: ",",
+                skip_records_with_error: true,
+            }, function(err, records){
+                let headers = records[0];
+                let svgContent = [];
+                
+                for (let i = 1; i < records.length; i++) {
+                    let record = records[i];
+                    let data = {};
+
+                    for (let j = 0; j < headers.length; j++) {
+                        data[headers[j]] = record[j];
+                    }
+
+                    if (data.action === "createStroke") {
+                        svgContent.push(data);
+                    }
+                }
+                setScreen({ width: width, height: height });
+                setSvgContent(svgContent);
+            });
+        };
+
+        reader.readAsText(file);
+    };
+
     return (
         <>
             { state === "study" ?
@@ -179,7 +260,6 @@ export default function Home() {
                         onEndAnnotateCallback={onEndAnnotateCallback}
                         onReplyCallback={onReplyCallback}
                     />
-                    <StudyModal onFinish={onFinish} ref={studyModalRef} />
                     
                     <div className="studyMenu">
                         <div className="withdraw" onClick={withdraw}>
@@ -196,15 +276,21 @@ export default function Home() {
                             Start Study
                         </div>
                     </Header>
+
                     <AnnotateGPT 
                         pEndCallback={penEndCallback}
                         onECallback={onEraseCallback}
                         onInferenceCallback={onInferenceCallback}
                         onEndAnnotateCallback={onEndAnnotateCallback}
                         onReplyCallback={onReplyCallback}
+                        svgContent={svgContent}
+                        screen={screen}
                     />
+                    
                 </>
             }
+
+            <StudyModal onFinish={onFinish} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
         </>
     );
 }

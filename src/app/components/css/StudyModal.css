@@ -400,6 +400,17 @@
     justify-content: center;
 }
 
+.contentContainer .settings label {
+    align-items: center;
+    border: 1px solid white;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    padding: 10px;
+    pointer-events: all
+}
+
 .contentContainer .field {
     margin-top: 17px;
     padding-top: 50px;
@@ -464,6 +475,10 @@
 .contentContainer .field input:valid~label:after {
     width: 100%;
     z-index: 1;
+}
+
+.contentContainer .settings input[type=radio]:checked~label, .contentContainer .settings input[type=file]:valid ~ label {
+    border: 1px solid #E58F65;
 }
 
 .studyMenu {

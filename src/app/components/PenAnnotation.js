@@ -1083,11 +1083,13 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     }, [clustersState]);
 
     function onClick(cluster) {
+        let firstStroke = cluster.strokes[0].id === "initial" ? cluster.strokes[1] : cluster.strokes[0];
+
         if (!lockClusterRef.current.find(c => c.strokes.find(stroke => {
-            if (!stroke.id || !cluster.strokes[0]) {
+            if (!stroke.id || !firstStroke.id || stroke.id === "initial") {
                 return false;
             }
-            return stroke.id === cluster.strokes[0].id;
+            return stroke.id === firstStroke.id;
         }))) {
             for (let c of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 c.open = false;
@@ -1099,6 +1101,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             newCluster.y = cluster.y;
             newCluster.purpose = cluster.purpose;
             setLockCluster([...lockClusterRef.current, newCluster]);
+            lockClusterRef.current = [...lockClusterRef.current, newCluster];
 
             penCluster.current.removeCluster(cluster);
 
@@ -1127,7 +1130,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     }
 
     function onInference(cluster, rawText, images) {
-        let findCluster = lockClusterRef.current.findIndex(c => c.strokes.find(stroke => stroke.id === cluster.strokes[0].id));
+        let firstStroke = cluster.strokes[0].id === "initial" ? cluster.strokes[1] : cluster.strokes[0];
+
+        let findCluster = lockClusterRef.current.findIndex(c => c.strokes.find(stroke => {
+            if (!stroke.id || !firstStroke.id || stroke.id === "initial") {
+                return false;
+            }
+            return stroke.id === firstStroke.id;
+        }));
 
         if (findCluster !== -1) {
             let newLockCluster = [...lockClusterRef.current];
@@ -1156,6 +1166,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         },
         clusters: clustersRef,
         lockClusters: lockClusterRef,
+        svgRef: svgRef.current,
     }), []);
 
     return (

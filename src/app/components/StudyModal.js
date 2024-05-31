@@ -5,14 +5,14 @@ import { useState, useRef, useReducer, useEffect, useCallback, forwardRef, useIm
 import Modal from "react-modal";
 import { ImMail4, ImInfo } from "react-icons/im";
 import { Tooltip } from "react-tooltip";
-import * as d3 from 'd3';
+import * as d3 from "d3";
 
 import { googleSans } from "@/app/page.js";
 import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ onFinish }, ref) => {
+const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     
@@ -25,12 +25,15 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
     let [ modalContent, setModalContent ] = useReducer(modalReducer, { mainContent: null, bottomContent: null, modalIndex: 0, studyState: "preStudy", currentTask: 0 });
 
     useEffect(() => {
-        setModalContent({ type: "start" });
-        setModalIsOpen(true);
-    }, []);
+        if (studyState === "study") {
+            setModalContent({ type: "start" });
+            setModalIsOpen(true);
+        }
+    }, [studyState]);
 
     useEffect(() => {
-        d3.select(document).on("keydown", (e) => {
+        d3.select(document)
+        .on("keydown", (e) => {
             if (e.key === "y" && e.ctrlKey && !onSettings.current) {
                 onSettings.current = true;
                 
@@ -270,18 +273,40 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
             } case "settings": {
                 let ifModalIsOpen = modalIsOpen;
 
+                let fileChangeHandler = () => {
+                    let file = d3.select("#file").node().files[0];
+
+                    if (file)
+                        d3.select("#fileName").text(file.name);
+                    else
+                        d3.select("#fileName").text("No file selected");
+                };
+
                 let settingsContent = <>
                     <h3>Settings</h3>
                     <div style={{ width: "100%", display: "flex", gap: "20px", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                         
-                        <div className="field">
-                            <input id="pid" name="pid" required defaultValue={pid}/>
-                            <label htmlFor="pid">Participant ID</label>
-                        </div>
+                        { studyState === "study" ? 
+                            <div className="field">
+                                <input id="pid" name="pid" required defaultValue={pid}/>
+                                <label htmlFor="pid">Participant ID</label>
+                            </div> 
+                            : 
+                            <div className="settingsContainer"> 
+                                <p>File Upload</p>
+                                <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
+                                    <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                        <input type="file" id="file" name="file" accept=".csv" style={{ display: "none" }} onChange={fileChangeHandler} required="required" />
+                                        <label htmlFor="file">Upload File</label>
+                                        <p id="fileName">No file selected</p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
                     </div>
                 </>;
 
-                let exitTransition = (e) => {
+                let exitTransitionStudy = (e) => {
                     if (!ifModalIsOpen) {
                         setModalIsOpen(ifModalIsOpen);
                     }
@@ -300,19 +325,36 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
                     });
                 };
 
-                let bottomContent = [
-                    generatePrevButton({ confirm: true }, 0, (e) => {
-                        exitTransition(e);
+                let exitTransitionHome = (e) => {
+                    setModalIsOpen(false);
+                };
 
-                        onSettings.current = false;
-                    }),
-                    generateNextButton({ confirm: true }, 0, (e) => {
-                        exitTransition(e);
+                let bottomContent = studyState === "study" ? 
+                    [
+                        generatePrevButton({ confirm: true }, 0, (e) => {
+                            exitTransitionStudy(e);
+                            onSettings.current = false;
+                        }),
+                        generateNextButton({ confirm: true }, 0, (e) => {
+                            exitTransitionStudy(e);
+                            onSettings.current = false;
+                            setPid(document.getElementById("pid").value);
+                        }),
+                    ] :
+                    [
+                        generatePrevButton({ confirm: true }, 0, (e) => {
+                            exitTransitionHome(e);
+                            onSettings.current = false;
+                        }),
+                        generateNextButton({ confirm: true }, 0, (e) => {
+                            exitTransitionHome(e);
+                            onSettings.current = false;
 
-                        onSettings.current = false;
-                        setPid(document.getElementById("pid").value);
-                    }),
-                ];
+                            if (fileHandler instanceof Function) {
+                                fileHandler(d3.select("#file").node().files[0]);
+                            }
+                        }),
+                    ];
 
                 setModalIsOpen(true);
 
@@ -456,13 +498,13 @@ const StudyModal = forwardRef(({ onFinish }, ref) => {
             };
 
             if (iframe || iframe?.contentDocument) {
-                iframe.addEventListener('load', () => {
+                iframe.addEventListener("load", () => {
                     if (!onSettings.current) {
                         revealContent();
                     }
                 });
 
-                iframe.addEventListener('error', (e) => {
+                iframe.addEventListener("error", (e) => {
                     console.log(e);
 
                     if (!onSettings.current) {

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "csv-parse": "^5.5.6",
     "d3": "^7.9.0",
     "express": "^4.19.2",
     "flubber": "^0.4.2",

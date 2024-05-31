@@ -1080,6 +1080,8 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             }
                         })
                         .on("pointerout", function() {
+                            clearTimeout(closeTimeout.current);
+
                             if (toolTipRef.current?.isOpen) {
                                 closeTimeout.current = setTimeout(() => {
                                     toolTipRef.current?.close();
@@ -1336,7 +1338,8 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .style("font-style", "italic")
                 .text("Navigate found annotations with the arrows")
                 .style("pointer-events", "none")
-                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0);
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0)
+                .call(wrap, window.innerWidth - width - 36);
 
                 tooltip
                 .append("text")
@@ -1404,13 +1407,13 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
 
                 annotationStatus
                 .select("tspan.lookingFor2")
+                .text((d, i) => `"${clusterRef.current[i].searching?.purposeTitle}"`)
                 .transition()
                 .duration(1000)
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
-                .text((d, i) => `"${clusterRef.current[i].searching?.purposeTitle}"`);
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10));
 
                 annotationStatus
                 .select("tspan.annotationFound")
@@ -1576,6 +1579,8 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             }
                         })
                         .on("pointerout", function() {
+                            clearTimeout(closeTimeout.current);
+
                             if (toolTipRef.current?.isOpen) {
                                 closeTimeout.current = setTimeout(() => {
                                     toolTipRef.current?.close();

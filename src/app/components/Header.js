@@ -61,14 +61,14 @@ export default function Header({ children }) {
         .style("--penY", translatePenY + "px");
 
         setGradientCenter({
-            cx: `${cxPercentage}%`,
-            cy: `${cyPercentage}%`,
+            cx: `${isNaN(cxPercentage) ? 50 : cxPercentage}%`,
+            cy: `${isNaN(cyPercentage) ? 50 : cyPercentage}%`,
         });
     }, []);
 
     let onPointerLeave = useCallback(() => {
         d3.interrupt("gradientCenter");
-        d3.interrupt    ("textTranslate");
+        d3.interrupt("textTranslate");
 
         d3.transition()
         .duration(500)
