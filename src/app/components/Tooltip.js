@@ -823,6 +823,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                     if (clusterRef.current[i].open && !clusterRef.current[i].purpose && clusterRef.current[i].purpose !== false) {
                         clusterRef.current[i].purpose = false;
                         const cluster = clusterRef.current[i];
+                        const startTimetamp = Date.now();
 
                         inferPurpose(clusterRef.current[i])
                         .then((response) => {
@@ -830,7 +831,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             // updateTooltips(clusters);
                             
                             if (onInference instanceof Function) {
-                                onInference(cluster, response.rawText, response.images);
+                                onInference(startTimetamp, cluster, response.rawText, response.images);
                             }
                         });
                     }
@@ -1096,6 +1097,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             clusterRef.current[k].searching = clusterRef.current[k].purpose.purpose[i * 2 + j];
                             clusterRef.current[k].annotationsFound = [];
                             const cluster = clusterRef.current[k];
+                            const startTimetamp = Date.now();
 
                             let onDetect = (result) => {
                                 cluster.annotationsFound = result;
@@ -1114,7 +1116,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 updateTooltips(clusterRef.current);
 
                                 if (onEndAnnotate instanceof Function) {
-                                    onEndAnnotate(cluster, rawText);
+                                    onEndAnnotate(startTimetamp, cluster, rawText);
                                 }
                             };
 
@@ -1213,6 +1215,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         };
                         clusterRef.current[i].annotationsFound = [];
                         const cluster = clusterRef.current[i];
+                        const startTimetamp = Date.now();
 
                         let onDetect = (result) => {
                             cluster.annotationsFound = result;
@@ -1228,7 +1231,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             updateTooltips(clusterRef.current);
 
                             if (onEndAnnotate instanceof Function) {
-                                onEndAnnotate(cluster, rawText);
+                                onEndAnnotate(startTimetamp, cluster, rawText);
                             }
                         };
 
@@ -1487,6 +1490,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         };
                         clusterRef.current[i].annotationsFound = [];
                         const cluster = clusterRef.current[i];
+                        const startTimetamp = Date.now();
 
                         let onDetect = (result) => {
                             cluster.annotationsFound = result;
@@ -1504,7 +1508,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             updateTooltips(clusterRef.current);
 
                             if (onEndAnnotate instanceof Function) {
-                                onEndAnnotate(cluster, rawText);
+                                onEndAnnotate(startTimetamp, cluster, rawText);
                             }
                         };
 
@@ -1595,6 +1599,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             clusterRef.current[k].searching = clusterRef.current[k].purpose?.purpose[i * 2 + j];
                             clusterRef.current[k].annotationsFound = [];
                             const cluster = clusterRef.current[k];
+                            const startTimetamp = Date.now();
 
                             let onDetect = (result) => {
                                 cluster.annotationsFound = result;
@@ -1613,7 +1618,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 updateTooltips(clusterRef.current);
 
                                 if (onEndAnnotate instanceof Function) {
-                                    onEndAnnotate(cluster, rawText);
+                                    onEndAnnotate(startTimetamp, cluster, rawText);
                                 }
                             };
 
@@ -1944,6 +1949,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 if (clusterRef.current[i].open && !clusterRef.current[i].purpose && clusterRef.current[i].purpose !== false) {
                                     clusterRef.current[i].purpose = false;
                                     const cluster = clusterRef.current[i];
+                                    const startTimetamp = Date.now();
                                     
                                     inferPurpose(clusterRef.current[i])
                                     .then((response) => {
@@ -1951,7 +1957,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                         // updateTooltips(clusters);
                                         
                                         if (onInference instanceof Function) {
-                                            onInference(cluster, response.rawText, response.images);
+                                            onInference(startTimetamp, cluster, response.rawText, response.images);
                                         }
                                     });
                                 }

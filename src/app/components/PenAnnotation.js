@@ -1129,7 +1129,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         }
     }
 
-    function onInference(cluster, rawText, images) {
+    function onInference(startTimetamp, cluster, rawText, images) {
         let firstStroke = cluster.strokes[0].id === "initial" ? cluster.strokes[1] : cluster.strokes[0];
 
         let findCluster = lockClusterRef.current.findIndex(c => c.strokes.find(stroke => {
@@ -1146,14 +1146,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             setLockCluster(newLockCluster);
 
             if (onInferenceCallback instanceof Function) {
-                onInferenceCallback(newLockCluster[findCluster], rawText, images);
+                onInferenceCallback(startTimetamp, newLockCluster[findCluster], rawText, images);
             }
         }
     }
 
-    function onEndAnnotate(cluster, rawText) {
+    function onEndAnnotate(startTimetamp, cluster, rawText) {
         if (onEndAnnotateCallback instanceof Function) {
-            onEndAnnotateCallback(cluster, rawText);
+            onEndAnnotateCallback(startTimetamp, cluster, rawText);
         }
     }
 

@@ -1330,15 +1330,15 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
         // hoverAnnotation.current = null;
     }
 
-    function onInference(cluster, rawText, images) {
+    function onInference(startTimetamp, cluster, rawText, images) {
         if (onInferenceCallback instanceof Function) {
-            onInferenceCallback(cluster, rawText, images);
+            onInferenceCallback(startTimetamp, cluster, rawText, images);
         }
     }
 
-    function endAnnotateCallback(cluster, rawText) {
+    function endAnnotateCallback(startTimetamp, cluster, rawText) {
         if (onEndAnnotateCallback instanceof Function) {
-            onEndAnnotateCallback(cluster, rawText);
+            onEndAnnotateCallback(startTimetamp, cluster, rawText);
         }
     }
 
@@ -1380,7 +1380,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             let annotations, annotation;
             let closestTextLayer;
             let i, j;
-            let found = false;
+            let found = false, hoverFound = false;
 
             loop1: for (i = 0; i < annotatedTokens.current.length; i++) {
                 annotations = annotatedTokens.current[i];
@@ -1409,6 +1409,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                                         clearTimeout(explainTooltipTimeout.current);
                                         clearTimeout(highlightTimeout.current);
                                     }
+                                    hoverFound = true;
                                     break loop1;
                                 }
                             }
@@ -1417,7 +1418,17 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                 }
             }
 
-            if (found) {
+            if (!hoverFound) {
+                clearTimeout(explainTooltipTimeout.current);
+                clearTimeout(highlightTimeout.current);
+                hoverAnnotation.current = null;
+                hoverGroupAnnotationRef.current = null;
+
+                d3.selectAll(".word.highlighted, .space.highlighted")
+                .classed("fade", false);
+            }
+
+            if (found) {                
                 highlightTimeout.current = setTimeout(() => {
                     d3.selectAll(".word.highlighted, .space.highlighted")
                     .classed("fade", true);
@@ -1441,7 +1452,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                         }
                     }
                 }, 1000);
-                
+
                 function acceptAnnotation(e, annotation, j) {
                     annotation.accepted = true;
                     let target = e.target;
@@ -1621,7 +1632,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                             );
                         }
                     }
-                    console.log(overlappingAnnotations);
+                    // console.log(overlappingAnnotations);
 
                     let a = overlappingAnnotations[0].annotation;
 
@@ -1761,15 +1772,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                     activeAnnotation.current = annotation;
 
                 }, 500);
-            } else {
-                d3.selectAll(".word.highlighted, .space.highlighted")
-                .classed("fade", false);
-
-                // hoverAnnotation.current = null;
-                // clearTimeout(explainTooltipTimeout.current);
-                // clearTimeout(highlightTimeout.current);
             }
-
             // explanationToolTipRef.current?.close();
         });
 

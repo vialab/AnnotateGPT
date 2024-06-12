@@ -74,7 +74,7 @@ export default async function handler(req, res) {
 
         if (!fs.existsSync(path)) {
             await fsPromises.mkdir(`./data/${pid}`, { recursive: true });
-            await fsPromises.writeFile(path, "clusterID,type,timestamp,rawText,imageWithText,imageWithoutText\n");
+            await fsPromises.writeFile(path, "startTimetamp,clusterID,type,timestamp,rawText,imageWithText,imageWithoutText\n");
         }
         await fsPromises.appendFile(path, data + "\n");
         doneOpenAI = false;

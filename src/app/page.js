@@ -145,7 +145,7 @@ export default function Home() {
         }));
     };
 
-    let onInferenceCallback = (cluster, rawText, images) => {
+    let onInferenceCallback = (startTimetamp, cluster, rawText, images) => {
         let timestamp = Date.now();
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
@@ -162,7 +162,7 @@ export default function Home() {
             data: clusterData
         }));
 
-        let inferenceData = `${cluster.strokes[cluster.strokes.length - 1].id},inference,${timestamp},"${rawText.replace(/"/g, `""`)}","${images[0]}","${images[1]}"`;
+        let inferenceData = `${startTimetamp},${cluster.strokes[cluster.strokes.length - 1].id},inference,${timestamp},"${rawText.replace(/"/g, `""`)}","${images[0]}","${images[1]}"`;
 
         sendData(JSON.stringify({
             action: "openai",
@@ -170,7 +170,7 @@ export default function Home() {
         }));
     };
 
-    let onEndAnnotateCallback = (cluster, rawText) => {
+    let onEndAnnotateCallback = (startTimetamp, cluster, rawText) => {
         let timestamp = Date.now();
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
@@ -187,7 +187,7 @@ export default function Home() {
             data: clusterData
         }));
 
-        let annotateData = `${cluster.strokes[cluster.strokes.length - 1].id},annotate,${timestamp},"${rawText.replace(/"/g, `""`)}",,`;
+        let annotateData = `${startTimetamp},${cluster.strokes[cluster.strokes.length - 1].id},annotate,${timestamp},"${rawText.replace(/"/g, `""`)}",,`;
 
         sendData(JSON.stringify({
             action: "openai",
@@ -271,11 +271,11 @@ export default function Home() {
                     </div>
                 </> :
                 <>
-                    <Header>
+                    {/* <Header>
                         <div onClick={startStudy}>
                             Start Study
                         </div>
-                    </Header>
+                    </Header> */}
 
                     <AnnotateGPT 
                         pEndCallback={penEndCallback}
