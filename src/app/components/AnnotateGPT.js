@@ -1224,25 +1224,144 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
     }
 
     function onNewActiveCluster(cluster) {
+        let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
+
+        let onNavigateCallback = (annotation) => {
+            let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
+            hoverGroupAnnotationRef.current = annotations;
+
+            if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
+                cluster.open = true;
+                ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
+
+                let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={null} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+                </div>;
+                // explanationToolTipRef.current?.close();
+                fadeDisplayExplanation(content, annotation, false);
+            } else {
+                let content = generateContent(annotation, annotations);
+
+                fadeDisplayExplanation(content, annotation);
+            }
+            activeAnnotation.current = annotation;
+        };
+
         if (cluster) {
-            activeClusterRef.current = cluster;
-            setActiveCluster(cluster);
-            setGetActiveAnnotations(cluster.annotationsFound ? [...cluster.annotationsFound] : []);
+            // activeClusterRef.current = cluster;
+            // setActiveCluster(cluster);
+            // setGetActiveAnnotations(cluster.annotationsFound ? [...cluster.annotationsFound] : []);
+            if (cluster.annotationsFound?.length > 0) {
+                let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={null} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+                </div>;
+                // // explanationToolTipRef.current?.close();
+                let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+                let closestTextLayer = d3.select(".textLayer").node();
+
+                d3.select(".explanation-tooltip")
+                .style("top", clusterToolTip.getBoundingClientRect().top + clusterToolTip.getBoundingClientRect().height / 2 - containerRef.current.getBoundingClientRect().top + "px")
+                .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+
+                explanationToolTipRef.current?.open({
+                    anchorSelect: ".explanation-tooltip",
+                    content: content,
+                    place: "left",
+                });
+
+                setTimeout(() => {
+                    d3.select(".react-tooltip#annotationExplanation")
+                    .style("background", "rgba(34, 38, 43, 0)");
+                }, 10);
+            } else {
+                activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+            }
         } else {
-            activeClusterRef.current = null;
-            setActiveCluster(null);
-            setGetActiveAnnotations([]);
+            explanationToolTipRef.current?.close();
+            // activeClusterRef.current = null;
+            // setActiveCluster(null);
+            // setGetActiveAnnotations([]);
         }
     }
 
     function onClusterChange(cluster) {
-        if (cluster) {
-            let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke?.id);
-            let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i]?.id);
+        // if (cluster) {
+        //     let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke?.id);
+        //     let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i]?.id);
 
-            if (equal) {
-                setGetActiveAnnotations(activeClusterRef.current.annotationsFound ? [...activeClusterRef.current.annotationsFound] : []);
-                setActiveCluster(cluster);
+        //     if (equal) {
+        //         setGetActiveAnnotations(activeClusterRef.current.annotationsFound ? [...activeClusterRef.current.annotationsFound] : []);
+        //         setActiveCluster(cluster);
+        //     }
+        // }
+
+        let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
+
+        let onNavigateCallback = (annotation) => {
+            let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
+            hoverGroupAnnotationRef.current = annotations;
+
+            if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
+                cluster.open = true;
+                ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
+
+                let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={null} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+                </div>;
+                // explanationToolTipRef.current?.close();
+                fadeDisplayExplanation(content, annotation, false);
+            } else {
+                cluster.open = false;
+                ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
+                let content = generateContent(annotation, annotations);
+
+                fadeDisplayExplanation(content, annotation);
+            }
+            activeAnnotation.current = annotation;
+        };
+
+        let showTooltipContent = () => {
+            let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+            </div>;
+
+            let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+            let closestTextLayer = d3.select(".textLayer").node();
+
+            d3.select(".explanation-tooltip")
+            .style("top", clusterToolTip.getBoundingClientRect().top + clusterToolTip.getBoundingClientRect().height / 2 - containerRef.current.getBoundingClientRect().top + "px")
+            .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+
+            explanationToolTipRef.current?.open({
+                anchorSelect: ".explanation-tooltip",
+                content: content,
+                place: "left",
+            });
+            
+            setTimeout(() => {
+                d3.select(".react-tooltip#annotationExplanation")
+                .style("background", "rgba(34, 38, 43, 0)");
+            }, 10);
+        };
+
+        if (cluster) {
+            if (cluster.annotationsFound?.length > 0) {
+                if (cluster.annotationsFound?.find(annotation => annotation === activeAnnotation.current)) {
+                    if (activeAnnotation.current.spans[0] instanceof Element && activeAnnotation.current.spans[0].classList.contains("toolTip")) {
+                        showTooltipContent();
+                    } else if (explanationToolTipRef.current?.isOpen) {
+                        let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === activeAnnotation.current));
+                        let content = generateContent(activeAnnotation.current, annotations);
+
+                        explanationToolTipRef.current?.open({
+                            anchorSelect: ".explanation-tooltip",
+                            content: content,
+                            place: "left",
+                        });
+                    }
+                } else if (activeAnnotation.current instanceof Element && activeAnnotation.current.classList.contains("toolTip") && activeAnnotation.current.id === "toolTip" + cluster.strokes[cluster.strokes.length - 1].id) {
+                    showTooltipContent();
+                }
             }
         }
     }
@@ -1276,6 +1395,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             explanationToolTipRef.current?.close();
         });
         hoverAnnotation.current = null;
+        activeAnnotation.current = null;
 
         for (let penAnnotation of penAnnotationRef.current) {
             let lockClusters = [...penAnnotation.current.lockClusters.current];
@@ -1342,6 +1462,343 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
         }
     }
 
+    let generateContent = useCallback((annotation, annotations) => {
+        function acceptAnnotation(e, a, j) {
+            a.accepted = true;
+            let target = e.target;
+            let rateContainer = target.closest(".rateContainer");
+            let newContent = generateContent(annotation, annotations);
+    
+            d3.select(rateContainer)
+            .selectAll(".rateButton")
+            .style("pointer-events", "none")
+            .transition()
+            .duration(200)
+            .style("opacity", 0)
+            .on("end", () => {
+                explanationToolTipRef.current?.open({
+                    anchorSelect: ".explanation-tooltip",
+                    content: newContent,
+                    place: "left",
+                });
+            });
+    
+            for (let span of a.spans) {
+                d3.select(span)
+                .classed("highlighted", true)
+                .classed("accept", true);
+    
+                let space = d3.select(span).node().nextSibling;
+    
+                if (space === null) {
+                    space = span.parentNode.nextSibling?.firstChild;
+                }
+        
+                if (space !== null && space.classList.contains("space")) {
+                    d3.select(space)
+                    .classed("highlighted", true)
+                    .classed("accept", true);
+                }
+            }
+    
+            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
+                    
+            if (cluster) {
+                if (onReplyCallback instanceof Function) {
+                    onReplyCallback(cluster, "accept " + j);
+                }
+            }
+        }
+    
+        function rejectAnnotation(e, a, j, overlappingAnnotations) {
+            a.accepted = false;
+            let target = e.target;
+            let rateContainer = target.closest(".rateContainer");
+            let newContent = generateContent(annotation, annotations);
+            console.log(overlappingAnnotations);
+    
+            d3.select(rateContainer)
+            .selectAll(".rateButton")
+            .style("pointer-events", "none")
+            .transition()
+            .duration(200)
+            .style("opacity", 0)
+            .on("end", () => {
+                explanationToolTipRef.current?.open({
+                    anchorSelect: ".explanation-tooltip",
+                    content: newContent,
+                    place: "left",
+                });
+            });
+    
+            loop1: for (let span of a.spans) {
+                for (let overlappingAnnotation of overlappingAnnotations) {
+                    if (overlappingAnnotation.annotation !== a) {
+                        for (let overlappingSpan of overlappingAnnotation.annotation.spans) {
+                            if (span === overlappingSpan) {
+                                continue loop1;
+                            }
+                        }
+                    }
+                }
+    
+                d3.select(span)
+                .classed("highlighted", false);
+    
+                let space = d3.select(span).node().nextSibling;
+    
+                if (space === null) {
+                    space = span.parentNode.nextSibling?.firstChild;
+                }
+    
+                if (space !== null && space.classList.contains("space")) {
+                    d3.select(space)
+                    .classed("highlighted", false);
+                }
+            }
+    
+            for (let i = 0; i < annotations.annotations.length; i++) {
+                if (annotations.annotations[i] === a) {
+                    annotations.annotations.splice(i, 1);
+                    break;
+                }
+            }
+    
+            if (overlappingAnnotations.length === 1) {
+                d3.select(".react-tooltip#annotationExplanation")
+                .transition()
+                .duration(200)
+                .style("opacity", 0)
+                .on("end", () => {
+                    explanationToolTipRef.current?.close();
+                });
+            }
+            // console.log(annotations.ref?.current.lockClusters.current);
+    
+            annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+    
+            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
+                    
+            if (cluster) {
+                if (onReplyCallback instanceof Function) {
+                    onReplyCallback(cluster, "reject " + j);
+                }
+            }
+        }
+    
+        function auto_grow(e) {
+            let element = e.target;
+            element.style.height = "5px";
+            element.style.height = (element.scrollHeight) + "px";
+        }
+    
+        function onKeyDown(e, overlappingAnnotations) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                let value = e.target.value.trim();
+    
+                if (value !== "") {
+                    for (let overlappingAnnotation of overlappingAnnotations) {
+                        let a = overlappingAnnotation.annotation;
+                        a.explanation.push(value);
+                        
+                        let cluster = overlappingAnnotation.groupAnnotation.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
+                        
+                        if (cluster) {
+                            if (onReplyCallback instanceof Function) {
+                                onReplyCallback(cluster, "comment " + overlappingAnnotation.index);
+                            }
+                        }
+                    }
+                    e.target.value = "";
+                    
+                    let content = generateContent(annotation, annotations);
+    
+                    explanationToolTipRef.current?.open({
+                        anchorSelect: ".explanation-tooltip",
+                        content: content,
+                        place: "left",
+                    });
+    
+                    fetch("/api/storeHistory", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            reply: value,
+                            comment: overlappingAnnotations[0].annotation.explanation[0],
+                            action: "comment"
+                        })
+                    })
+                    .then((response) => response.text())
+                    .then((data) => {
+                        console.log("Success:", data);
+                    })
+                    .catch((error) => {
+                        console.error("Error:", error);
+                    });
+                }
+            }
+        }
+        let annotationMessages = [];
+
+        let overlappingAnnotations = [{groupIndex: annotatedTokens.current.findIndex(group => group === annotations), index: annotations.annotations.findIndex(a => a === annotation), annotation: annotation, groupAnnotation: annotations}];
+        // console.log(overlappingAnnotations[0]);
+        for (let i = 0; i < annotatedTokens.current.length; i++) {
+            let searchAnnotations = annotatedTokens.current[i];
+            
+            if (hoverGroupAnnotationRef.current !== searchAnnotations) {
+                loop: for (let j = 0; j < searchAnnotations.annotations.length; j++) {
+                    let searchAnnotation = searchAnnotations.annotations[j];
+
+                    if (searchAnnotation.accepted !== false) {
+                        
+                        if (annotation.spans instanceof Array && searchAnnotation.spans instanceof Array && searchAnnotation.spans.every((searchSpan) => annotation.spans.includes(searchSpan))) {
+                            overlappingAnnotations.push({groupIndex: i, index: j, annotation: searchAnnotation, groupAnnotation: searchAnnotations});
+                            break loop;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (let overlappingAnnotation of overlappingAnnotations) {
+            let a = overlappingAnnotation.annotation;
+
+            if (a.accepted !== false) {
+                let message = a.explanation && a.explanation[0].trim() !== "" ? a.explanation[0] : `${a.annotationDescription}${a.annotationDescription.endsWith(".") ? "" : "."} ${a.purpose}`;
+
+                annotationMessages.push(
+                    <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}} key={"annotateMessage0" + overlappingAnnotation.groupIndex + overlappingAnnotation.index}>
+                        <div className="annotationMessageHeader">
+                            <div style={{ display: "flex"}}>
+                                <Image src={"/AnnotateGPT.jpg"} alt="icon" width={32} height={32} style={{ marginRight: "12px", borderRadius: "50%", userSelect: "none" }} />
+                                <div style={{ display: "flex", alignItems: "center", width: "100%", gap: "10px"}}>
+                                    <div style={{ width: "-webkit-fill-available" }} >{"AnnotateGPT"}</div>
+                                    
+                                    { a.explanation[0] !== "Generating explanation..." && (a.accepted !== false && a.accepted !== true)?
+                                        <div className="rateContainer">
+                                            <div className="rateButton" style={{ paddingRight: "1.5px", paddingTop: "1px" }}>
+                                                <RxCheck size={25} style={{ color: "#2eb086", strokeWidth: "1" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, annotation, annotations) } />
+                                            </div>
+                                            <div className="rateButton" style={{ paddingLeft: "3px", paddingTop: "1px" }}>
+                                                <RxCross2 size={25} style={{ color: "#b8405e", strokeWidth: "1" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, annotation, annotations)} />
+                                            </div>
+                                        </div>
+                                        : null
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        {message}
+                    </div>
+                );
+            }
+        }
+        // console.log(overlappingAnnotations);
+
+        let a = overlappingAnnotations[0].annotation;
+
+        for (let k = 1; k < a.explanation.length; k++) {
+            annotationMessages.push(
+                <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}} key={"annotateMessage" + k + overlappingAnnotations[0].groupIndex + overlappingAnnotations[0].index}>
+                    <div className="annotationMessageHeader">
+                        <div style={{ display: "flex"}}>
+                            <Image src={"/user.jpg"} alt="icon" width={32} height={32} style={{ marginRight: "12px", borderRadius: "50%", userSelect: "none" }} />
+                            <div style={{ display: "flex", alignItems: "center" }}>
+                                {"You"}
+                            </div>
+                        </div>
+                    </div>
+                    {a.explanation[k]}
+                </div>
+            );
+        }
+        let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+        let activeAnnotationsFound = cluster.annotationsFound ? [...cluster.annotationsFound] : [];
+
+        let onNavigateCallback = (annotation) => {
+            if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
+                cluster.open = true;
+                annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+
+                let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                    <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+                </div>;
+                // explanationToolTipRef.current?.close();
+                fadeDisplayExplanation(content, annotation, false);
+            } else {
+                cluster.open = false;
+                annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+                let content = generateContent(annotation, annotations);
+
+                fadeDisplayExplanation(content, annotation);
+            }
+            activeAnnotation.current = annotation;
+        };
+
+        let content = 
+        <div className={"annotationMessageContainer " + googleSans.className}>
+            { annotationMessages }
+            { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Reply" /> : null }
+            
+            <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+        </div>;
+
+        return content;
+    }, [onReplyCallback]);
+    
+    function fadeDisplayExplanation(content, annotation, overrideDisplay = true) {
+        let closestTextLayer = d3.select(".textLayer").node();
+        if (d3.select(".react-tooltip#annotationExplanation").empty()) {
+            d3.select(".explanation-tooltip")
+            .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) - containerRef.current.getBoundingClientRect().top + "px")
+            .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+
+            explanationToolTipRef.current?.open({
+                anchorSelect: ".explanation-tooltip",
+                content: content,
+                place: "left",
+            });
+            
+            d3.select(".react-tooltip#annotationExplanation")
+            .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)");
+        } else {
+            d3.select(".react-tooltip#annotationExplanation")
+            .transition()
+            .duration(300)
+            .style("opacity", 0)
+            .on("end", () => {
+                setTimeout(() => {
+                    explanationToolTipRef.current?.open({
+                        position: { x: -1000, y: -1000 },
+                        content: content,
+                        place: "left",
+                    });
+
+                    d3.select(".explanation-tooltip")
+                    .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) - containerRef.current.getBoundingClientRect().top + "px")
+                    .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+                    
+                    d3.select(".react-tooltip#annotationExplanation")
+                    .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)")
+                    .transition()
+                    .delay(300)
+                    .duration(300)
+                    .style("opacity", 1)
+                    .on("start", () => {
+                        explanationToolTipRef.current?.open({
+                            anchorSelect: ".explanation-tooltip",
+                            content: content,
+                            place: "left",
+                        });
+                    });
+                }, 200);
+            });
+        }
+    }
+
     useEffect(() => {
         toolTipRef.current = tool;
 
@@ -1378,7 +1835,6 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
         .on("pointermove", (e) => {
             let [x, y] = [e.clientX, e.clientY];
             let annotations, annotation;
-            let closestTextLayer;
             let i, j;
             let found = false, hoverFound = false;
 
@@ -1398,9 +1854,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                                 let y1 = rect.top - 5;
                                 let y2 = rect.bottom + 5;
         
-                                if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
-                                    closestTextLayer = span.closest(".textLayer");
-                                        
+                                if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {                                        
                                     if (hoverAnnotation.current !== annotation && annotation.accepted !== false) {
                                         hoverAnnotation.current = annotation;
                                         hoverGroupAnnotationRef.current = annotations;
@@ -1422,7 +1876,6 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                 clearTimeout(explainTooltipTimeout.current);
                 clearTimeout(highlightTimeout.current);
                 hoverAnnotation.current = null;
-                hoverGroupAnnotationRef.current = null;
 
                 d3.selectAll(".word.highlighted, .space.highlighted")
                 .classed("fade", false);
@@ -1453,321 +1906,13 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                     }
                 }, 1000);
 
-                function acceptAnnotation(e, annotation, j) {
-                    annotation.accepted = true;
-                    let target = e.target;
-                    let rateContainer = target.closest(".rateContainer");
-                    let newContent = generateContent();
-
-                    d3.select(rateContainer)
-                    .selectAll(".rateButton")
-                    .style("pointer-events", "none")
-                    .transition()
-                    .duration(200)
-                    .style("opacity", 0)
-                    .on("end", () => {
-                        explanationToolTipRef.current?.open({
-                            anchorSelect: ".explanation-tooltip",
-                            content: newContent,
-                            place: "left",
-                        });
-                    });
-
-                    for (let span of annotation.spans) {
-                        d3.select(span)
-                        .classed("highlighted", true)
-                        .classed("accept", true);
-
-                        let space = d3.select(span).node().nextSibling;
-
-                        if (space === null) {
-                            space = span.parentNode.nextSibling?.firstChild;
-                        }
-                
-                        if (space !== null && space.classList.contains("space")) {
-                            d3.select(space)
-                            .classed("highlighted", true)
-                            .classed("accept", true);
-                        }
-                    }
-
-                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
-                            
-                    if (cluster) {
-                        if (onReplyCallback instanceof Function) {
-                            onReplyCallback(cluster, "accept " + j);
-                        }
-                    }
-                }
-
-                function rejectAnnotation(e, annotation, j, overlappingAnnotations) {
-                    annotation.accepted = false;
-                    let target = e.target;
-                    let rateContainer = target.closest(".rateContainer");
-                    let newContent = generateContent();
-                    console.log(overlappingAnnotations);
-
-                    d3.select(rateContainer)
-                    .selectAll(".rateButton")
-                    .style("pointer-events", "none")
-                    .transition()
-                    .duration(200)
-                    .style("opacity", 0)
-                    .on("end", () => {
-                        explanationToolTipRef.current?.open({
-                            anchorSelect: ".explanation-tooltip",
-                            content: newContent,
-                            place: "left",
-                        });
-                    });
-
-                    loop1: for (let span of annotation.spans) {
-                        for (let overlappingAnnotation of overlappingAnnotations) {
-                            if (overlappingAnnotation.annotation !== annotation) {
-                                for (let overlappingSpan of overlappingAnnotation.annotation.spans) {
-                                    if (span === overlappingSpan) {
-                                        continue loop1;
-                                    }
-                                }
-                            }
-                        }
-
-                        d3.select(span)
-                        .classed("highlighted", false);
-
-                        let space = d3.select(span).node().nextSibling;
-
-                        if (space === null) {
-                            space = span.parentNode.nextSibling?.firstChild;
-                        }
-
-                        if (space !== null && space.classList.contains("space")) {
-                            d3.select(space)
-                            .classed("highlighted", false);
-                        }
-                    }
-
-                    for (let i = 0; i < annotations.annotations.length; i++) {
-                        if (annotations.annotations[i] === annotation) {
-                            annotations.annotations.splice(i, 1);
-                            break;
-                        }
-                    }
-
-                    if (overlappingAnnotations.length === 1) {
-                        d3.select(".react-tooltip#annotationExplanation")
-                        .transition()
-                        .duration(200)
-                        .style("opacity", 0)
-                        .on("end", () => {
-                            explanationToolTipRef.current?.close();
-                        });
-                    }
-                    // console.log(annotations.ref?.current.lockClusters.current);
-
-                    annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
-
-                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
-                            
-                    if (cluster) {
-                        if (onReplyCallback instanceof Function) {
-                            onReplyCallback(cluster, "reject " + j);
-                        }
-                    }
-                }
-
-                function generateContent() {
-                    let annotationMessages = [];
-
-                    let overlappingAnnotations = [{groupIndex: i, index: j, annotation: annotation, groupAnnotation: annotations}];
-
-                    for (let i = 0; i < annotatedTokens.current.length; i++) {
-                        let searchAnnotations = annotatedTokens.current[i];
-                        
-                        if (hoverGroupAnnotationRef.current !== searchAnnotations) {
-                            loop: for (let j = 0; j < searchAnnotations.annotations.length; j++) {
-                                let searchAnnotation = searchAnnotations.annotations[j];
-
-                                if (searchAnnotation.accepted !== false) {
-                                    
-                                    if (annotation.spans instanceof Array && searchAnnotation.spans instanceof Array && searchAnnotation.spans.every((searchSpan) => annotation.spans.includes(searchSpan))) {
-                                        overlappingAnnotations.push({groupIndex: i, index: j, annotation: searchAnnotation, groupAnnotation: searchAnnotations});
-                                        break loop;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    for (let overlappingAnnotation of overlappingAnnotations) {
-                        let a = overlappingAnnotation.annotation;
-
-                        if (a.accepted !== false) {
-                            let message = a.explanation && a.explanation[0].trim() !== "" ? a.explanation[0] : `${a.annotationDescription}${a.annotationDescription.endsWith(".") ? "" : "."} ${a.purpose}`;
-
-                            annotationMessages.push(
-                                <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}} key={"annotateMessage0" + overlappingAnnotation.groupIndex + overlappingAnnotation.index}>
-                                    <div className="annotationMessageHeader">
-                                        <div style={{ display: "flex"}}>
-                                            <Image src={"/AnnotateGPT.jpg"} alt="icon" width={32} height={32} style={{ marginRight: "12px", borderRadius: "50%", userSelect: "none" }} />
-                                            <div style={{ display: "flex", alignItems: "center", width: "100%", gap: "10px"}}>
-                                                <div style={{ width: "-webkit-fill-available" }} >{"AnnotateGPT"}</div>
-                                                
-                                                { a.explanation[0] !== "Generating explanation..." && (a.accepted !== false && a.accepted !== true)?
-                                                    <div className="rateContainer">
-                                                        <div className="rateButton" style={{ paddingRight: "1.5px", paddingTop: "1px" }}>
-                                                            <RxCheck size={25} style={{ color: "#2eb086", strokeWidth: "1" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index) } />
-                                                        </div>
-                                                        <div className="rateButton" style={{ paddingLeft: "1.5px", paddingTop: "1px" }}>
-                                                            <RxCross2 size={25} style={{ color: "#b8405e", strokeWidth: "1" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations)} />
-                                                        </div>
-                                                    </div>
-                                                    : null
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
-                                    {message + overlappingAnnotation.groupIndex + overlappingAnnotation.index}
-                                </div>
-                            );
-                        }
-                    }
-                    // console.log(overlappingAnnotations);
-
-                    let a = overlappingAnnotations[0].annotation;
-
-                    for (let k = 1; k < a.explanation.length; k++) {
-                        annotationMessages.push(
-                            <div style={{ fontSize: "15px", letterSpacing: "0.2px", fontWeight: "400", color: "#E8EDED"}} key={"annotateMessage" + k + overlappingAnnotations[0].groupIndex + overlappingAnnotations[0].index}>
-                                <div className="annotationMessageHeader">
-                                    <div style={{ display: "flex"}}>
-                                        <Image src={"/user.jpg"} alt="icon" width={32} height={32} style={{ marginRight: "12px", borderRadius: "50%", userSelect: "none" }} />
-                                        <div style={{ display: "flex", alignItems: "center" }}>
-                                            {"You"}
-                                        </div>
-                                    </div>
-                                </div>
-                                {a.explanation[k]}
-                            </div>
-                        );
-                    }
-
-                    let content = 
-                    <div className={"annotationMessageContainer " + googleSans.className}>
-                        { annotationMessages }
-                        { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations)} placeholder="Reply" /> : null }
-                    </div>;
-
-                    return content;
-                }
-
-                function auto_grow(e) {
-                    let element = e.target;
-                    element.style.height = "5px";
-                    element.style.height = (element.scrollHeight) + "px";
-                }
-
-                function onKeyDown(e, overlappingAnnotations) {
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        let value = e.target.value.trim();
-
-                        if (value !== "") {
-                            for (let overlappingAnnotation of overlappingAnnotations) {
-                                let a = overlappingAnnotation.annotation;
-                                a.explanation.push(value);
-                                
-                                let cluster = overlappingAnnotation.groupAnnotation.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
-                                
-                                if (cluster) {
-                                    if (onReplyCallback instanceof Function) {
-                                        onReplyCallback(cluster, "comment " + j);
-                                    }
-                                }
-                            }
-                            e.target.value = "";
-                            
-                            let content = generateContent();
-
-                            explanationToolTipRef.current?.open({
-                                anchorSelect: ".explanation-tooltip",
-                                content: content,
-                                place: "left",
-                            });
-
-                            fetch("/api/storeHistory", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    reply: value,
-                                    comment: overlappingAnnotations[0].annotation.explanation[0],
-                                    action: "comment"
-                                })
-                            })
-                            .then((response) => response.text())
-                            .then((data) => {
-                                console.log("Success:", data);
-                            })
-                            .catch((error) => {
-                                console.error("Error:", error);
-                            });
-                        }
-                    }
-                }
-
-                let content = generateContent();
+                let content = generateContent(annotation, annotations);
                 
                 explainTooltipTimeout.current = setTimeout(() => {                    
                     if (activeAnnotation.current !== annotation) {
-                        if (d3.select(".react-tooltip#annotationExplanation").empty()) {
-                            d3.select(".explanation-tooltip")
-                            .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) - containerRef.current.getBoundingClientRect().top + "px")
-                            .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
-
-                            explanationToolTipRef.current?.open({
-                                anchorSelect: ".explanation-tooltip",
-                                content: content,
-                                place: "left",
-                            });
-                        } else {
-                            d3.select(".react-tooltip#annotationExplanation")
-                            .transition()
-                            .duration(300)
-                            .style("opacity", 0)
-                            .on("end", () => {
-                                setTimeout(() => {
-                                    explanationToolTipRef.current?.open({
-                                        position: { x: -1000, y: -1000 },
-                                        content: content,
-                                        place: "left",
-                                    });
-                                    d3.select(".explanation-tooltip")
-                                    .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) - containerRef.current.getBoundingClientRect().top + "px")
-                                    .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
-                                    
-                                    d3.select(".react-tooltip#annotationExplanation")
-                                    .transition()
-                                    .delay(300)
-                                    .duration(300)
-                                    .style("opacity", 1)
-                                    .on("start", () => {
-                                        explanationToolTipRef.current?.open({
-                                            anchorSelect: ".explanation-tooltip",
-                                            content: content,
-                                            place: "left",
-                                        });
-                                    });
-                                }, 200);
-                            });
-                        }
+                        fadeDisplayExplanation(content, annotation);
                     } else {
-                        explanationToolTipRef.current?.open({
-                            anchorSelect: ".explanation-tooltip",
-                            content: content,
-                            place: "left",
-                        });
+                        fadeDisplayExplanation(content, annotation);
                     }
                     activeAnnotation.current = annotation;
 
@@ -1780,7 +1925,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             d3.select("body")
             .on("pointermove", null);
         };
-    }, [onReplyCallback]);
+    }, [onReplyCallback, generateContent]);
 
     return (
         <div className="annotateContainer" ref={containerRef}>
@@ -1817,8 +1962,6 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                 color="#e15b64"
             />
             <Toolbar tool={tool} onToolChange={onToolChange} onColourChange={onChange} defaultColour={defaultColour} />
-            
-            <NavigateCluster cluster={activeCluster} annotations={getActiveAnnotations} />
 
             <Tooltip 
                 // id="annotationDescription"
@@ -1830,7 +1973,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
 
             <Tooltip 
                 id="annotationExplanation"
-                style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "#22262b" }}
+                style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "rgba(34, 38, 43, 1)" }}
                 place={"left"}
                 ref={explanationToolTipRef}
                 imperativeModeOnly={true}

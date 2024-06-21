@@ -9,6 +9,7 @@
     --offset-active: 75px;
     user-select: none;
     width: min-content;
+    pointer-events: none;
 }
 
 .toolbar.disabled, .toolbar.disabled * {

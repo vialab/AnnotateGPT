@@ -271,11 +271,11 @@ export default function Home() {
                     </div>
                 </> :
                 <>
-                    {/* <Header>
+                    <Header>
                         <div onClick={startStudy}>
                             Start Study
                         </div>
-                    </Header> */}
+                    </Header>
 
                     <AnnotateGPT 
                         pEndCallback={penEndCallback}

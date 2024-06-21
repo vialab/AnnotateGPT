@@ -1,3 +1,5 @@
+import polygonClipping from "polygon-clipping";
+
 function coordsToPath(points) {
     let pathStr = "";
 
@@ -126,12 +128,68 @@ function closestPoint(pathNode, point, range = 1) {
     }
 }
 
+function getSvgPathFromStroke(points, closed = true) {
+    const len = points.length;
+    const average = (a, b) => (a + b) / 2;
+
+    if (len < 4) {
+        return ``;
+    }
+
+    let a = points[0];
+    let b = points[1];
+    const c = points[2];
+
+    let result = `M${a[0].toFixed(2)},${a[1].toFixed(2)} Q${b[0].toFixed(2)},${b[1].toFixed(2)} ${average(b[0], c[0]).toFixed(2)},${average(b[1], c[1]).toFixed(2)} t`;    
+    let prevPoint = [average(b[0], c[0]), average(b[1], c[1])];
+
+    for (let i = 2, max = len - 1; i < max; i++) {
+        a = points[i];
+        b = points[i + 1];
+
+        let x = average(a[0], b[0]);
+        let y = average(a[1], b[1]);
+
+        let dx = x - prevPoint[0];
+        let dy = y - prevPoint[1];
+
+        result += `${dx.toFixed(2)},${dy.toFixed(2)} `;
+        prevPoint = [x, y];
+    }
+
+    if (closed) {
+        result += 'Z';
+    }
+
+    return result;
+}
+
+function getFlatSvgPathFromStroke(stroke) {
+    try {
+        const faces = polygonClipping.union([stroke]);
+
+        const d = [];
+    
+        faces.forEach((face) =>
+            face.forEach((points) => {
+                d.push(getSvgPathFromStroke(points));
+            })
+        );
+    
+        return d.join(' ');
+    } catch (e) {
+        return getSvgPathFromStroke(stroke);
+    }
+}
+
 const PathExtras = {
     coordsToPath: coordsToPath,
     pathToCoords: pathToCoords,
     getCachedPathBBox: getCachedPathBBox,
     pathCoordHitTest: pathCoordHitTest,
     closestPoint: closestPoint,
+    getSvgPathFromStroke: getSvgPathFromStroke,
+    getFlatSvgPathFromStroke: getFlatSvgPathFromStroke,
 };
 
 Object.freeze(PathExtras);

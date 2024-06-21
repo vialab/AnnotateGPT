@@ -3,11 +3,12 @@ import MathExtras from "./MathExtras.js";
 import PathExtras from "./PathExtras.js";
 import polygonClipping from "polygon-clipping";
 import * as flubber from "flubber";
+import { getStroke } from "perfect-freehand";
 
 // Default settings
 const defStrokeParam = {
     // Line function for drawing (must convert coordinates to a valid path string)
-    lineFunc: PathExtras.coordsToPath,
+    lineFunc: PathExtras.getSvgPathFromStroke,
     // Minimum distance between points that is allowed (longer will be interpolated)
     minDist: 2,
     // Max time between events (done to somewhat keep a stable sample rate)
@@ -280,7 +281,7 @@ export default class SvgPenSketch {
                     let strokePath = this._createPath();
 
                     // Create the drawing event handlers
-                    this._element.on("pointermove", e => this._handleDownEvent(e, _ => this._onDraw(strokePath, penCoords)));
+                    this._element.on("pointermove", e => this._handleDownEvent(e, _ => this._onDraw(strokePath, penCoords, e)));
                     this._element.on("pointerup", e => this._handleUpEvent(e, _ => this._stopDraw(strokePath, penCoords)));
                     this._element.on("pointerleave", e => this._handleUpEvent(e, _ => this._stopDraw(strokePath, penCoords)));
                     if (this.penStartCallback !== undefined) {
@@ -402,13 +403,26 @@ export default class SvgPenSketch {
     }
 
     // Handle the drawing
-    _onDraw(strokePath, penCoords) {
+    _onDraw(strokePath, penCoords, e) {
         if (this._currPointerEvent.pointerType !== "touch") {
             let [x, y] = this._getMousePos(this._currPointerEvent);
 
             // Add the points to the path
-            penCoords.push([x, y]);
-            strokePath.attr("d", this.strokeParam.lineFunc(penCoords));
+            penCoords.push([x, y, e.pressure]);
+
+            let mapPenCoords = penCoords.map(coord => {
+                return { x: coord[0], y: coord[1], pressure: coord[2] };
+            });
+
+            const stroke = getStroke(mapPenCoords, {
+                size: this.strokeStyles["toolRef"]?.current === "pen" ? 2 : 25,
+                thinning: 0.25,
+                smoothing: 1,
+                streamline: 0.5,
+                simulatePressure: false
+            });
+
+            strokePath.attr("d", this.strokeParam.lineFunc(stroke));
 
             // Call the callback
             if (this.penDownCallback !== undefined) {
@@ -425,8 +439,20 @@ export default class SvgPenSketch {
         w.postMessage({ penCoords: penCoords, minDist: this.strokeParam.minDist });
 
         w.addEventListener('message', (event) => {
+            let mapPenCoords = event.data.map(coord => {
+                return { x: coord[0], y: coord[1], pressure: coord[2] };
+            });
+
+            const stroke = getStroke(mapPenCoords, {
+                size: this.strokeStyles["toolRef"]?.current === "pen" ? 2 : 25,
+                thinning: 0.25,
+                smoothing: 1,
+                streamline: 0.5,
+                simulatePressure: false
+            });
+
             // Update the stroke
-            strokePath.attr("d", this.strokeParam.lineFunc(event.data) + (strokePath.attr("d") && strokePath.attr("d").endsWith("Z") ? "Z" : ""));
+            strokePath.attr("d", this.strokeParam.lineFunc(stroke));
             w.terminate();
         });
     }
@@ -439,7 +465,7 @@ export default class SvgPenSketch {
         this._element.on("pointerleave", null);
 
         // Interpolate the path if needed
-        this._interpolateStroke(strokePath, penCoords);
+        // this._interpolateStroke(strokePath, penCoords);
 
         // Call the callback
         if (this.penUpCallback !== undefined) {

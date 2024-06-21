@@ -47,7 +47,7 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
             d3.select(this).classed(toolbarStyles.active, true);
 
             if (onToolChange instanceof Function)
-                onToolChange(d3.select(this).attr("id"));
+                onToolChange(d3.select(this).attr("id") === toolbarStyles.pen ? "pen" : "highlighter");
         });
 
         return () => {

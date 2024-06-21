@@ -10,6 +10,8 @@ import "./js/OpenAIUtils";
 
 import './css/PenAnnotation.css';
 
+import toolbarStyles from "./css/Toolbar.module.css";
+
 function isHorizontalLine(coordinates) {
     if (coordinates.length < 2) {
         return false;
@@ -170,23 +172,41 @@ function checkEnclosed(coords) {
 }
 
 function getDistanceFromPointToPath(point, path) {
-    let pathLength = path.getTotalLength();
-    let precision = 100;
-    let minDistance = Infinity;
+    return new Promise((resolve, reject) => {
+        let pathLength = path.getTotalLength();
+        let precision = 50;
+        let minDistance = Infinity;
 
-    for (let i = 0; i <= precision; i++) {
-        let distanceAlongPath = i / precision * pathLength;
-        let pathPoint = path.getPointAtLength(distanceAlongPath);
-        let dx = pathPoint.x - point.x;
-        let dy = pathPoint.y - point.y;
-        let distance = dx * dx + dy * dy;
+        for (let i = 0; i <= precision; i++) {
+            let distanceAlongPath = i / precision * pathLength;
+            let pathPoint = path.getPointAtLength(distanceAlongPath);
+            let dx = pathPoint.x - point.x;
+            let dy = pathPoint.y - point.y;
+            let distance = dx * dx + dy * dy;
 
-        if (distance < minDistance) {
-            minDistance = distance;
+            if (distance < minDistance) {
+                minDistance = distance;
+            }
+
+            if (minDistance < 500) {
+                resolve(minDistance);
+            }
         }
-    }
 
-    return minDistance;
+        resolve(minDistance);
+    });
+}
+
+function nearPath(point, path) {
+    let bbox = path.getBBox();
+
+    // If it is near 500 pixels of the bbox, return true
+    let offset = 0;
+
+    if (point.x < bbox.x + bbox.width + offset && point.x > bbox.x - offset && point.y < bbox.y + bbox.height + offset && point.y > bbox.y - offset) {
+        return true;
+    }
+    return false;
 }
 
 const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
@@ -203,7 +223,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     const hoverTimeout = useRef(null);
     const activeCluster = useRef(null);
 
-    const handleHover = useCallback(e => {
+    const handleHover = useCallback(async e => {
         if (e.buttons === 0 && e.button === -1) {
             if (activeCluster.current && d3.select(`g.toolTip[id="toolTip${activeCluster.current?.strokes[activeCluster.current.strokes.length - 1]?.id}"]`).empty()) {
                 activeCluster.current = null;
@@ -212,6 +232,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             let coords = d3.pointer(e);
             let [x, y] = coords;
             let closestCluster = null;
+            let distancePromises = [];
 
             loop1: for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 for (let stroke of cluster.strokes) {
@@ -223,100 +244,121 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                             pointObj.x = x;
                             pointObj.y = y;
                             
-                            if (path.isPointInFill(pointObj) || getDistanceFromPointToPath({x, y}, path) < 500) {
+                            if (path.isPointInFill(pointObj)) {
                                 closestCluster = cluster;
                                 break loop1;
+                            } else if (nearPath({x: x, y: y}, path)) {
+                                distancePromises.push({
+                                    cluster: cluster,
+                                    distance: getDistanceFromPointToPath({x: x, y: y}, path)
+                                });
                             }
                         }
                     }
                 }
             }
 
-            if (closestCluster) {
-                let lastStroke = closestCluster.strokes[closestCluster.strokes.length - 1];
-                let closestBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
+            let processClosestCluster = (closestCluster) => {
+                if (closestCluster) {
+                    let lastStroke = closestCluster.strokes[closestCluster.strokes.length - 1];
+                    let closestBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
 
-                for (let stroke of closestCluster.strokes) {
-                    if (stroke.id !== "initial") {
-                        let strokeBBox = stroke.bbox;
-        
-                        closestBBox.x1 = Math.min(closestBBox.x1, strokeBBox.left);
-                        closestBBox.y1 = Math.min(closestBBox.y1, strokeBBox.top);
-                        closestBBox.x2 = Math.max(closestBBox.x2, strokeBBox.right);
-                        closestBBox.y2 = Math.max(closestBBox.y2, strokeBBox.bottom);
+                    for (let stroke of closestCluster.strokes) {
+                        if (stroke.id !== "initial") {
+                            let strokeBBox = stroke.bbox;
+            
+                            closestBBox.x1 = Math.min(closestBBox.x1, strokeBBox.left);
+                            closestBBox.y1 = Math.min(closestBBox.y1, strokeBBox.top);
+                            closestBBox.x2 = Math.max(closestBBox.x2, strokeBBox.right);
+                            closestBBox.y2 = Math.max(closestBBox.y2, strokeBBox.bottom);
+                        }
                     }
-                }
 
-                if (hoveredCluster.current !== lastStroke.id && activeCluster.current?.strokes[activeCluster.current.strokes.length - 1].id !== lastStroke.id) {
-                    clearTimeout(hoverTimeout.current);
+                    if (hoveredCluster.current !== lastStroke.id && activeCluster.current?.strokes[activeCluster.current.strokes.length - 1].id !== lastStroke.id) {
+                        clearTimeout(hoverTimeout.current);
 
-                    hoverTimeout.current = setTimeout(() => {
-                        let closeClusters = [];
-                        // let id = closestCluster.strokes[closestCluster.strokes.length - 1].id;
-                        // let findClosestCluster = lockClusterRef.current.find(cluster => cluster.strokes.find(stroke => stroke.id === id));
-                        // let ifOpen = findClosestCluster?.open ? true : false;
-                        // console.log(ifOpen, id);
-                        // if (findClosestCluster?.open) {
-                        //     return;
-                        // }
+                        hoverTimeout.current = setTimeout(() => {
+                            let closeClusters = [];
+                            // let id = closestCluster.strokes[closestCluster.strokes.length - 1].id;
+                            // let findClosestCluster = lockClusterRef.current.find(cluster => cluster.strokes.find(stroke => stroke.id === id));
+                            // let ifOpen = findClosestCluster?.open ? true : false;
+                            // console.log(ifOpen, id);
+                            // if (findClosestCluster?.open) {
+                            //     return;
+                            // }
 
-                        for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                            let clusterBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
+                            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+                                let clusterBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
 
-                            for (let stroke of cluster.strokes) {
-                                if (stroke.id !== "initial") {
-                                    let strokeBBox = stroke.bbox;
-                    
-                                    clusterBBox.x1 = Math.min(clusterBBox.x1, strokeBBox.left);
-                                    clusterBBox.y1 = Math.min(clusterBBox.y1, strokeBBox.top);
-                                    clusterBBox.x2 = Math.max(clusterBBox.x2, strokeBBox.right);
-                                    clusterBBox.y2 = Math.max(clusterBBox.y2, strokeBBox.bottom);
+                                for (let stroke of cluster.strokes) {
+                                    if (stroke.id !== "initial") {
+                                        let strokeBBox = stroke.bbox;
+                        
+                                        clusterBBox.x1 = Math.min(clusterBBox.x1, strokeBBox.left);
+                                        clusterBBox.y1 = Math.min(clusterBBox.y1, strokeBBox.top);
+                                        clusterBBox.x2 = Math.max(clusterBBox.x2, strokeBBox.right);
+                                        clusterBBox.y2 = Math.max(clusterBBox.y2, strokeBBox.bottom);
+                                    }
                                 }
-                            }
-                            let box1 = {x: closestBBox.x1 * window.innerWidth, y: closestBBox.y1 * window.innerHeight, width: closestBBox.x2 * window.innerWidth - closestBBox.x1 * window.innerWidth, height: closestBBox.y2 * window.innerHeight - closestBBox.y1 * window.innerHeight};
-                            let box2 = {x: clusterBBox.x1 * window.innerWidth, y: clusterBBox.y1 * window.innerHeight, width: clusterBBox.x2 * window.innerWidth - clusterBBox.x1 * window.innerWidth, height: clusterBBox.y2 * window.innerHeight - clusterBBox.y1 * window.innerHeight};
+                                let box1 = {x: closestBBox.x1 * window.innerWidth, y: closestBBox.y1 * window.innerHeight, width: closestBBox.x2 * window.innerWidth - closestBBox.x1 * window.innerWidth, height: closestBBox.y2 * window.innerHeight - closestBBox.y1 * window.innerHeight};
+                                let box2 = {x: clusterBBox.x1 * window.innerWidth, y: clusterBBox.y1 * window.innerHeight, width: clusterBBox.x2 * window.innerWidth - clusterBBox.x1 * window.innerWidth, height: clusterBBox.y2 * window.innerHeight - clusterBBox.y1 * window.innerHeight};
 
-                            let box1ContainsBox2 = box1.x < box2.x && box1.x + box1.width > box2.x + box2.width && box1.y < box2.y && box1.y + box1.height > box2.y + box2.height;
-                            let box2ContainsBox1 = box2.x < box1.x && box2.x + box2.width > box1.x + box1.width && box2.y < box1.y && box2.y + box2.height > box1.y + box1.height;
-        
-                            if (box1ContainsBox2 || box2ContainsBox1) {
-                                closeClusters.push(cluster);
-                            } else {
-                                let distance = calculateMinDistance(box1, box2);
-                                
-                                if (distance < 2500) {
+                                let box1ContainsBox2 = box1.x < box2.x && box1.x + box1.width > box2.x + box2.width && box1.y < box2.y && box1.y + box1.height > box2.y + box2.height;
+                                let box2ContainsBox1 = box2.x < box1.x && box2.x + box2.width > box1.x + box1.width && box2.y < box1.y && box2.y + box2.height > box1.y + box1.height;
+            
+                                if (box1ContainsBox2 || box2ContainsBox1) {
                                     closeClusters.push(cluster);
+                                } else {
+                                    let distance = calculateMinDistance(box1, box2);
+                                    
+                                    if (distance < 2500) {
+                                        closeClusters.push(cluster);
+                                    }
                                 }
                             }
-                        }
 
-                        for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                            cluster.disabled = true;
-                        }
-
-                        for (let cluster of closeClusters) {
-                            cluster.disabled = false;
-                            cluster.open = false;
-                        }
-                        closestCluster.disabled = false;
-                        closestCluster.open = false;
-
-                        if (onNewActiveCluster instanceof Function) {
-                            if (closestCluster.open) {
-                                onNewActiveCluster(closestCluster);
-                            } else {
-                                onNewActiveCluster(null);
+                            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+                                cluster.disabled = true;
                             }
-                        }
-                        activeCluster.current = closestCluster;
-                        setClusters([...clustersRef.current]);
-                        setLockCluster([...lockClusterRef.current]);
-                    }, 1000);
+
+                            for (let cluster of closeClusters) {
+                                cluster.disabled = false;
+                                cluster.open = false;
+                            }
+                            closestCluster.disabled = false;
+                            closestCluster.open = false;
+
+                            if (onNewActiveCluster instanceof Function) {
+                                if (closestCluster.open) {
+                                    onNewActiveCluster(closestCluster);
+                                } else {
+                                    onNewActiveCluster(null);
+                                }
+                            }
+                            activeCluster.current = closestCluster;
+                            setClusters([...clustersRef.current]);
+                            setLockCluster([...lockClusterRef.current]);
+                        }, 1000);
+                    }
+                    hoveredCluster.current = lastStroke.id;
+                } else {
+                    clearTimeout(hoverTimeout.current);
+                    hoveredCluster.current = null;
                 }
-                hoveredCluster.current = lastStroke.id;
+            };
+
+            if (!closestCluster) {
+                Promise.all(distancePromises.map(promise => promise.distance)).then(distances => {
+                    let minDistance = Math.min(...distances);
+
+                    if (minDistance < 500) {
+                        let closestClusterIndex = distances.findIndex(distance => distance === minDistance);
+                        closestCluster = distancePromises[closestClusterIndex].cluster;
+                        processClosestCluster(closestCluster);
+                    }
+                });
             } else {
-                clearTimeout(hoverTimeout.current);
-                hoveredCluster.current = null;
+                processClosestCluster(closestCluster);
             }
         }
     }, [onNewActiveCluster]);
@@ -327,8 +369,8 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             {
                 fill: "none",
                 stroke: "red",
-                "stroke-opacity": 0.3,
-                "stroke-width": "25",
+                "stroke-opacity": 0,
+                "stroke-width": 1,
             },
             {},
             { eraserMode: "object", eraserSize: "25" }
@@ -371,7 +413,9 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     useEffect(() => {
         svgPenSketch.current._element
         .on("pointermove.hover", (e) => {
-            handleHover(e);
+            if (e.buttons === 0 && e.button === -1) {
+                handleHover(e);
+            }
         })
         .on("pointerleave.hover", () => {
             clearTimeout(hoverTimeout.current);
@@ -385,12 +429,12 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     }, [handleHover]);
 
     useEffect(() => {
-        let toolbar = d3.select(".toolbar");
+        let toolbar = d3.select("." + toolbarStyles.toolbar);
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
 
         svgPenSketch.current.eraseStartCallback = () => {
-            toolbar.classed("disabled", true);
+            toolbar.classed(toolbarStyles.disabled, true);
             toolTip.classed("disabled", true);
             navagation.classed("disabled", true);
             clearTimeout(hoverTimeout.current);
@@ -445,7 +489,8 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                         onEraseCallback(newLockCluster[findLockStroke], path.id, index);
                     }
                     // timeout.current = setTimeout(() => {
-                    setLockCluster(newLockCluster.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
+                    // setLockCluster(newLockCluster.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
+                    setLockCluster(newLockCluster);
                     // }, 1000);
                 }
                 penCluster.current.remove(path.id);
@@ -460,12 +505,12 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
 
     
     useEffect(() => {
-        let toolbar = d3.select(".toolbar");
+        let toolbar = d3.select("." + toolbarStyles.toolbar);
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
         
         svgPenSketch.current.eraserUpCallback = () => {
-            toolbar.classed("disabled", false);
+            toolbar.classed(toolbarStyles.disabled, false);
             toolTip.classed("disabled", false);
             navagation.classed("disabled", false);
 
@@ -476,9 +521,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     }, [eraseEndCallback]);
 
     useEffect(() => {
-        let toolbar = d3.select(".toolbar");
+        let toolbar = d3.select("." + toolbarStyles.toolbar);
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
+
+        svgPenSketch.current.strokeStyles = {
+            ...svgPenSketch.current.strokeStyles,
+            toolRef: tool,
+        };
         
         svgPenSketch.current.penStartCallback = (path) => {
             // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
@@ -496,18 +546,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             activeCluster.current = null;
             clearTimeout(hoverTimeout.current);
 
-            if (tool.current === "pen") {
-                d3.select(path)
-                .style("stroke-opacity", 1)
-                .style("stroke-width", 2);
-            } else {
-                d3.select(path)
-                .style("stroke-opacity", 0.2)
-                .style("stroke-width", 25);
-            }
-            d3.select(path).style("stroke", colour.current);
-            d3.select(path).classed(tool.current, true).attr("opacity", 1);
-            toolbar.classed("disabled", true);
+            d3.select(path)
+            .style("stroke", colour.current)
+            .style("fill", colour.current)
+            .style("fill-opacity", tool.current === "pen" ? 1 : 0.2)
+            .classed(tool.current, true)
+            .attr("opacity", 1);
+
+            toolbar.classed(toolbarStyles.disabled, true);
             toolTip.classed("disabled", true);
             navagation.classed("disabled", true);
             
@@ -525,7 +571,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     let timeout = useRef(null);    
 
     useEffect(() => {
-        let toolbar = d3.select(".toolbar");
+        let toolbar = d3.select("." + toolbarStyles.toolbar);
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
 
@@ -568,7 +614,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         };
 
         svgPenSketch.current.penUpCallback = (path, e, coords) => {        
-            toolbar.classed("disabled", false);
+            toolbar.classed(toolbarStyles.disabled, false);
             toolTip.classed("disabled", false);
             navagation.classed("disabled", false);
 
@@ -1060,7 +1106,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 processWords(wordsOfInterest, type);
             }
         };
-    }, [index, tool, colour, onNewActiveCluster, penEndCallback]);
+    }, [index, tool, penEndCallback]);
 
     useEffect(() => {
         d3.select(svgRef.current).html(content);

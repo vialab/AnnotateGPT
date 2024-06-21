@@ -29,7 +29,7 @@ export async function findAnnotations(purpose, callback, endCallback) {
 
     for (let token of data.test14) {
         // console.log(token);
-        // await new Promise(r => setTimeout(r, 10));
+        await new Promise(r => setTimeout(r, 30));
 
         if (callback instanceof Function) {
             callback(token);

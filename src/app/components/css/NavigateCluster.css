@@ -1,11 +1,15 @@
 .navigateContainer {
-    width: 100%;
-    height: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
+    width: min-content;
+    height: min-content;
+    position: absolute;
     z-index: 5;
     pointer-events: none;
+    top: 50%;
+    right: -72px;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
 }
 
 .navigateContainer .button-55 path {
@@ -17,22 +21,14 @@
     transform-origin: center;
 }
 
-.navigateContainer #topButton  {
-    top: 0;
-}
-
-.navigateContainer #bottomButton  {
-    bottom: 0;
-}
-
 .button-55 {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     position: absolute;
     overflow: visible;
     pointer-events: all;
     border: 1px solid rgba(0, 0, 0, .5);
-    border-radius: 10px;
+    border-radius: 50%;
     background: rgba(255, 255, 255, .3);
     backdrop-filter: saturate(180%) blur(1px);
     box-shadow: rgba(0, 0, 0, .3) 15px 28px 25px -18px;
@@ -43,17 +39,21 @@
     touch-action: manipulation;
 }
 
+.navigationContainer.disabled {
+    display: none;
+}
+
 .navigationContainer.disabled .button-55 {
     border: 1px solid rgb(184, 64, 94);
     pointer-events: none !important;
 }
 
 .navigationContainer {
-    width: 50px;
-    height: 50px;
-    left: calc(100vw - 225px - 25px);
-    margin: 10px;
-    position: absolute;
+    width: 40px;
+    height: 40px;
+    /* left: calc(100vw - 225px - 25px); */
+    /* margin: 10px; */
+    position: relative;
     transition: opacity 1s ease-in-out;
     pointer-events: all;
 }

@@ -1339,7 +1339,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                 .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
                 .attr("dy", "8em")
                 .style("font-style", "italic")
-                .text("Navigate found annotations with the arrows")
+                .text("Use the arrows on the left to navigate annotations")
                 .style("pointer-events", "none")
                 .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0)
                 .call(wrap, window.innerWidth - width - 36);

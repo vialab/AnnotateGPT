@@ -2,11 +2,11 @@ import { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import "./css/NavigateCluster.css";
 
-export default function NavigateCluster({ cluster, annotations }) {
+export default function NavigateCluster({ cluster, annotations, currentAnnotation, onPrevCallback, onNextCallback }) {
     let annotationsRef = useRef(annotations);
     let index = useRef(0);
     let isScroll = useRef(false);
-    let resetIndex = useRef(true);
+    // let resetIndex = useRef(true);
 
     function scrollTween(offset) {
         return function () {
@@ -33,219 +33,248 @@ export default function NavigateCluster({ cluster, annotations }) {
     }
 
     let onPrev = () => {
-        if (resetIndex.current) {
-            resetIndex.current = false;
+        // if (resetIndex.current) {
+        //     resetIndex.current = false;
 
-            let distances = annotationsRef.current.map(annotation => {
-                let y = d3.mean(annotation.spans.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
+        //     let distances = annotationsRef.current.map(annotation => {
+        //         let y = d3.mean(annotation.spans.map(span => {
+        //             if (span.classList?.contains("toolTip")) {
+        //                 span = d3.select("g.toolTip#" + span.id).node();
                     
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));
-                return Math.floor(window.innerHeight / 2 - Math.round(y));
-            }).map(d => d <= 0 ? Infinity : d);
+        //                 if (!span) {
+        //                     return null;
+        //                 }
+        //             }
+        //             return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //         }));
+        //         return Math.floor(window.innerHeight / 2 - Math.round(y));
+        //     }).map(d => d <= 0 ? Infinity : d);
 
-            let i = distances.indexOf(Math.min(...distances));
-            let prevAnnotation = annotationsRef.current[i];
+        //     let i = distances.indexOf(Math.min(...distances));
+        //     let prevAnnotation = annotationsRef.current[i];
 
-            if (prevAnnotation && distances[i] !== Infinity) {
-                let y = d3.mean(prevAnnotation.spans.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
+        //     if (prevAnnotation && distances[i] !== Infinity) {
+        //         let y = d3.mean(prevAnnotation.spans.map(span => {
+        //             if (span.classList?.contains("toolTip")) {
+        //                 span = d3.select("g.toolTip#" + span.id).node();
                     
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));
-                scrollTo(y + d3.select("#root").node().scrollTop - window.innerHeight / 2);
-                index.current = i;
-            }
-        } else {
-            if (index.current > 0) {
-                index.current--;
-            }
-            let annotation = annotationsRef.current[index.current]?.spans;
-    
-            if (annotation) {
-                let yCoord = d3.mean(annotation.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
-                    
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));        
-                scrollTo(yCoord - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
-            }
+        //                 if (!span) {
+        //                     return null;
+        //                 }
+        //             }
+        //             return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //         }));
+        //         scrollTo(y + d3.select("#root").node().scrollTop - window.innerHeight / 2);
+        //         index.current = i;
+        //     }
+        // } else {
+        if (index.current > 0) {
+            index.current--;
         }
-        d3.select("#topButton")
-        .classed("disabled", index.current === 0);
+        let annotation = annotationsRef.current[index.current]?.spans;
 
-        d3.select("#bottomButton")
-        .classed("disabled", index.current === annotationsRef.current.length - 1);
-
-        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
-    };
-    
-    let onNext = () => {
-        if (resetIndex.current) {
-            resetIndex.current = false;
-
-            let distances = annotationsRef.current.map(annotation => {
-                let y = d3.mean(annotation.spans.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
-                    
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));
-                return Math.floor(Math.round(y) - window.innerHeight / 2);
-            }).map(d => d <= 0 ? Infinity : d);
-
-            let i = distances.indexOf(Math.min(...distances));
-            let nextAnnotation = annotationsRef.current[i];
-
-            if (nextAnnotation && distances[i] !== Infinity) {
-                let y = d3.mean(nextAnnotation.spans.map(span => {
-                    if (span.classList.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
-                    
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));
-                scrollTo(y - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
-                index.current = i;
-            }
-        } else {
-            if (index.current < annotationsRef.current.length - 1) {
-                index.current++;
-            }
-            let annotation = annotationsRef.current[index.current]?.spans;
-    
-            if (annotation) {
-                let yCoord = d3.mean(annotation.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));        
-                scrollTo(yCoord - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
-            }
-        }
-
-        d3.select("#bottomButton")
-        .classed("disabled", index.current === annotationsRef.current.length - 1);
-
-        d3.select("#topButton")
-        .classed("disabled", index.current === 0);
-
-        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
-    };
-
-    let findIndex = () => {
-        // console.log(annotationsRef.current);
-        let distances = annotationsRef.current.map(annotation => {
-            let y = d3.mean(annotation.spans.map(span => {
+        if (annotation) {
+            let yCoord = d3.mean(annotation.map(span => {
                 if (span.classList?.contains("toolTip")) {
                     span = d3.select("g.toolTip#" + span.id).node();
-
+                
                     if (!span) {
                         return null;
                     }
                 }
                 return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-            }));
-            return Math.floor(Math.abs(Math.round(y) - window.innerHeight / 2));
-        });
-        index.current = distances.indexOf(Math.min(...distances));
-        resetIndex.current = true;
-
-        if (annotationsRef.current.length === 1) {
-            if (index.current === 0) {
-                let y1 = d3.mean(annotationsRef.current[index.current].spans.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
-
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));
-                let distance1 = Math.floor(window.innerHeight / 2 - Math.round(y1));
-                // console.log(distance);
-
-                let y2 = d3.mean(annotationsRef.current[index.current].spans.map(span => {
-                    if (span.classList?.contains("toolTip")) {
-                        span = d3.select("g.toolTip#" + span.id).node();
-                    
-                        if (!span) {
-                            return null;
-                        }
-                    }
-                    return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
-                }));
-                let distance2 = Math.floor(Math.round(y2) - window.innerHeight / 2);
-
-                if (distance1 < distance2) {
-                    index.current = -1;
-                } else {
-                    index.current = 1;
-                }
-            }
+            }));        
+            scrollTo(yCoord - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
         }
-
-        // if (d3.select("#root").node().scrollTop === 0) {
-        //     index.current = 0;
-        // } else if (d3.select("#root").node().scrollTop + window.innerHeight >= d3.select("#root").node().scrollHeight) {
-        //     index.current = annotationsRef.current.length - 1;
         // }
-        // console.log(index.current);
+        d3.select("#bottomButton")
+        .transition()
+        .duration(1000)
+        .on("end", () => {
+            d3.select("#bottomButton").classed("disabled", index.current === annotationsRef.current.length - 1);
+        });
 
         d3.select("#topButton")
-        .classed("disabled", index.current <= 0);
-
-        d3.select("#bottomButton")
-        .classed("disabled", index.current >= annotationsRef.current.length - 1);
-
-        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
-    };
-
-    useEffect(() => {
-        d3.select("#root")
-        .on("scroll.findIndex", () => {
-            if (!isScroll.current) {
-                resetIndex.current = true;
-                findIndex();
-            }
+        .transition()
+        .duration(1000)
+        .on("end", () => {
+            d3.select("#topButton").classed("disabled", index.current === 0);
         });
 
-        return () => {
-            d3.select("#root").on("scroll.findIndex", null);
-        };
-    }, []);
+        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+
+        if (onPrevCallback instanceof Function) {
+            onPrevCallback(annotationsRef.current[index.current]);
+        }
+    };
+    
+    let onNext = () => {
+        // if (resetIndex.current) {
+        //     resetIndex.current = false;
+
+        //     let distances = annotationsRef.current.map(annotation => {
+        //         let y = d3.mean(annotation.spans.map(span => {
+        //             if (span.classList?.contains("toolTip")) {
+        //                 span = d3.select("g.toolTip#" + span.id).node();
+                    
+        //                 if (!span) {
+        //                     return null;
+        //                 }
+        //             }
+        //             return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //         }));
+        //         return Math.floor(Math.round(y) - window.innerHeight / 2);
+        //     }).map(d => d <= 0 ? Infinity : d);
+
+        //     let i = distances.indexOf(Math.min(...distances));
+        //     let nextAnnotation = annotationsRef.current[i];
+
+        //     if (nextAnnotation && distances[i] !== Infinity) {
+        //         let y = d3.mean(nextAnnotation.spans.map(span => {
+        //             if (span.classList.contains("toolTip")) {
+        //                 span = d3.select("g.toolTip#" + span.id).node();
+                    
+        //                 if (!span) {
+        //                     return null;
+        //                 }
+        //             }
+        //             return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+        //         }));
+        //         scrollTo(y - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
+        //         index.current = i;
+        //     }
+        // } else {
+        if (index.current < annotationsRef.current.length - 1) {
+            index.current++;
+        }
+        let annotation = annotationsRef.current[index.current]?.spans;
+
+        if (annotation) {
+            let yCoord = d3.mean(annotation.map(span => {
+                if (span.classList?.contains("toolTip")) {
+                    span = d3.select("g.toolTip#" + span.id).node();
+                }
+                return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+            }));        
+            scrollTo(yCoord - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
+        }
+        // }
+
+        d3.select("#bottomButton")
+        .transition()
+        .duration(1000)
+        .on("end", () => {
+            d3.select("#bottomButton").classed("disabled", index.current === annotationsRef.current.length - 1);
+        });
+
+        d3.select("#topButton")
+        .transition()
+        .duration(1000)
+        .on("end", () => {
+            d3.select("#topButton").classed("disabled", index.current === 0);
+        });
+
+        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+
+        if (onNextCallback instanceof Function) {
+            onNextCallback(annotationsRef.current[index.current]);
+        }
+    };
+
+    // let findIndex = () => {
+    //     // console.log(annotationsRef.current);
+    //     let distances = annotationsRef.current.map(annotation => {
+    //         let y = d3.mean(annotation.spans.map(span => {
+    //             if (span.classList?.contains("toolTip")) {
+    //                 span = d3.select("g.toolTip#" + span.id).node();
+
+    //                 if (!span) {
+    //                     return null;
+    //                 }
+    //             }
+    //             return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+    //         }));
+    //         return Math.floor(Math.abs(Math.round(y) - window.innerHeight / 2));
+    //     });
+    //     index.current = distances.indexOf(Math.min(...distances));
+    //     resetIndex.current = true;
+
+    //     if (annotationsRef.current.length === 1) {
+    //         if (index.current === 0) {
+    //             let y1 = d3.mean(annotationsRef.current[index.current].spans.map(span => {
+    //                 if (span.classList?.contains("toolTip")) {
+    //                     span = d3.select("g.toolTip#" + span.id).node();
+
+    //                     if (!span) {
+    //                         return null;
+    //                     }
+    //                 }
+    //                 return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+    //             }));
+    //             let distance1 = Math.floor(window.innerHeight / 2 - Math.round(y1));
+    //             // console.log(distance);
+
+    //             let y2 = d3.mean(annotationsRef.current[index.current].spans.map(span => {
+    //                 if (span.classList?.contains("toolTip")) {
+    //                     span = d3.select("g.toolTip#" + span.id).node();
+                    
+    //                     if (!span) {
+    //                         return null;
+    //                     }
+    //                 }
+    //                 return span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2;
+    //             }));
+    //             let distance2 = Math.floor(Math.round(y2) - window.innerHeight / 2);
+
+    //             if (distance1 < distance2) {
+    //                 index.current = -1;
+    //             } else {
+    //                 index.current = 1;
+    //             }
+    //         }
+    //     }
+
+    //     // if (d3.select("#root").node().scrollTop === 0) {
+    //     //     index.current = 0;
+    //     // } else if (d3.select("#root").node().scrollTop + window.innerHeight >= d3.select("#root").node().scrollHeight) {
+    //     //     index.current = annotationsRef.current.length - 1;
+    //     // }
+    //     // console.log(index.current);
+
+    //     d3.select("#topButton")
+    //     .classed("disabled", index.current <= 0);
+
+    //     d3.select("#bottomButton")
+    //     .classed("disabled", index.current >= annotationsRef.current.length - 1);
+
+    //     annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+    // };
+
+    // useEffect(() => {
+    //     d3.select("#root")
+    //     .on("scroll.findIndex", () => {
+    //         if (!isScroll.current) {
+    //             resetIndex.current = true;
+    //             findIndex();
+    //         }
+    //     });
+
+    //     return () => {
+    //         d3.select("#root").on("scroll.findIndex", null);
+    //     };
+    // }, []);
 
     useEffect(() => {
         let tAnnotations = [...annotations];
+        let toolTipSpans;
 
         if (cluster && tAnnotations.length > 0) {
             let tooltip = d3.select("g.toolTip#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
-            tAnnotations.push({ spans: [tooltip] });
+
+            if (tooltip) {
+                toolTipSpans = { spans: [tooltip] };
+                tAnnotations.push(toolTipSpans);
+            }
         }
 
         let sortAnnotations = tAnnotations.sort((a, b) => {
@@ -256,17 +285,39 @@ export default function NavigateCluster({ cluster, annotations }) {
         });
         annotationsRef.current = sortAnnotations;
         // console.log(annotationsRef.current);
+        // console.log(currentAnnotation);
 
         for (let i = 0; i < annotationsRef.current.length; i++) {
             // console.log(annotationsRef.current[i].spans);
             annotationsRef.current[i].spans = annotationsRef.current[i].spans.filter(span => span instanceof Element);
         }
-        findIndex();
+        // findIndex();
+
+        
+        if (currentAnnotation) {
+            let annotation = annotationsRef.current.find(annotation => annotation === currentAnnotation);
+            let i = annotationsRef.current.indexOf(annotation);
+            // console.log(i);
+
+            if (i !== -1) {
+                index.current = i;
+            } else if (toolTipSpans) {
+                index.current = annotationsRef.current.indexOf(toolTipSpans);
+            } else {
+                index.current = 0;
+            }
+        }
+
+        d3.select("#bottomButton")
+        .classed("disabled", index.current === annotationsRef.current.length - 1);
+
+        d3.select("#topButton")
+        .classed("disabled", index.current === 0);
 
         return () => {
             annotationsRef.current = [];
         };
-    }, [annotations, cluster]);
+    }, [annotations, cluster, currentAnnotation]);
 
     return (
         <div className="navigateContainer">

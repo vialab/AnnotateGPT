@@ -39,7 +39,7 @@ function interpolate() {
                 let step = Math.floor((dist / minDist) * 2) + 1;
                 // Loop through the interpolated samples needed - adding new coordinates
                 for (let j = dist / step / dist; j < 1; j += dist / step / dist) {
-                    newPath.push([lerp(currCoords[0], nextCoords[0], j), lerp(currCoords[1], nextCoords[1], j)]);
+                    newPath.push([lerp(currCoords[0], nextCoords[0], j), lerp(currCoords[1], nextCoords[1], j), lerp(currCoords[2], nextCoords[2], j)]);
                 }
             }
 
