@@ -1,5 +1,4 @@
 import fsPromises from "fs/promises";
-import { createReadStream } from "fs";
 import path from "path";
 import OpenAI from "openai";
 
@@ -14,7 +13,7 @@ async function updateHistory(dataFilePath) {
         if (!vectorStoreID) {
             throw new Error("Vector store is not available");
         }
-        const file = createReadStream(dataFilePath);
+        const file = new File([history.join("")], "history.txt");
 
         async function deleteFiles() {
             try {
@@ -54,6 +53,7 @@ async function updateHistory(dataFilePath) {
 }
 
 let historyStatus = "initial";
+let history = ["No history"];
 
 export default async function handler(req, res) {
     if (req.method === "GET") {
@@ -70,43 +70,55 @@ export default async function handler(req, res) {
                         res.status(200).send("Initial history file already created!");
                     } else {
                         historyStatus = "empty";
-                        await fsPromises.writeFile(dataFilePath, `No history`);
+                        // await fsPromises.writeFile(dataFilePath, `No history`);
+                        history = ["No history"];
                             
                         await updateHistory(dataFilePath);
-                        res.status(200).send("Initial history file created!");
+                        res.status(200).send("Initial history file created!\n" + history.join(""));
                     }
                 } else {
                     res.status(200).send("Initial history file already created!");
                 }
             } else if (action === "forceClear") {
                 historyStatus = "empty";
-                await fsPromises.writeFile(dataFilePath, `No history`);
+                // await fsPromises.writeFile(dataFilePath, `No history`);
+                history = ["No history"];
                 await updateHistory(dataFilePath);
 
-                res.status(200).send("Initial history file created!");
+                res.status(200).send("Initial history file created!\n" + history.join(""));
             
             } else if (action === "update") {
                 if (historyStatus === "empty") {
-                    await fsPromises.writeFile(dataFilePath, "");
+                    // await fsPromises.writeFile(dataFilePath, "");
+                    history = [];
                     historyStatus = "full";
                 }
                 let historyEntry = `Annotation Description: ${req.body.annotationDescription}\nPurpose Title: ${req.body.purposeTitle}\nPurpose: ${req.body.purpose}\n\n`;
-        
-                await fsPromises.appendFile(dataFilePath, historyEntry);
+                
+                if (history[0] === "No history") {
+                    history.shift();
+                }
+                // await fsPromises.appendFile(dataFilePath, historyEntry);
+                history.push(historyEntry);
                 await updateHistory(dataFilePath);
         
-                res.status(200).send("History updated!");
+                res.status(200).send("History updated!\n" + history.join(""));
             } else if (action === "comment") {
                 if (historyStatus === "empty") {
-                    await fsPromises.writeFile(dataFilePath, "");
+                    // await fsPromises.writeFile(dataFilePath, "");
+                    history = [];
                     historyStatus = "full";
                 }
-                let historyEntry = `Annotator Comment: ${req.body.comment}\nUser Reply: ${req.body.reply}\n\n`;
-        
-                await fsPromises.appendFile(dataFilePath, historyEntry);
+                let historyEntry = `Annotator Comments: ${req.body.comment}\nUser Reply: ${req.body.reply}\n\n`;
+
+                if (history[0] === "No history") {
+                    history.shift();
+                }
+                // await fsPromises.appendFile(dataFilePath, historyEntry);
+                history.push(historyEntry);
                 await updateHistory(dataFilePath);
         
-                res.status(200).send("History updated!");
+                res.status(200).send("History updated!\n" + history.join(""));
             } else if (action === "move") {
                 const pid = req.body.pid;
                 let fileName = "history";
@@ -124,8 +136,8 @@ export default async function handler(req, res) {
                     }
                 }
                 const newFilePath = path.join(process.cwd(), `./data/${pid}/${newFileName}.txt`);
-    
-                await fsPromises.rename(dataFilePath, newFilePath);
+                await fsPromises.writeFile(newFilePath, history.join(""));
+                // await fsPromises.rename(dataFilePath, newFilePath);
     
                 res.status(200).send("History file moved!");
             } else {
