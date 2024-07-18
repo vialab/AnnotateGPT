@@ -34,13 +34,13 @@ function isHorizontalLine(coordinates) {
     // if (totalDistance >= totalDisplacement * 1.5) {
     //     return false;
     // }
-    // let y = coordinates[0][1];
+    let y = coordinates[0][1];
 
-    // for (let i = 1; i < coordinates.length; i++) {
-    //     if (coordinates[i][1] < y - 20 || coordinates[i][1] > y + 20) {
-    //         return false;
-    //     }
-    // }
+    for (let i = 1; i < coordinates.length; i++) {
+        if (coordinates[i][1] < y - 20 || coordinates[i][1] > y + 20) {
+            return false;
+        }
+    }
 
     let current = coordinates[0];
     let averageX = 0;
@@ -59,7 +59,7 @@ function isHorizontalLine(coordinates) {
 
     // console.log(averageX / averageY);
 
-    return averageX / averageY > 5;
+    return averageX / averageY > 15;
 }
 
 function findClosestLine(lines, point) {
@@ -188,8 +188,9 @@ function getDistanceFromPointToPath(point, path) {
                 minDistance = distance;
             }
 
-            if (minDistance < 500) {
+            if (minDistance < 625) {
                 resolve(minDistance);
+                break;
             }
         }
 
@@ -201,7 +202,7 @@ function nearPath(point, path) {
     let bbox = path.getBBox();
 
     // If it is near 500 pixels of the bbox, return true
-    let offset = 0;
+    let offset = 25;
 
     if (point.x < bbox.x + bbox.width + offset && point.x > bbox.x - offset && point.y < bbox.y + bbox.height + offset && point.y > bbox.y - offset) {
         return true;
@@ -237,22 +238,23 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             loop1: for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 for (let stroke of cluster.strokes) {
                     if (stroke.id !== "initial" && stroke.id) {
-                        let path = d3.select(`path[id="${stroke.id}"]`).node();
+                        let path = d3.select(`path[id="${stroke.id}Outline"]`).node();
 
                         if (path) {
                             const pointObj = svgPenSketch.current._element.node().createSVGPoint();
                             pointObj.x = x;
                             pointObj.y = y;
                             
-                            if (path.isPointInFill(pointObj)) {
+                            if (path.isPointInFill(pointObj) || path.isPointInStroke(pointObj)) {
                                 closestCluster = cluster;
                                 break loop1;
-                            } else if (nearPath({x: x, y: y}, path)) {
-                                distancePromises.push({
-                                    cluster: cluster,
-                                    distance: getDistanceFromPointToPath({x: x, y: y}, path)
-                                });
                             }
+                            // else if (nearPath({x: x, y: y}, path)) {
+                            //     distancePromises.push({
+                            //         cluster: cluster,
+                            //         distance: getDistanceFromPointToPath({x: x, y: y}, path)
+                            //     });
+                            // }
                         }
                     }
                 }
@@ -329,11 +331,11 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                             closestCluster.open = false;
 
                             if (onNewActiveCluster instanceof Function) {
-                                if (closestCluster.open) {
-                                    onNewActiveCluster(closestCluster);
-                                } else {
-                                    onNewActiveCluster(null);
-                                }
+                                // if (closestCluster.open) {
+                                onNewActiveCluster(closestCluster);
+                                // } else {
+                                //     onNewActiveCluster(null);
+                                // }
                             }
                             activeCluster.current = closestCluster;
                             setClusters([...clustersRef.current]);
@@ -347,19 +349,19 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 }
             };
 
-            if (!closestCluster) {
-                Promise.all(distancePromises.map(promise => promise.distance)).then(distances => {
-                    let minDistance = Math.min(...distances);
+            // if (!closestCluster) {
+            //     Promise.all(distancePromises.map(promise => promise.distance)).then(distances => {
+            //         let minDistance = Math.min(...distances);
 
-                    if (minDistance < 500) {
-                        let closestClusterIndex = distances.findIndex(distance => distance === minDistance);
-                        closestCluster = distancePromises[closestClusterIndex].cluster;
-                        processClosestCluster(closestCluster);
-                    }
-                });
-            } else {
-                processClosestCluster(closestCluster);
-            }
+            //         if (minDistance < 625) {
+            //             let closestClusterIndex = distances.findIndex(distance => distance === minDistance);
+            //             closestCluster = distancePromises[closestClusterIndex].cluster;
+            //         }
+            //         processClosestCluster(closestCluster);
+            //     });
+            // } else {
+            processClosestCluster(closestCluster);
+            // }
         }
     }, [onNewActiveCluster]);
 
@@ -419,6 +421,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         })
         .on("pointerleave.hover", () => {
             clearTimeout(hoverTimeout.current);
+            hoveredCluster.current = null;
         });
 
         return () => {
@@ -465,6 +468,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
 
             for (let path of affectedPaths) {
                 d3.select(path).remove();
+                d3.select(`path[id="${path.id}Outline"]`).remove();
                 
                 let findStroke = newClusters.findIndex(cluster => cluster.strokes.find(stroke => stroke.id === path.id));
                 let findLockStroke = newLockCluster.findIndex(cluster => cluster.strokes.find(stroke => stroke.id === path.id));
@@ -613,7 +617,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
             // onChange(c, index);
         };
 
-        svgPenSketch.current.penUpCallback = (path, e, coords) => {        
+        svgPenSketch.current.penUpCallback = (path, e, coords) => {
             toolbar.classed(toolbarStyles.disabled, false);
             toolTip.classed("disabled", false);
             navagation.classed("disabled", false);
@@ -686,7 +690,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                             }
                             return lines[i][0].getBoundingClientRect().top - lines[i - 1][0].getBoundingClientRect().bottom;
                         });
-                        let yDistance = d3.mean(yDistances);
+                        let yDistance = d3.mode(yDistances);
                         let paragraph = [];
                 
                         for (let line of lines) {
@@ -834,6 +838,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
 
                 if (tool.current === "highlighter") {
                     type = type.replace("underlined", "highlighted");
+                    type = type.replace("crossed", "highlighted");
                 }
                 let [clusters, stopIteration] = penCluster.current.add(
                     path.id,
@@ -867,6 +872,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                     let rectLines = words.map(word => {
                         let rect = word.getBoundingClientRect();
                         let y = tool.current === "highlighter" ? rect.top + rect.height / 2 : rect.bottom + 5;
+                        let type = tool.current === "highlighter" ? "highlighted" : "underlined";
 
                         return {
                             x1: rect.left,
@@ -874,6 +880,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                             x2: rect.right,
                             y2: y,
                             element: word,
+                            type: type,
                         };
                     });
 
@@ -887,6 +894,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                                 x2: rect.right,
                                 y2: rect.top + rect.height / 2,
                                 element: word,
+                                type: "crossed",
                             });
                         });
                     }
@@ -931,16 +939,19 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                                 let line = rectLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2);
 
                                 if (line !== undefined) {
-                                    wordsOfInterest.push({ ...line, coord: e.data.coord });
+                                    wordsOfInterest.push({ ...line, coord: e.data.coord, type: line.type });
                                 } else {
                                     console.log(e.data, line);
                                 }
                             }
                             length++;
 
+                            let majorityType;
+
                             if (length === scrollCoords.length && wordsOfInterest.length > 0) {
-                                let majorityY = d3.median(wordsOfInterest.map(w => w.element.getBoundingClientRect().bottom));
-                                let wordsOfInterestFiltered = wordsOfInterest.filter(w => w.element.getBoundingClientRect().bottom > majorityY - 5 && w.element.getBoundingClientRect().bottom < majorityY + 5);
+                                let majorityY = d3.mode(wordsOfInterest.map(w => w.element.getBoundingClientRect().bottom));
+                                let wordsOfInterestFiltered = wordsOfInterest.filter(w => w.element.getBoundingClientRect().bottom >= majorityY - 5 && w.element.getBoundingClientRect().bottom <= majorityY + 5);
+                                majorityType = d3.mode(wordsOfInterestFiltered.map(w => w.type));
 
                                 wordsOfInterestFiltered.sort((a, b) => a.x1 - b.x1);
                                 let prevElement = wordsOfInterestFiltered[0].element;
@@ -989,7 +1000,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                             }
 
                             if (length === scrollCoords.length) {
-                                resolve(wordsOfInterest);
+                                resolve([wordsOfInterest, majorityType]);
                                 worker.terminate();
                             }
                         };
@@ -1001,7 +1012,9 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 });
 
                 checkLineWords(words)
-                .then(words => {
+                .then(results => {
+                    let [words, type] = results;
+                    
                     if (words.length === 0) {
                         let characters = d3.select(".react-pdf__Page.page-" + index)
                         .select(".textLayer")
@@ -1011,13 +1024,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                         });
 
                         checkLineWords(characters)
-                        .then(char => {
-                            let parentNode = new Set(char.map(c => c.element.parentNode));                            
+                        .then(results => {
+                            let [char, type] = results;
+                            let parentNode = new Set(char.map(c => c.element.parentNode));
 
-                            processWords([...parentNode].map(p => { return { element: p }; }), "underlined_character");
+                            processWords([...parentNode].map(p => { return { element: p }; }), type + "_character");
                         });
                     } else {
-                        processWords(words, "underlined_words");
+                        processWords(words, type + "_words");
                     }
                 });
             } else {
@@ -1035,62 +1049,63 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                     let checkContainWords = (words) => {
                         for (let word of words) {
                             let rect = word.getBoundingClientRect();
-                            let svgPoint = svgRef.current.createSVGPoint();
-                            svgPoint.x = rect.left;
-                            svgPoint.y = rect.top - svgBoundingBox.top;
-                            svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
 
-                            let svgPoint2 = svgRef.current.createSVGPoint();
-                            svgPoint2.x = rect.right;
-                            svgPoint2.y = rect.bottom - svgBoundingBox.top;
-                            svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
-
-                            // d3.select(svgRef.current)
-                            // .append("rect")
-                            // .attr("x", svgPoint.x)
-                            // .attr("y", svgPoint.y - svgBoundingBox.top)
-                            // .attr("width", svgPoint2.x - svgPoint.x)
-                            // .attr("height", svgPoint2.y - svgPoint.y)
-                            // .attr("fill", "none")
-                            // .attr("stroke", "black");
-
-                            let rectShape = ShapeInfo.rectangle(svgPoint.x, svgPoint.y - svgBoundingBox.top, svgPoint2.x - svgPoint.x, svgPoint2.y - svgPoint.y);
-                            let intersection = Intersection.intersect(rectShape, shape);
-
-                            if (intersection.status === "Intersection") {
-                                let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
-                                let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
-                                let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];
-
-                                // d3.select(svgRef.current)
-                                // .append("circle")
-                                // .attr("cx", center[0])
-                                // .attr("cy", center[1])
-                                // .attr("r", 5)
-                                // .attr("fill", "black");
-
-                                // d3.select(svgRef.current)
-                                // .append("circle")
-                                // .attr("cx", rightCenter[0])
-                                // .attr("cy", rightCenter[1])
-                                // .attr("r", 5)
-                                // .attr("fill", "black");
-
-                                // d3.select(svgRef.current)
-                                // .append("circle")
-                                // .attr("cx", leftCenter[0])
-                                // .attr("cy", leftCenter[1])
-                                // .attr("r", 5)
-                                // .attr("fill", "black");
-
-                                if (d3.polygonContains(coords, center) && d3.polygonContains(coords, rightCenter) && d3.polygonContains(coords, leftCenter)) {
-                                    wordsOfInterest.push({ element: word });
-                                }
+                            if (rect.left < pathBoundingBox.x || rect.right > pathBoundingBox.x + pathBoundingBox.width || rect.top < pathBoundingBox.y || rect.bottom > pathBoundingBox.y + pathBoundingBox.height) {
+                                continue;
+                            } else if (rect.left > pathBoundingBox.x && rect.right < pathBoundingBox.x + pathBoundingBox.width && rect.top > pathBoundingBox.y && rect.bottom < pathBoundingBox.y + pathBoundingBox.height) {
+                                wordsOfInterest.push({ element: word });
                             } else {
-                                let rectBoundingBox = word.getBoundingClientRect();
-
-                                if (rectBoundingBox.left > pathBoundingBox.x && rectBoundingBox.right < pathBoundingBox.x + pathBoundingBox.width && rectBoundingBox.top > pathBoundingBox.y && rectBoundingBox.bottom < pathBoundingBox.y + pathBoundingBox.height) {
-                                    wordsOfInterest.push({ element: word });
+                                let svgPoint = svgRef.current.createSVGPoint();
+                                svgPoint.x = rect.left;
+                                svgPoint.y = rect.top - svgBoundingBox.top;
+                                svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
+    
+                                let svgPoint2 = svgRef.current.createSVGPoint();
+                                svgPoint2.x = rect.right;
+                                svgPoint2.y = rect.bottom - svgBoundingBox.top;
+                                svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
+    
+                                // d3.select(svgRef.current)
+                                // .append("rect")
+                                // .attr("x", svgPoint.x)
+                                // .attr("y", svgPoint.y - svgBoundingBox.top)
+                                // .attr("width", svgPoint2.x - svgPoint.x)
+                                // .attr("height", svgPoint2.y - svgPoint.y)
+                                // .attr("fill", "none")
+                                // .attr("stroke", "black");
+    
+                                let rectShape = ShapeInfo.rectangle(svgPoint.x, svgPoint.y - svgBoundingBox.top, svgPoint2.x - svgPoint.x, svgPoint2.y - svgPoint.y);
+                                let intersection = Intersection.intersect(rectShape, shape);
+    
+                                if (intersection.status === "Intersection") {
+                                    let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
+                                    let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
+                                    let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];
+    
+                                    // d3.select(svgRef.current)
+                                    // .append("circle")
+                                    // .attr("cx", center[0])
+                                    // .attr("cy", center[1])
+                                    // .attr("r", 5)
+                                    // .attr("fill", "black");
+    
+                                    // d3.select(svgRef.current)
+                                    // .append("circle")
+                                    // .attr("cx", rightCenter[0])
+                                    // .attr("cy", rightCenter[1])
+                                    // .attr("r", 5)
+                                    // .attr("fill", "black");
+    
+                                    // d3.select(svgRef.current)
+                                    // .append("circle")
+                                    // .attr("cx", leftCenter[0])
+                                    // .attr("cy", leftCenter[1])
+                                    // .attr("r", 5)
+                                    // .attr("fill", "black");
+    
+                                    if (d3.polygonContains(coords, center) && d3.polygonContains(coords, rightCenter) && d3.polygonContains(coords, leftCenter)) {
+                                        wordsOfInterest.push({ element: word });
+                                    }
                                 }
                             }
                         }

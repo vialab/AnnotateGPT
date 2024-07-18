@@ -1,30 +1,30 @@
 // "use client";
 
-import { createRef, useCallback, useEffect, useRef, useState } from 'react';
-import Image from 'next/image.js';
-import { Document, Page } from 'react-pdf';
-import * as d3 from 'd3';
+import { createRef, useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image.js";
+import { Document, Page } from "react-pdf";
+import * as d3 from "d3";
 import { Comment, MagnifyingGlass } from "react-loader-spinner";
-import { pdfjs } from 'react-pdf';
-import { Tooltip } from 'react-tooltip';
-import {autoPlacement} from '@floating-ui/dom';
+import { pdfjs } from "react-pdf";
+import { Tooltip } from "react-tooltip";
+import {autoPlacement} from "@floating-ui/dom";
 import { RxCheck, RxCross2 } from "react-icons/rx";
-import { split } from 'sentence-splitter';
+import { split } from "sentence-splitter";
 
-import PenAnnotation from './PenAnnotation.js';
-import Toolbar from './Toolbar.js';
-import NavigateCluster from './NavigateCluster.js';
-import Loading from './Loading.js';
+import PenAnnotation from "./PenAnnotation.js";
+import Toolbar from "./Toolbar.js";
+import NavigateCluster from "./NavigateCluster.js";
+import Loading from "./Loading.js";
 import { findAnnotations } from "./js/OpenAIUtils.js";
 import { googleSans } from "@/app/page.js";
 
-import 'react-tooltip/dist/react-tooltip.css';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-import './css/AnnotateGPT.css';
+import "react-tooltip/dist/react-tooltip.css";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+import "./css/AnnotateGPT.css";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.js',
+    "pdfjs-dist/build/pdf.worker.min.mjs",
     import.meta.url,
 ).toString();
 
@@ -168,7 +168,7 @@ let workerLevenshteinDistance = () => {
     };
 };
 
-export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, onReplyCallback, svgContent, screen }) {
+export default function AnnotateGPT({ document, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, onReplyCallback, svgContent, screen }) {
     const defaultColour = "#000000";
 
     // const [numPages, setNumPages] = useState();
@@ -179,6 +179,8 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
     const [activeCluster, setActiveCluster] = useState(null);
     const [getActiveAnnotations, setGetActiveAnnotations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingDocument, setLoadingDocument] = useState(true);
+    const [dismiss, setDismiss] = useState(false);
     const [progress, setProgress] = useState(0);
 
     const svgContentRef = useRef([]);
@@ -282,6 +284,20 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
     }
 
     useEffect(() => {
+        if (!loading && !loadingDocument) {
+            d3.select("#loader-container")
+            .style("pointer-events", "none")
+            .transition("loadingDocument")
+            .delay(500)
+            .duration(1000)
+            .style("opacity", 0)
+            .on("end", () => {
+                setDismiss(true);
+            });
+        }
+    }, [loading, loadingDocument]);
+
+    useEffect(() => {
         if (svgContent instanceof Array) {
             for (let svg of svgContent) {
                 let page = svg.page;
@@ -366,16 +382,8 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
         
         if (textContent.current.every((text) => text !== null)) {
             setProgress(100);
-            
-            d3.select("#loader-container")
-            .style("pointer-events", "none")
-            .transition()
-            .delay(500)
-            .duration(1000)
-            .style("opacity", 0)
-            .on("end", () => {
-                setLoading(false);
-            });
+            setLoading(false);
+
             // setUpAnnotations("")
             // setUpAnnotations("");
             // setUpAnnotations(""); 
@@ -488,12 +496,12 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                     };
 
                     for (let i = 0; i < setUpAnnotatedTokens.length - 1; i++) {
-                        let sentences = setUpAnnotatedTokens[i].sentence.trim();                        
-                        let sentencesSplit =  split(sentences).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
+                        let sentences = setUpAnnotatedTokens[i].sentence.trim();
+                        let sentencesSplit = split(sentences).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
                         // console.log("Split", sentencesSplit);
 
                         for (let sentence of sentencesSplit) {
-                            let sentencesSplit2 =  split(lastToken.sentence.trim()).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
+                            let sentencesSplit2 = split(lastToken.sentence.trim()).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
 
                             for (let sentence2 of sentencesSplit2) {
                                 // console.log("Comparing", sentence, "||", sentence2);
@@ -653,7 +661,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             let sameLength = e.data.sameLength;
             let index = e.data.index;
             let minDistance = Infinity;
-            let mostSimilar = '';
+            let mostSimilar = "";
             
             let workerLevenshteinDistance = () => {
                 // https://github.com/ka-weihe/fastest-levenshtein
@@ -1076,7 +1084,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                                 continue;
                             }
                             
-                            if ((wordIndex === 0 && textContent.endsWith(word)) || (wordIndex === substringWords.length - 1 && textContent.startsWith(word)) || textContent === word) {                                                                
+                            if ((wordIndex === 0 && textContent.endsWith(word)) || (wordIndex === substringWords.length - 1 && textContent.startsWith(word)) || textContent === word) {
                                 if (!(wordIndex === substringWords.length - 1 && (/,|\.|;|:|\?|!/).test(listOfSpans[listOfSpans.length - 1]?.textContent.slice(-1)))) {
                                     listOfSpans.push(span);
                                 }
@@ -1224,60 +1232,100 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
     }
 
     function onNewActiveCluster(cluster) {
-        let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
-
-        let onNavigateCallback = (annotation) => {
-            let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
-            hoverGroupAnnotationRef.current = annotations;
-
-            if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
-                cluster.open = true;
-                ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
-
-                let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={null} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
-                </div>;
-                // explanationToolTipRef.current?.close();
-                fadeDisplayExplanation(content, annotation, false);
-            } else {
-                let content = generateContent(annotation, annotations);
-
-                fadeDisplayExplanation(content, annotation);
-            }
-            activeAnnotation.current = annotation;
-        };
-
         if (cluster) {
+            let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
+            let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+    
+            let onNavigateCallback = (annotation) => {
+                let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
+                hoverGroupAnnotationRef.current = annotations;
+    
+                if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
+                    cluster.open = true;
+                    ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
+    
+                    let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                        <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                    </div>;
+                    // explanationToolTipRef.current?.close();
+                    fadeDisplayExplanation(content, annotation, false);
+                } else {
+                    let content = generateContent(annotation, annotations);
+    
+                    fadeDisplayExplanation(content, annotation);
+                }
+                activeAnnotation.current = annotation;
+            };
             // activeClusterRef.current = cluster;
             // setActiveCluster(cluster);
             // setGetActiveAnnotations(cluster.annotationsFound ? [...cluster.annotationsFound] : []);
-            if (cluster.annotationsFound?.length > 0) {
-                let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={null} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
-                </div>;
-                // // explanationToolTipRef.current?.close();
-                let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
-                let closestTextLayer = d3.select(".textLayer").node();
+            if (cluster.open) {
+                if (cluster.annotationsFound?.length > 0) {
+                    let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                        <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                    </div>;
+                    // // explanationToolTipRef.current?.close();
+                    fadeDisplayExplanation(content, {spans: [ clusterToolTip ]}, false);
+                } else {
+                    activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+                }
+                let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
 
-                d3.select(".explanation-tooltip")
-                .style("top", clusterToolTip.getBoundingClientRect().top + clusterToolTip.getBoundingClientRect().height / 2 - containerRef.current.getBoundingClientRect().top + "px")
-                .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+                let processClusters = (clusters) => {
+                    let changed = false;
 
-                explanationToolTipRef.current?.open({
-                    anchorSelect: ".explanation-tooltip",
-                    content: content,
-                    place: "left",
-                });
+                    for (let c of clusters) {
+                        if (c === cluster) {
+                            continue;
+                        }
 
-                setTimeout(() => {
-                    d3.select(".react-tooltip#annotationExplanation")
-                    .style("background", "rgba(34, 38, 43, 0)");
-                }, 10);
+                        if (c.open) {
+                            changed = true;
+                        }
+                        c.open = false;
+                    }
+                    return changed;
+                };
+                let lockClusters = [...ref.current.lockClusters.current];
+                let clusters = [...ref.current.clusters.current];
+    
+                if (processClusters(lockClusters)) {
+                    ref.current.updateLockCluster(lockClusters);
+                }
+    
+                if (processClusters(clusters)) {
+                    ref.current.updateClusters(clusters);
+                }
             } else {
-                activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+                let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster) || ref.current.clusters.current.find(cluster => cluster === cluster));
+
+                let processClusters = (clusters) => {
+                    let changed = false;
+
+                    for (let cluster of clusters) {
+                        if (cluster.open) {
+                            changed = true;
+                        }
+                        cluster.open = false;
+                    }
+
+                    return changed;
+                };
+                let lockClusters = [...ref.current.lockClusters.current];
+                let clusters = [...ref.current.clusters.current];
+
+                if (processClusters(lockClusters)) {
+                    ref.current.updateLockCluster(lockClusters);
+                }
+
+                if (processClusters(clusters)) {
+                    ref.current.updateClusters(clusters);
+                }
+                explanationToolTipRef.current?.close();
             }
         } else {
             explanationToolTipRef.current?.close();
+            // resetToolTips();
             // activeClusterRef.current = null;
             // setActiveCluster(null);
             // setGetActiveAnnotations([]);
@@ -1295,57 +1343,57 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
         //     }
         // }
 
-        let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
-
-        let onNavigateCallback = (annotation) => {
-            let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
-            hoverGroupAnnotationRef.current = annotations;
-
-            if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
-                cluster.open = true;
-                ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
-
-                let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={null} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
-                </div>;
-                // explanationToolTipRef.current?.close();
-                fadeDisplayExplanation(content, annotation, false);
-            } else {
-                cluster.open = false;
-                ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
-                let content = generateContent(annotation, annotations);
-
-                fadeDisplayExplanation(content, annotation);
-            }
-            activeAnnotation.current = annotation;
-        };
-
-        let showTooltipContent = () => {
-            let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
-            </div>;
-
-            let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
-            let closestTextLayer = d3.select(".textLayer").node();
-
-            d3.select(".explanation-tooltip")
-            .style("top", clusterToolTip.getBoundingClientRect().top + clusterToolTip.getBoundingClientRect().height / 2 - containerRef.current.getBoundingClientRect().top + "px")
-            .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
-
-            explanationToolTipRef.current?.open({
-                anchorSelect: ".explanation-tooltip",
-                content: content,
-                place: "left",
-            });
-            
-            setTimeout(() => {
-                d3.select(".react-tooltip#annotationExplanation")
-                .style("background", "rgba(34, 38, 43, 0)");
-            }, 10);
-        };
-
         if (cluster) {
-            if (cluster.annotationsFound?.length > 0) {
+            let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
+            let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+
+            let onNavigateCallback = (annotation) => {
+                let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
+                hoverGroupAnnotationRef.current = annotations;
+
+                if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
+                    cluster.open = true;
+                    ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
+
+                    let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                        <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                    </div>;
+                    // explanationToolTipRef.current?.close();
+                    fadeDisplayExplanation(content, annotation, false);
+                } else {
+                    cluster.open = false;
+                    ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
+                    let content = generateContent(annotation, annotations);
+
+                    fadeDisplayExplanation(content, annotation);
+                }
+                activeAnnotation.current = annotation;
+            };
+
+            let showTooltipContent = () => {
+                let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                </div>;
+
+                let closestTextLayer = d3.select(".textLayer").node();
+
+                d3.select(".explanation-tooltip")
+                .style("top", clusterToolTip.getBoundingClientRect().top + clusterToolTip.getBoundingClientRect().height / 2 - containerRef.current.getBoundingClientRect().top + "px")
+                .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
+
+                explanationToolTipRef.current?.open({
+                    anchorSelect: ".explanation-tooltip",
+                    content: content,
+                    place: "left",
+                });
+                
+                setTimeout(() => {
+                    d3.select(".react-tooltip#annotationExplanation")
+                    .style("background", "rgba(34, 38, 43, 0)");
+                }, 10);
+            };
+
+            if (cluster.annotationsFound?.length > 0 && activeAnnotation.current) {
                 if (cluster.annotationsFound?.find(annotation => annotation === activeAnnotation.current)) {
                     if (activeAnnotation.current.spans[0] instanceof Element && activeAnnotation.current.spans[0].classList.contains("toolTip")) {
                         showTooltipContent();
@@ -1514,22 +1562,22 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             a.accepted = false;
             let target = e.target;
             let rateContainer = target.closest(".rateContainer");
-            let newContent = generateContent(annotation, annotations);
-            console.log(overlappingAnnotations);
+            // let newContent = generateContent(annotation, annotations);
+            // console.log(overlappingAnnotations);
     
             d3.select(rateContainer)
             .selectAll(".rateButton")
             .style("pointer-events", "none")
             .transition()
             .duration(200)
-            .style("opacity", 0)
-            .on("end", () => {
-                explanationToolTipRef.current?.open({
-                    anchorSelect: ".explanation-tooltip",
-                    content: newContent,
-                    place: "left",
-                });
-            });
+            .style("opacity", 0);
+            // .on("end", () => {
+            //     explanationToolTipRef.current?.open({
+            //         anchorSelect: ".explanation-tooltip",
+            //         content: newContent,
+            //         place: "left",
+            //     });
+            // });
     
             loop1: for (let span of a.spans) {
                 for (let overlappingAnnotation of overlappingAnnotations) {
@@ -1563,21 +1611,41 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                     break;
                 }
             }
+            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
     
             if (overlappingAnnotations.length === 1) {
-                d3.select(".react-tooltip#annotationExplanation")
+                let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
+            
+                let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{height: height + "px"}}>
+                    <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
+                </div>;
+
+                d3.selectAll(".react-tooltip#annotationExplanation .annotationMessageContainer")
+                .selectAll("div:not(.navigateContainer), textarea")
                 .transition()
                 .duration(200)
                 .style("opacity", 0)
+                .style("pointer-events", "none");
+
+                d3.selectAll(".react-tooltip#annotationExplanation .annotationMessageContainer textarea")
+                .node()
+                .blur();
+
+                d3.select(".react-tooltip#annotationExplanation")
+                .transition()
+                .duration(200)
+                .style("background", "rgba(34, 38, 43, 0)")
                 .on("end", () => {
-                    explanationToolTipRef.current?.close();
+                    explanationToolTipRef.current?.open({
+                        anchorSelect: ".explanation-tooltip",
+                        content: newContent,
+                        place: "left",
+                    });
                 });
             }
             // console.log(annotations.ref?.current.lockClusters.current);
     
             annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
-    
-            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
                     
             if (cluster) {
                 if (onReplyCallback instanceof Function) {
@@ -1619,6 +1687,12 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                         content: content,
                         place: "left",
                     });
+
+                    let annotatorComments = [];
+
+                    for (let comment of overlappingAnnotations) {
+                        annotatorComments.push("- " + comment.annotation.explanation[0].trim());
+                    }
     
                     fetch("/api/storeHistory", {
                         method: "POST",
@@ -1627,11 +1701,15 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                         },
                         body: JSON.stringify({
                             reply: value,
-                            comment: overlappingAnnotations[0].annotation.explanation[0],
+                            comment: annotatorComments.join("\n"),
                             action: "comment"
                         })
                     })
-                    .then((response) => response.text())
+                    .then(res => {
+                        if (!res.ok)
+                            return res.text().then(text => { throw new Error(text); });
+                        return res.text();
+                    })
                     .then((data) => {
                         console.log("Success:", data);
                     })
@@ -1682,7 +1760,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                                             <div className="rateButton" style={{ paddingRight: "1.5px", paddingTop: "1px" }}>
                                                 <RxCheck size={25} style={{ color: "#2eb086", strokeWidth: "1" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, annotation, annotations) } />
                                             </div>
-                                            <div className="rateButton" style={{ paddingLeft: "3px", paddingTop: "1px" }}>
+                                            <div className="rateButton" style={{ paddingLeft: "4px", paddingTop: "3px" }}>
                                                 <RxCross2 size={25} style={{ color: "#b8405e", strokeWidth: "1" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, annotation, annotations)} />
                                             </div>
                                         </div>
@@ -1722,15 +1800,17 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
                 cluster.open = true;
                 annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+                let activeAnnotationsFound = cluster.annotationsFound ? [...cluster.annotationsFound] : [];
 
                 let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                    <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+                    <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
                 </div>;
                 // explanationToolTipRef.current?.close();
                 fadeDisplayExplanation(content, annotation, false);
             } else {
                 cluster.open = false;
                 annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+                
                 let content = generateContent(annotation, annotations);
 
                 fadeDisplayExplanation(content, annotation);
@@ -1743,7 +1823,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
             { annotationMessages }
             { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Reply" /> : null }
             
-            <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} />
+            <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
         </div>;
 
         return content;
@@ -1751,7 +1831,8 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
     
     function fadeDisplayExplanation(content, annotation, overrideDisplay = true) {
         let closestTextLayer = d3.select(".textLayer").node();
-        if (d3.select(".react-tooltip#annotationExplanation").empty()) {
+
+        if (!explanationToolTipRef.current?.isOpen) {
             d3.select(".explanation-tooltip")
             .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) - containerRef.current.getBoundingClientRect().top + "px")
             .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
@@ -1762,8 +1843,10 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                 place: "left",
             });
             
-            d3.select(".react-tooltip#annotationExplanation")
-            .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)");
+            setTimeout(() => {
+                d3.select(".react-tooltip#annotationExplanation")
+                .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)");
+            }, 10);
         } else {
             d3.select(".react-tooltip#annotationExplanation")
             .transition()
@@ -1781,6 +1864,11 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                     .style("top", d3.mean(annotation.spans.filter(span => span).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2)) - containerRef.current.getBoundingClientRect().top + "px")
                     .style("left", closestTextLayer.getBoundingClientRect().left - 10 + "px");
                     
+                    setTimeout(() => {
+                        d3.select(".react-tooltip#annotationExplanation")
+                        .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)");
+                    }, 10);
+
                     d3.select(".react-tooltip#annotationExplanation")
                     .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)")
                     .transition()
@@ -1854,8 +1942,8 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                                 let y1 = rect.top - 5;
                                 let y2 = rect.bottom + 5;
         
-                                if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {                                        
-                                    if (hoverAnnotation.current !== annotation && annotation.accepted !== false) {
+                                if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
+                                    if (hoverAnnotation.current !== annotation && annotation.accepted !== false && activeAnnotation.current !== annotation) {
                                         hoverAnnotation.current = annotation;
                                         hoverGroupAnnotationRef.current = annotations;
                                         found = true;
@@ -1881,7 +1969,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                 .classed("fade", false);
             }
 
-            if (found) {                
+            if (found) {
                 highlightTimeout.current = setTimeout(() => {
                     d3.selectAll(".word.highlighted, .space.highlighted")
                     .classed("fade", true);
@@ -1908,14 +1996,13 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
 
                 let content = generateContent(annotation, annotations);
                 
-                explainTooltipTimeout.current = setTimeout(() => {                    
-                    if (activeAnnotation.current !== annotation) {
-                        fadeDisplayExplanation(content, annotation);
-                    } else {
-                        fadeDisplayExplanation(content, annotation);
-                    }
+                explainTooltipTimeout.current = setTimeout(() => {
+                    fadeDisplayExplanation(content, annotation);
                     activeAnnotation.current = annotation;
 
+                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+                    cluster.open = false;
+                    annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
                 }, 500);
             }
             // explanationToolTipRef.current?.close();
@@ -1927,12 +2014,37 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
         };
     }, [onReplyCallback, generateContent]);
 
+    useEffect(() => {
+        fetch("/api/updateDocument", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                document: document ?? "./public/Test 1.pdf"
+            })
+        })
+        .then(res => {
+            if (!res.ok)
+                return res.text().then(text => { throw new Error(text); });
+            return res.text();
+        })
+        .then((data) => {
+            console.log("Success:", data);
+            setLoadingDocument(false);
+        })
+        .catch((error) => {
+            console.error("Error:", error);
+            setLoadingDocument(false);
+        });
+    }, [document]);
+
     return (
         <div className="annotateContainer" ref={containerRef}>
             <div className="explanation-tooltip" style={{ opacity: "0", zIndex: "1000", position: "absolute" }} />
 
             <Document 
-                file="./leu2022a.pdf"
+                file={document ?? "./Test 1.pdf"}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={<div className="shimmerBGContainer" ><div className="shimmerBG" /></div>}
             >
@@ -1984,7 +2096,7 @@ export default function AnnotateGPT({ pEndCallback, onECallback, onInferenceCall
                     }),
                 ]}
             />
-            { loading ? <Loading progress={progress} /> : null}
+            { !dismiss ? <Loading progress={loadingDocument ? Math.max(progress - 1, 0) : progress} /> : null}
         </div>
     );
 }

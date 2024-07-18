@@ -122,7 +122,7 @@ export default function Header({ children }) {
                         </g>
 
                         <g id="penIcon">
-                            <AnnotatePenIcon  viewBox="1200 -40 800 3500" />
+                            <AnnotatePenIcon viewBox="1200 -40 800 3500" />
                         </g>
 
                         <g className="graphic">

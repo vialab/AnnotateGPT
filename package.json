@@ -15,8 +15,8 @@
     "flubber": "^0.4.2",
     "kld-intersections": "^0.7.0",
     "modern-screenshot": "^4.4.39",
-    "next": "14.2.3",
-    "openai": "^4.47.1",
+    "next": "14.2.5",
+    "openai": "^4.52.7",
     "perfect-freehand": "^1.2.2",
     "polygon-clipping": "^0.15.7",
     "react": "^18",
@@ -25,13 +25,13 @@
     "react-icons": "^5.2.1",
     "react-loader-spinner": "^6.1.6",
     "react-modal": "^3.16.1",
-    "react-pdf": "^8.0.2",
-    "react-tooltip": "^5.26.4",
+    "react-pdf": "^9.1.0",
+    "react-tooltip": "^5.27.1",
     "sentence-splitter": "^5.0.0",
     "swr": "^2.2.5"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
-    "eslint-config-next": "^14.2.3"
+    "eslint-config-next": "^14.2.5"
   }
 }

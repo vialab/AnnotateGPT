@@ -35,7 +35,11 @@ export default function Home() {
                 action: "clear",
             })
         })
-        .then(res => res.text())
+        .then(res => {
+            if (!res.ok)
+                return res.text().then(text => { throw new Error(text); });
+            return res.text();
+        })
         .then(data => {
             console.log(data);
         })
@@ -57,7 +61,11 @@ export default function Home() {
                 action: "forceClear",
             })
         })
-        .then(res => res.text())
+        .then(res => {
+            if (!res.ok)
+                return res.text().then(text => { throw new Error(text); });
+            return res.text();
+        })
         .then(data => {
             console.log(data);
         })
@@ -81,7 +89,11 @@ export default function Home() {
                 pid: pid
             })
         })
-        .then(res => res.text())
+        .then(res => {
+            if (!res.ok)
+                return res.text().then(text => { throw new Error(text); });
+            return res.text();
+        })
         .then(data => {
             console.log(data);
         })
@@ -109,7 +121,11 @@ export default function Home() {
             },
             body: body
         })
-        .then(res => res.text())
+        .then(res => {
+            if (!res.ok)
+                return res.text().then(text => { throw new Error(text); });
+            return res.text();
+        })
         .then(data => {
             console.log(data);
         })

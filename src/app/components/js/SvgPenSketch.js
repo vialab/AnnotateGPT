@@ -144,21 +144,22 @@ export default class SvgPenSketch {
             }
         }
 
-        for (let r = range; r >= 1; r -= 5) {
-            for (let t = 0; t < 360; t += 20) {
-                p.x = this.transform.x / this.transform.k + x + r * Math.cos((Math.PI / 180) * t);
-                p.y = this.transform.y / this.transform.k + y + r * Math.sin((Math.PI / 180) * t);
-                let pt = p;
+        for (let path of linePaths) {
+            loop: for (let r = range; r >= 1; r -= 5) {
+                for (let t = 0; t < 360; t += 20) {
+                    p.x = this.transform.x / this.transform.k + x + r * Math.cos((Math.PI / 180) * t);
+                    p.y = this.transform.y / this.transform.k + y + r * Math.sin((Math.PI / 180) * t);
+                    let pt = p;
 
-                for (let path of linePaths) {
                     pointObj.x = pt.x;
                     pointObj.y = pt.y;
 
-                    let isOnTopOfPath = path.isPointInStroke(pointObj);
+                    let isOnTopOfPath = path.isPointInStroke(pointObj) || path.isPointInFill(pointObj);
 
                     if (isOnTopOfPath) {
                         paths.push(path);
                         elements.push(path);
+                        break loop;
                     }
                 }
             }
@@ -419,7 +420,7 @@ export default class SvgPenSketch {
                 thinning: 0.25,
                 smoothing: 1,
                 streamline: 0.5,
-                simulatePressure: false
+                simulatePressure: false,
             });
 
             strokePath.attr("d", this.strokeParam.lineFunc(stroke));
@@ -466,6 +467,18 @@ export default class SvgPenSketch {
 
         // Interpolate the path if needed
         // this._interpolateStroke(strokePath, penCoords);
+
+        let outLinePath = this._element.append("path");
+
+        outLinePath
+        .attr("d", strokePath.attr("d"))
+        .attr("class", "lineDrawOutline")
+        .attr("style", this.strokeStyles["style"])
+        .style("fill", "none")
+        .style("stroke", "none")
+        .style("opacity", "0")
+        .style("stroke-width", 30)
+        .attr("id", strokePath.attr("id") + "Outline");
 
         // Call the callback
         if (this.penUpCallback !== undefined) {

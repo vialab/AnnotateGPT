@@ -1,4 +1,4 @@
-import { createRef, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import * as d3 from "d3";
 
 import PenIcon from "./svg/pen.svg";
@@ -42,7 +42,7 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
         let tools = d3.selectAll(`#${toolbarStyles.pen}, #${toolbarStyles.highlighter}`);
         
         tools
-        .on("click", function () {            
+        .on("click", function () {
             tools.classed(toolbarStyles.active, false);
             d3.select(this).classed(toolbarStyles.active, true);
 
