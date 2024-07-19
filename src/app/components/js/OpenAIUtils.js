@@ -25,21 +25,21 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // findAnnotations(`"Literature Review"`)
 
 export async function findAnnotations(purpose, callback, endCallback) {
-    console.log(purpose);
-    // await new Promise(r => setTimeout(r, 3000));
+    // console.log(purpose);
+    // // await new Promise(r => setTimeout(r, 3000));
 
-    for (let token of data.test14) {
-        // console.log(token);
-        await new Promise(r => setTimeout(r, 30));
+    // for (let token of data.test14) {
+    //     // console.log(token);
+    //     await new Promise(r => setTimeout(r, 30));
 
-        if (callback instanceof Function) {
-            callback(token);
-        }
-    }
-    if (endCallback instanceof Function)
-        endCallback();
+    //     if (callback instanceof Function) {
+    //         callback(token);
+    //     }
+    // }
+    // if (endCallback instanceof Function)
+    //     endCallback();
 
-    return;
+    // return;
 
     try {
         const thread = await openai.beta.threads.create();
@@ -325,44 +325,44 @@ export async function makeInference(image1, image2, type, annotatedText) {
     console.log(image1, image2);
     console.log(type, annotatedText);
     
-    return new Promise(
-        resolve => {
-            setTimeout(() => {
-                console.log("Resolving promise...");
+    // return new Promise(
+    //     resolve => {
+    //         setTimeout(() => {
+    //             console.log("Resolving promise...");
 
-                resolve({
-                    rawText: "Bla bla bla...",
-                    result: JSON.parse(`{
-                        "annotationDescription": "The user has circled '8 ] utilizes' in the document. The annotation involves the text being encased in a hand-drawn circle, emphasizing the phrase within the context of the surrounding text.",
-                        "pastAnnotationHistory": "Previous annotations have included both simplification of terminology (replacing 'utilize' with 'use') and recommendations for improvement or refinements, such as suggesting a better title for a thesis to better align it with academic standards or market expectations【6:1†history.txt】.",
-                        "purpose": [
-                            {
-                                "persona": "Academic Researcher",
-                                "purpose": "The annotation might serve to highlight a reference or method being used in a scholarly context, implying interest in or critique of the source or methodology cited.",
-                                "purposeTitle": "Highlighting Scholarly Reference"
-                            },
-                            {
-                                "persona": "Student",
-                                "purpose": "The student might have circled this text to remind themselves to look up the reference later, or to make a note of a significant term or concept that will be on an exam.",
-                                "purposeTitle": "Noting Significant Reference"
-                            },
-                            {
-                                "persona": "Editor or Reviewer",
-                                "purpose": "The circle might signify that the term 'utilizes' is either misused or can be replaced with a simpler word, similar to previous annotations where complex terms were simplified.",
-                                "purposeTitle": "Indication of Simplification"
-                            },
-                            {
-                                "persona": "Curious Reader",
-                                "purpose": "The reader may have circled this to indicate confusion or a point of interest, possibly requiring further investigation or clarity in the terminology or citation mentioned.",
-                                "purposeTitle": "Identification of Confusing Content"
-                            }
-                        ]
-                    }`)
-                });
+    //             resolve({
+    //                 rawText: "Bla bla bla...",
+    //                 result: JSON.parse(`{
+    //                     "annotationDescription": "The user has circled '8 ] utilizes' in the document. The annotation involves the text being encased in a hand-drawn circle, emphasizing the phrase within the context of the surrounding text.",
+    //                     "pastAnnotationHistory": "Previous annotations have included both simplification of terminology (replacing 'utilize' with 'use') and recommendations for improvement or refinements, such as suggesting a better title for a thesis to better align it with academic standards or market expectations【6:1†history.txt】.",
+    //                     "purpose": [
+    //                         {
+    //                             "persona": "Academic Researcher",
+    //                             "purpose": "The annotation might serve to highlight a reference or method being used in a scholarly context, implying interest in or critique of the source or methodology cited.",
+    //                             "purposeTitle": "Highlighting Scholarly Reference"
+    //                         },
+    //                         {
+    //                             "persona": "Student",
+    //                             "purpose": "The student might have circled this text to remind themselves to look up the reference later, or to make a note of a significant term or concept that will be on an exam.",
+    //                             "purposeTitle": "Noting Significant Reference"
+    //                         },
+    //                         {
+    //                             "persona": "Editor or Reviewer",
+    //                             "purpose": "The circle might signify that the term 'utilizes' is either misused or can be replaced with a simpler word, similar to previous annotations where complex terms were simplified.",
+    //                             "purposeTitle": "Indication of Simplification"
+    //                         },
+    //                         {
+    //                             "persona": "Curious Reader",
+    //                             "purpose": "The reader may have circled this to indicate confusion or a point of interest, possibly requiring further investigation or clarity in the terminology or citation mentioned.",
+    //                             "purposeTitle": "Identification of Confusing Content"
+    //                         }
+    //                     ]
+    //                 }`)
+    //             });
                     
-            }, 1000);
-        } 
-    );
+    //         }, 1000);
+    //     } 
+    // );
     
     return new Promise(async (resolve, reject) => {
         try {
