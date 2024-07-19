@@ -1,5 +1,4 @@
 import { createReadStream } from "fs";
-import path from "path";
 import OpenAI from "openai";
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
@@ -7,17 +6,36 @@ const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
 
 let loading = false;
 
+// export const config = {
+//     api: {
+//       bodyParser: {
+//         sizeLimit: '10mb',
+//       },
+//     }
+//   }
+
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
 export default async function handler(req, res) {
     if (req.method === "GET") {
         res.status(405).send("GET requests are not allowed");
     } else if (req.method === "POST") {
-        try {
-            while (loading) {
+        let processDocument;
+        
+        let uploadFile = async () => {
+            let waitInterval = 0;
+
+            while (loading && waitInterval < 40) {
+                console.log("Waiting...", waitInterval);
+                waitInterval++;
                 await new Promise(r => setTimeout(r, 500));
             }
             loading = true;
-            let document = req.body.document;
-
+    
             const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
             let vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
             let vectorStore;
@@ -30,29 +48,89 @@ export default async function handler(req, res) {
                 });
             }
             const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
-
+    
             for (let file of vectorStoreFiles.data) {
                 openai.files.del(file.id)
                 .catch((error) => {
                     console.error(error.error.message, "in files");
                 });
             }
+    
+            console.log("Creating file...");
             
             const file = await openai.files.create({
-                file: createReadStream(document),
+                file: processDocument,
                 purpose: "assistants",
             });
-
+    
             await openai.beta.vectorStores.files.createAndPoll(
-                vectorStoreID, {
+                vectorStoreID, 
+                {
                     file_id: file.id
+                },
+                {
+                    pollIntervalMs: 500
                 }
             );
+
+            if (file.status == "error") {
+                res.status(500).send("Error uploading document!");
+
+                const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
+                    
+                for (let file of vectorStoreFiles.data) {
+                    openai.files.del(file.id)
+                    .catch((error) => {
+                        console.error(error.error.message, "in files");
+                    });
+                }
+            } else {
+                res.status(200).send("Updated document!");
+            }
+
+            await new Promise(r => setTimeout(r, 500));
             loading = false;
-            res.status(200).send("Updated document!");
+        };
+        
+        try {
+            if (req.headers["content-type"] === "application/json") {
+                let data = "";
+    
+                req.on("data", chunk => {
+                    data += chunk;
+                });
+
+                await new Promise((resolve, reject) => {
+                    req.on("end", () => {
+                        try {
+                            const jsonData = JSON.parse(data);
+        
+                            if (jsonData["document"]) {
+                                processDocument = createReadStream(jsonData["document"]);
+                            } else {
+                                const fileName = jsonData.fileName;
+                                const uint8Array = new Uint8Array(jsonData.data);
+            
+                                let file = new File([new Blob([uint8Array], { type: "application/pdf" })], fileName);
+                                
+                                processDocument = file;
+                            }
+                            resolve();
+                        } catch (error) {
+                            reject(error);
+                        }
+                    });
+                });
+
+                await uploadFile()
+                .catch((error) => {
+                    console.error(error.error.message);
+                });
+            } else {
+                throw new Error("Not JSON");
+            }
         } catch (error) {
             res.status(500).send("Error updating document: " + error);
         }
-        
     }
 }

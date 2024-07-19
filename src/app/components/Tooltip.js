@@ -2,9 +2,10 @@ import { useEffect, useRef, useCallback } from "react";
 import * as d3 from "d3";
 
 // use vite
-import { createContext, destroyContext, domToCanvas } from 'modern-screenshot';
+import { createContext, destroyContext, domToCanvas } from "modern-screenshot";
 import { makeInference } from "./js/OpenAIUtils";
 import { googleSans } from "../page";
+import { toast } from "react-toastify";
 
 function wrap(text, width = -1) {
     if (d3.select(".react-pdf__Page__canvas").empty())
@@ -1155,7 +1156,20 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 console.log("Success:", data);
                             })
                             .catch((error) => {
-                                console.error("Error:", error);
+                                // console.error("Error:", error);
+
+                                toast.error("updatePurpose: " + error, {
+                                    position: "bottom-center",
+                                    autoClose: false,
+                                    hideProgressBar: false,
+                                    closeOnClick: true,
+                                    pauseOnHover: true,
+                                    draggable: true,
+                                    progress: undefined,
+                                    theme: "dark",
+                                    transition: Flip,
+                                    toastId: "updatePurpose"
+                                });
                             });
                             
                             updateTooltips(clusterRef.current);
@@ -1274,7 +1288,20 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             console.log("Success:", data);
                         })
                         .catch((error) => {
-                            console.error("Error:", error);
+                            // console.error("Error:", error);
+                            
+                            toast.error("updatePurpose: " + error, {
+                                position: "bottom-center",
+                                autoClose: false,
+                                hideProgressBar: false,
+                                closeOnClick: true,
+                                pauseOnHover: true,
+                                draggable: true,
+                                progress: undefined,
+                                theme: "dark",
+                                transition: Flip,
+                                toastId: "updatePurpose"
+                            });
                         });
 
                         updateTooltips(clusterRef.current);
@@ -1559,7 +1586,20 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 console.log("Success:", data);
                             })
                             .catch((error) => {
-                                console.error("Error:", error);
+                                // console.error("Error:", error);
+
+                                toast.error("updatePurpose: " + error, {
+                                    position: "bottom-center",
+                                    autoClose: false,
+                                    hideProgressBar: false,
+                                    closeOnClick: true,
+                                    pauseOnHover: true,
+                                    draggable: true,
+                                    progress: undefined,
+                                    theme: "dark",
+                                    transition: Flip,
+                                    toastId: "updatePurpose"
+                                });
                             });
 
                             updateTooltips(clusterRef.current);
@@ -1673,7 +1713,20 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                     console.log("Success:", data);
                                 })
                                 .catch((error) => {
-                                    console.error("Error:", error);
+                                    // console.error("Error:", error);
+
+                                    toast.error("updatePurpose: " + error, {
+                                        position: "bottom-center",
+                                        autoClose: false,
+                                        hideProgressBar: false,
+                                        closeOnClick: true,
+                                        pauseOnHover: true,
+                                        draggable: true,
+                                        progress: undefined,
+                                        theme: "dark",
+                                        transition: Flip,
+                                        toastId: "updatePurpose"
+                                    });
                                 });
 
                                 updateTooltips(clusterRef.current);

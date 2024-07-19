@@ -398,6 +398,7 @@
     align-items: center;
     display: flex;
     justify-content: center;
+    gap: 20px;
 }
 
 .contentContainer .settings label {
@@ -409,6 +410,21 @@
     flex-direction: row;
     padding: 10px;
     pointer-events: all
+}
+
+.contentContainer .settings input[type=radio] {
+    -webkit-appearance: none;
+    appearance: none;
+    background-clip: content-box;
+    background-color: transparent;
+    border: 1px solid white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    outline: none;
+    pointer-events: all;
+    margin: 10px;
+    display: none;
 }
 
 .contentContainer .field {

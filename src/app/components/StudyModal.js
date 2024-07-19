@@ -3,7 +3,8 @@
 import { useState, useRef, useReducer, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 
 import Modal from "react-modal";
-import { ImMail4, ImInfo } from "react-icons/im";
+import { ImMail4, ImInfo, ImExit } from "react-icons/im";
+import { HiOutlineChevronDoubleRight } from "react-icons/hi";
 import { Tooltip } from "react-tooltip";
 import * as d3 from "d3";
 
@@ -12,17 +13,32 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
+const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, documentChange }, ref) => {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     
     let preStudyContent = useRef([]);
     let postTaskContent = useRef([]);
     let postStudyContent = useRef([]);
+    let ifFirst = useRef(true);
 
     let onSettings = useRef(false);
 
     let [ modalContent, setModalContent ] = useReducer(modalReducer, { mainContent: null, bottomContent: null, modalIndex: 0, studyState: "preStudy", currentTask: 0 });
+
+    let withdraw = useCallback(() => {
+        setModalContent({ type: "withdraw" });
+    }, []);
+
+    let continueStudy = useCallback(() => {
+        setModalContent({ type: "show" });
+        setModalIsOpen(true);
+
+        if (modalContent.currentTask + 1 <= 1) {
+            let documentIndex = (modalContent.currentTask + 1 === 0 && ifFirst.current) || (modalContent.currentTask + 1 === 1 && !ifFirst.current) ? 0 : 1;
+            onNextTask(documentIndex);
+        }
+    }, [modalContent, onNextTask]);
 
     useEffect(() => {
         if (studyState === "study") {
@@ -176,9 +192,15 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
             case "start": {
                 let content = getContent("preStudy");
 
+                let bottomContent = [generateNextButton(content[0], 0, handleNext)];
+
+                if (content[0]?.prev) {
+                    bottomContent.unshift(generatePrevButton(content[0], 0, handlePrev));
+                }
+
                 return {
                     mainContent: content[0]?.content,
-                    bottomContent: [generateNextButton(content[0], 0, handleNext)],
+                    bottomContent: bottomContent,
                     modalIndex: 0,
                     callback: content[0]?.callback,
                     studyState: "preStudy",
@@ -249,7 +271,7 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
                             modalIndex: 0,
                             callback: content[0]?.callback,
                             studyState: studyState,
-                            currentTask: currentTask,
+                            currentTask: currentTask
                         };
                     }
                 }
@@ -273,13 +295,13 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
             } case "settings": {
                 let ifModalIsOpen = modalIsOpen;
 
-                let fileChangeHandler = () => {
-                    let file = d3.select("#file").node().files[0];
+                let fileChangeHandler = (id) => {
+                    let file = d3.select(`#${id}file`).node().files[0];
 
                     if (file)
-                        d3.select("#fileName").text(file.name);
+                        d3.select(`#${id}fileName`).text(file.name);
                     else
-                        d3.select("#fileName").text("No file selected");
+                        d3.select(`#${id}fileName`).text("No file selected");
                 };
 
                 let settingsContent = <>
@@ -287,21 +309,49 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
                     <div style={{ width: "100%", display: "flex", gap: "20px", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
                         
                         { studyState === "study" ? 
-                            <div className="field">
-                                <input id="pid" name="pid" required defaultValue={pid}/>
-                                <label htmlFor="pid">Participant ID</label>
-                            </div> 
-                            : 
-                            <div className="settingsContainer"> 
-                                <p>File Upload</p>
-                                <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
-                                    <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
-                                        <input type="file" id="file" name="file" accept=".csv" style={{ display: "none" }} onChange={fileChangeHandler} required="required" />
-                                        <label htmlFor="file">Upload File</label>
-                                        <p id="fileName">No file selected</p>
+                            <>
+                                <div className="field" style={{ width: "532px" }}>
+                                    <input id="pid" name="pid" required defaultValue={pid}/>
+                                    <label htmlFor="pid">Participant ID</label>
+                                </div>
+                                <div className="settingsContainer"> 
+                                    <p>Document Order</p>
+                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                                        <div>
+                                            <input type="radio" id="firstDocument" name="documentOrder" value="firstDocument" defaultChecked={ifFirst.current}/>
+                                            <label htmlFor="firstDocument">First Document</label>
+                                        </div>
+                                        <div>
+                                            <input type="radio" id="secondDocument" name="documentOrder" value="secondDocument" defaultChecked={!ifFirst.current}/>
+                                            <label htmlFor="secondDocument">Second Document</label>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
+                            :
+                            <>
+                                <div className="settingsContainer"> 
+                                    <p>Data Upload</p>
+                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
+                                        <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                            <input type="file" id="datafile" name="datafile" accept=".csv" style={{ display: "none" }} onChange={() => fileChangeHandler("data")} required="required" />
+                                            <label htmlFor="datafile">Upload File</label>
+                                            <p id="datafileName">No file selected</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="settingsContainer"> 
+                                    <p>Document Upload</p>
+                                    <i style={{ color: "#E58F65" }}>Make sure words are &quot;words&quot; <br/> Not images of words</i>
+                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
+                                        <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                            <input type="file" id="documentfile" name="documentfile" accept=".pdf" style={{ display: "none" }} onChange={() => fileChangeHandler("document")} required="required" />
+                                            <label htmlFor="documentfile">Upload File</label>
+                                            <p id="documentfileName">No file selected</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         }
                     </div>
                 </>;
@@ -339,6 +389,17 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
                             exitTransitionStudy(e);
                             onSettings.current = false;
                             setPid(document.getElementById("pid").value);
+
+                            if (d3.select("input[name='documentOrder']:checked").node().value === "firstDocument") {
+                                ifFirst.current = true;
+                            } else {
+                                ifFirst.current = false;
+                            }
+
+                            if (documentChange instanceof Function) {
+                                let currentDocument = (state.currentTask === 0 && ifFirst.current) || (state.currentTask === 1 && !ifFirst.current) ? 0 : 1;
+                                documentChange(currentDocument);
+                            }
                         }),
                     ] :
                     [
@@ -351,7 +412,7 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
                             onSettings.current = false;
 
                             if (fileHandler instanceof Function) {
-                                fileHandler(d3.select("#file").node().files[0]);
+                                fileHandler(d3.select("#datafile").node().files[0], d3.select("#documentfile").node().files[0]);
                             }
                         }),
                     ];
@@ -655,17 +716,32 @@ const StudyModal = forwardRef(({ onFinish, studyState, fileHandler }, ref) => {
 
         if (modalContent.studyState === "finishStudy" && onFinish instanceof Function) {
             onFinish();
+            setModalContent({ type: "start" });
         }
     }, [modalContent, setUp, onFinish]);
 
     useImperativeHandle(ref, () => ({
         pid: pid,
+        ifFirst: ifFirst,
         setModalIsOpen: setModalIsOpen,
         setModalContent: setModalContent,
     }), [pid]);
 
     return (
         <>
+            {
+                studyState === "study" ? 
+                    <div className="studyMenu">
+                        <div className="withdraw" onClick={withdraw}>
+                            <ImExit />
+                        </div>
+                        <div className="continue" onClick={continueStudy}>
+                            <HiOutlineChevronDoubleRight />
+                        </div>
+                    </div>
+                    :
+                    null
+            }
             <Modal
                 isOpen={modalIsOpen}
                 className="modal"

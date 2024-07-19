@@ -144,6 +144,8 @@ export default async function handler(req, res) {
                 res.status(400).send("Invalid action");
             }
         } catch (error) {
+            console.log(history);
+            
             res.status(500).send("Error updating history file: " + error);
         }
     }

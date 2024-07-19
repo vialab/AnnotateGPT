@@ -255,6 +255,7 @@ Here is a step-by-step list for annotating a document:
             console.log("Vector store is not available");
         }
         console.log("Running GPT-4o...");
+        return;
 
         let executeRun = (checkFinish) => {
             let newTextDeltaArray = [];

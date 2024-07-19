@@ -10,6 +10,7 @@ import { Tooltip } from "react-tooltip";
 import {autoPlacement} from "@floating-ui/dom";
 import { RxCheck, RxCross2 } from "react-icons/rx";
 import { split } from "sentence-splitter";
+import { toast, Flip } from "react-toastify";
 
 import PenAnnotation from "./PenAnnotation.js";
 import Toolbar from "./Toolbar.js";
@@ -168,7 +169,7 @@ let workerLevenshteinDistance = () => {
     };
 };
 
-export default function AnnotateGPT({ document, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, onReplyCallback, svgContent, screen }) {
+export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, onReplyCallback, svgContent, screen }) {
     const defaultColour = "#000000";
 
     // const [numPages, setNumPages] = useState();
@@ -254,6 +255,7 @@ export default function AnnotateGPT({ document, pEndCallback, onECallback, onInf
             </div>
         );
         let penAnnotation = [];
+        penAnnotationRef.current = [];
 
         for (let index = 0; index < numPages; index++) {
             let ref = createRef();
@@ -303,7 +305,7 @@ export default function AnnotateGPT({ document, pEndCallback, onECallback, onInf
                 let page = svg.page;
                 let svgContent = svg.svg;
 
-                if (page !== undefined && svgContent !== undefined) {
+                if (page && svgContent) {
                     let penAnnnotationRef = penAnnotationRef.current[page - 1];
                     d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.replace("lineDraw", ""));
                 }
@@ -312,7 +314,7 @@ export default function AnnotateGPT({ document, pEndCallback, onECallback, onInf
     }, [svgContent]);
 
     useEffect(() => {
-        if (screen?.width !== undefined && screen?.height !== undefined) {
+        if (screen?.width && screen?.height) {
             for (let penAnnnotationRef of penAnnotationRef.current) {
                 d3.select(penAnnnotationRef.current.svgRef)
                 .attr("viewBox", `${0} ${0} ${screen.width} ${screen.height}`);
@@ -1714,7 +1716,20 @@ export default function AnnotateGPT({ document, pEndCallback, onECallback, onInf
                         console.log("Success:", data);
                     })
                     .catch((error) => {
-                        console.error("Error:", error);
+                        // console.error("Error:", error);
+
+                        toast.error("storeCommentHistory: " + error, {
+                            position: "bottom-center",
+                            autoClose: false,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            theme: "dark",
+                            transition: Flip,
+                            toastId: "storeCommentHistory"
+                        });
                     });
                 }
             }
@@ -2014,37 +2029,136 @@ export default function AnnotateGPT({ document, pEndCallback, onECallback, onInf
         };
     }, [onReplyCallback, generateContent]);
 
+    let prevDocumentPDF = useRef(null);
+    let loadBuffer = useRef(false);
+
     useEffect(() => {
-        fetch("/api/updateDocument", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                document: document ?? "./public/Test 1.pdf"
+        setLoading(true);
+        setLoadingDocument(true);
+        setProgress(0);
+
+        let payload;
+        let headers;
+
+        let sendFile = () => {
+            fetch("/api/updateDocument", {
+                method: "POST",
+                headers: headers,
+                body: payload
             })
-        })
-        .then(res => {
-            if (!res.ok)
-                return res.text().then(text => { throw new Error(text); });
-            return res.text();
-        })
-        .then((data) => {
-            console.log("Success:", data);
-            setLoadingDocument(false);
-        })
-        .catch((error) => {
-            console.error("Error:", error);
-            setLoadingDocument(false);
-        });
-    }, [document]);
+            .then(res => {
+                if (!res.ok)
+                    return res.text().then(text => { throw new Error(text); });
+                return res.text();
+            })
+            .then((data) => {
+                console.log("Success:", data);
+                setLoadingDocument(false);
+            })
+            .catch((error) => {
+                console.error(error);
+
+                toast.error(error, {
+                    position: "bottom-center",
+                    autoClose: false,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "dark",
+                    transition: Flip,
+                    toastId: "fileUpload"
+                });
+                setLoadingDocument(false);
+            });
+        };
+
+        let intiatePayload = () => {
+            if (typeof documentPDF === "string" || !documentPDF) {
+                payload = JSON.stringify({
+                    document: documentPDF ?? "./public/Test 1.pdf"
+                });
+    
+                headers = {
+                    "Content-Type": "application/json"
+                };
+                sendFile();            
+            } else {
+                const formData = new FormData();
+                formData.append("file", documentPDF);
+    
+                headers = {
+                    "Content-Type": "application/json",
+                };
+    
+                payload = documentPDF.arrayBuffer().then(buff => {
+                    let x = new Uint8Array(buff);
+    
+                    payload = JSON.stringify({
+                        fileName: documentPDF.name,
+                        data: Array.from(x)
+                    });
+                    sendFile();
+                });
+            }
+        };
+
+        while (loadBuffer.current) {
+            continue;
+        }
+
+        if (documentPDF instanceof File && prevDocumentPDF.current instanceof Buffer) {
+            loadBuffer.current = true;
+
+            documentPDF.arrayBuffer()
+            .then(buffer => {
+                let newBuffer = Buffer.from(buffer);
+
+                if (!newBuffer.equals(prevDocumentPDF.current)) {
+                    intiatePayload();
+                    prevDocumentPDF.current = newBuffer;
+                }
+                loadBuffer.current = false;
+            })
+            .catch(() => {
+                loadBuffer.current = false;
+            });
+        } else if (typeof documentPDF === "string" && typeof prevDocumentPDF.current === "string") {
+            if (documentPDF !== prevDocumentPDF.current) {
+                intiatePayload();
+                prevDocumentPDF.current = documentPDF;
+            }
+        } else {
+            intiatePayload();
+
+            if (documentPDF instanceof File) {
+                loadBuffer.current = true;
+
+                documentPDF.arrayBuffer()
+                .then(buffer => {
+                    let newBuffer = Buffer.from(buffer);
+                    prevDocumentPDF.current = newBuffer;
+                    
+                    loadBuffer.current = false;
+                })
+                .catch(() => {
+                    loadBuffer.current = false;
+                });
+            } else if (typeof documentPDF === "string") {
+                prevDocumentPDF.current = documentPDF;
+            }
+        }
+    }, [documentPDF]);
+
+    let filterDocument = typeof documentPDF === "string" && documentPDF.startsWith("./public") ? "." + documentPDF.slice(8) : documentPDF;
 
     return (
         <div className="annotateContainer" ref={containerRef}>
             <div className="explanation-tooltip" style={{ opacity: "0", zIndex: "1000", position: "absolute" }} />
 
             <Document 
-                file={document ?? "./Test 1.pdf"}
+                file={filterDocument ?? "./Test 1.pdf"}
                 onLoadSuccess={onDocumentLoadSuccess}
                 loading={<div className="shimmerBGContainer" ><div className="shimmerBG" /></div>}
             >

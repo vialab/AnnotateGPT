@@ -761,7 +761,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                 let pathBbox = path.getBoundingClientRect();
                 pathBbox.y -= pageTop;
 
-                if (text.length === 0) {
+                if (text.length === 0 ) {
                     type = "annotated";
 
                     for (let paragraph of paragraphs.current) {
@@ -783,7 +783,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
                         }
                     }
 
-                    if (marginalTextBBox.x1 === Infinity) {
+                    if (marginalTextBBox.x1 === Infinity && paragraphs.current.length > 0) {
                         let distances = paragraphs.current.map(paragraph => {
                             let y1 = d3.min(paragraph.map(line => d3.min(line.map(word => word.getBoundingClientRect().top - pageTop))));
                             let y2 = d3.max(paragraph.map(line => d3.max(line.map(word => word.getBoundingClientRect().bottom - pageTop))));
