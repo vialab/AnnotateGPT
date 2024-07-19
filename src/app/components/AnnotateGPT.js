@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 
 import { createRef, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image.js";
@@ -24,10 +24,9 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "./css/AnnotateGPT.css";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url,
-).toString();
+// import { pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 let workerLevenshteinDistance = () => {
     // https://github.com/ka-weihe/fastest-levenshtein
