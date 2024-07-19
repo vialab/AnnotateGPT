@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useState, useRef } from "react";
 import localFont from "next/font/local";
+import dynamic from 'next/dynamic';
 import { parse } from 'csv-parse';
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import AnnotateGPT from "../app/components/AnnotateGPT.js";
+const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
+
+// import AnnotateGPT from "../app/components/AnnotateGPT.js";
 import Header from "../app/components/Header.js";
 import StudyModal from "../app/components/StudyModal.js";
 
@@ -155,39 +158,41 @@ export default function Home() {
     };
 
     let sendData = (body) => {
-        let pid = studyModalRef.current?.pid ?? "test";
+        if (process.env.NODE_ENV !== "production") {
+            let pid = studyModalRef.current?.pid ?? "test";
     
-        fetch("/api/" + pid + "/data", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: body
-        })
-        .then(res => {
-            if (!res.ok)
-                return res.text().then(text => { throw new Error(text); });
-            return res.text();
-        })
-        .then(data => {
-            console.log(data);
-        })
-        .catch(err => {
-            // console.error(err);
-
-            toast.error("sendData: " + err, {
-                position: "bottom-center",
-                autoClose: false,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Flip,
-                toastId: "sendData"
+            fetch("/api/" + pid + "/data", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: body
+            })
+            .then(res => {
+                if (!res.ok)
+                    return res.text().then(text => { throw new Error(text); });
+                return res.text();
+            })
+            .then(data => {
+                console.log(data);
+            })
+            .catch(err => {
+                // console.error(err);
+    
+                toast.error("sendData: " + err, {
+                    position: "bottom-center",
+                    autoClose: false,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "dark",
+                    transition: Flip,
+                    toastId: "sendData"
+                });
             });
-        });
+        }
     };
 
 

@@ -24,9 +24,12 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "./css/AnnotateGPT.css";
 
-// import { pdfjs } from 'react-pdf';
+// pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+).toString();
 
 let workerLevenshteinDistance = () => {
     // https://github.com/ka-weihe/fastest-levenshtein
@@ -2055,9 +2058,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 setLoadingDocument(false);
             })
             .catch((error) => {
-                console.error(error);
+                // console.error(error);
 
-                toast.error(error, {
+                toast.error("documentUpload: " + error, {
                     position: "bottom-center",
                     autoClose: false,
                     hideProgressBar: false,

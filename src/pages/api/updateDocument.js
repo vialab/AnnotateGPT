@@ -1,18 +1,11 @@
 import { createReadStream } from "fs";
 import OpenAI from "openai";
+import path from "path";
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
 const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
 
 let loading = false;
-
-// export const config = {
-//     api: {
-//       bodyParser: {
-//         sizeLimit: '10mb',
-//       },
-//     }
-//   }
 
 export const config = {
     api: {
@@ -52,6 +45,11 @@ export default async function handler(req, res) {
             for (let file of vectorStoreFiles.data) {
                 openai.files.del(file.id)
                 .catch((error) => {
+                    openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                    .catch((error) => {
+                        console.error(error.error.message, "in vector store");
+                    });
+
                     console.error(error.error.message, "in files");
                 });
             }
@@ -105,8 +103,12 @@ export default async function handler(req, res) {
                         try {
                             const jsonData = JSON.parse(data);
         
-                            if (jsonData["document"]) {
-                                processDocument = createReadStream(jsonData["document"]);
+                            if (typeof jsonData["document"] === "string") {
+                                let filePath = jsonData["document"];
+                                filePath = filePath.startsWith("./public") ? "./" + filePath.slice(8) : filePath;
+
+
+                                processDocument = createReadStream(path.resolve("./public", filePath));
                             } else {
                                 const fileName = jsonData.fileName;
                                 const uint8Array = new Uint8Array(jsonData.data);
@@ -124,7 +126,13 @@ export default async function handler(req, res) {
 
                 await uploadFile()
                 .catch((error) => {
-                    console.error(error.error.message);
+                    loading = false;
+
+                    if (error.error?.message) {
+                        throw new Error("OpenAI: " + error.error?.message);
+                    } else {
+                        throw new Error(error);
+                    }
                 });
             } else {
                 throw new Error("Not JSON");

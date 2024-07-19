@@ -255,7 +255,7 @@ Here is a step-by-step list for annotating a document:
             console.log("Vector store is not available");
         }
         console.log("Running GPT-4o...");
-        return;
+        // return;
 
         let executeRun = (checkFinish) => {
             let newTextDeltaArray = [];
@@ -398,7 +398,7 @@ export async function makeInference(image1, image2, type, annotatedText) {
                         content: [
                             {
                                 type: "text",
-                                text: `A user has ${type}:\n"${annotatedText}"`
+                                text: `A user has ${type}:\n"${annotatedText}. The user is marking an English test."`
                             },
                             {
                                 type: "image_file",
