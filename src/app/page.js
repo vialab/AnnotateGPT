@@ -50,7 +50,7 @@ export default function Home() {
         .catch(err => {
             // console.error(err);
 
-            toast.error("clearStoreHistory: " + err, {
+            toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
                 position: "bottom-center",
                 autoClose: false,
                 hideProgressBar: false,
@@ -91,7 +91,7 @@ export default function Home() {
         .catch(err => {
             // console.error(err);
 
-            toast.error("clearStoreHistory: " + err, {
+            toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
                 position: "bottom-center",
                 autoClose: false,
                 hideProgressBar: false,
@@ -132,7 +132,7 @@ export default function Home() {
         .catch(err => {
             // console.error(err);
 
-            toast.error("moveHistory: " + err, {
+            toast.error("moveHistory: " + err.toString().replace("Error: ", ""), {
                 position: "bottom-center",
                 autoClose: false,
                 hideProgressBar: false,
@@ -158,41 +158,41 @@ export default function Home() {
     };
 
     let sendData = (body) => {
-        // if (process.env.NODE_ENV !== "production") {
-        let pid = studyModalRef.current?.pid ?? "test";
+        if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+            let pid = studyModalRef.current?.pid ?? "test";
 
-        fetch("/api/" + pid + "/data", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: body
-        })
-        .then(res => {
-            if (!res.ok)
-                return res.text().then(text => { throw new Error(text); });
-            return res.text();
-        })
-        .then(data => {
-            console.log(data);
-        })
-        .catch(err => {
-            // console.error(err);
+            fetch("/api/" + pid + "/data", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: body
+            })
+            .then(res => {
+                if (!res.ok)
+                    return res.text().then(text => { throw new Error(text); });
+                return res.text();
+            })
+            .then(data => {
+                console.log(data);
+            })
+            .catch(err => {
+                // console.error(err);
 
-            toast.error("sendData: " + err, {
-                position: "bottom-center",
-                autoClose: false,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Flip,
-                toastId: "sendData"
+                toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                    position: "bottom-center",
+                    autoClose: false,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "dark",
+                    transition: Flip,
+                    toastId: "sendData"
+                });
             });
-        });
-        // }
+        }
     };
 
 

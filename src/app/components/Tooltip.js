@@ -1158,7 +1158,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             .catch((error) => {
                                 // console.error("Error:", error);
 
-                                toast.error("updatePurpose: " + error, {
+                                toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
                                     position: "bottom-center",
                                     autoClose: false,
                                     hideProgressBar: false,
@@ -1290,7 +1290,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                         .catch((error) => {
                             // console.error("Error:", error);
                             
-                            toast.error("updatePurpose: " + error, {
+                            toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
                                 position: "bottom-center",
                                 autoClose: false,
                                 hideProgressBar: false,
@@ -1588,7 +1588,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             .catch((error) => {
                                 // console.error("Error:", error);
 
-                                toast.error("updatePurpose: " + error, {
+                                toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
                                     position: "bottom-center",
                                     autoClose: false,
                                     hideProgressBar: false,
@@ -1715,7 +1715,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 .catch((error) => {
                                     // console.error("Error:", error);
 
-                                    toast.error("updatePurpose: " + error, {
+                                    toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
                                         position: "bottom-center",
                                         autoClose: false,
                                         hideProgressBar: false,

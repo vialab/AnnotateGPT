@@ -588,11 +588,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                             let space = d3.select(span).node().nextSibling;
 
-                            if (space === null) {
+                            if (!space) {
                                 space = span.parentNode.nextSibling?.firstChild;
                             }
         
-                            if (space !== null && space.classList.contains("space")) {
+                            if (space && space.classList.contains("space")) {
                                 d3.select(space)
                                 .classed("highlighted", false)
                                 .style("background", null);
@@ -610,11 +610,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                             let space = d3.select(span).node().nextSibling;
 
-                            if (space === null) {
+                            if (!space) {
                                 space = span.parentNode.nextSibling?.firstChild;
                             }
         
-                            if (space !== null && space.classList.contains("space") && i !== setUpAnnotatedTokens[index[0]].spans.length - 1) {
+                            if (space && space.classList.contains("space") && i !== setUpAnnotatedTokens[index[0]].spans.length - 1) {
                                 d3.select(space)
                                 .classed("highlighted", true);
                             }
@@ -1133,11 +1133,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         
                             let space = d3.select(span).node().nextSibling;
 
-                            if (space === null) {
+                            if (!space) {
                                 space = span.parentNode.nextSibling?.firstChild;
                             }
         
-                            if (space !== null && (space.classList.contains("space")) && span !== listOfSpans[listOfSpans.length - 1]) {
+                            if (space && (space.classList.contains("space")) && span !== listOfSpans[listOfSpans.length - 1]) {
                                 d3.select(space)
                                 .classed("highlighted", true);
                             }
@@ -1216,8 +1216,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             .classed("highlighted", true);
     
                             let space = d3.select(span).node().nextSibling;
+
+                            if (!space) {
+                                space = span.parentNode.nextSibling?.firstChild;
+                            }
     
-                            if (space !== null && space.classList.contains("space")) {
+                            if (space && space.classList.contains("space")) {
                                 d3.select(space)
                                 .classed("highlighted", true);
                             }
@@ -1547,11 +1551,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     
                 let space = d3.select(span).node().nextSibling;
     
-                if (space === null) {
+                if (!space) {
                     space = span.parentNode.nextSibling?.firstChild;
                 }
         
-                if (space !== null && space.classList.contains("space")) {
+                if (space && space.classList.contains("space")) {
                     d3.select(space)
                     .classed("highlighted", true)
                     .classed("accept", true);
@@ -1604,11 +1608,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     
                 let space = d3.select(span).node().nextSibling;
     
-                if (space === null) {
+                if (!space) {
                     space = span.parentNode.nextSibling?.firstChild;
                 }
     
-                if (space !== null && space.classList.contains("space")) {
+                if (space && space.classList.contains("space")) {
                     d3.select(space)
                     .classed("highlighted", false);
                 }
@@ -1725,7 +1729,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     .catch((error) => {
                         // console.error("Error:", error);
 
-                        toast.error("storeCommentHistory: " + error, {
+                        toast.error("storeCommentHistory: " + error.toString().replace("Error: ", ""), {
                             position: "bottom-center",
                             autoClose: false,
                             hideProgressBar: false,
@@ -2065,7 +2069,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             .catch((error) => {
                 // console.error(error);
 
-                toast.error("documentUpload: " + error, {
+                toast.error("documentUpload: " + error.toString().replace("Error: ", ""), {
                     position: "bottom-center",
                     autoClose: false,
                     hideProgressBar: false,
