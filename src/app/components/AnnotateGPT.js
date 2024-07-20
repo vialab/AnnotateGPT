@@ -428,7 +428,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                 if (lastToken?.state === "start") {
                     lastToken.state = "end";
-                    // console.log(lastToken.sentence.trim());
+                    // console.log(lastToken.sentence.trim().split(" "));
+
+                    if (lastToken.sentence.trim().split(" ").length <= 2) {
+                        return;
+                    }
 
                     let callback = (result) => {
                         done++;
@@ -540,6 +544,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     if ((lastToken.explanation[0] + token).trim().endsWith("}}}")) {
                         lastToken.explanation[0] = (lastToken.explanation[0] + token).trim().slice(0, -3);
                     }
+                    lastToken.explanation[0] = lastToken.explanation[0].trim().replace(/^\"+|\"+$/g, "");
                 }
 
                 for (let index of cutIndex) {
@@ -955,11 +960,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     
                         let space = d3.select(span).node().nextSibling;
 
-                        if (space === null) {
+                        if (!space) {
                             space = span.parentNode.nextSibling?.firstChild;
                         }
     
-                        if (space !== null && space.classList.contains("space") && i !== listOfSpans.length - 1) {
+                        if (space && space.classList.contains("space") && i !== listOfSpans.length - 1) {
                             d3.select(space)
                             .classed("highlighted", true);
                         }
@@ -1999,11 +2004,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                         let space = d3.select(span).node().nextSibling;
 
-                        if (space === null) {
+                        if (!space) {
                             space = span.parentNode.nextSibling?.firstChild;
                         }
     
-                        if (space !== null && space.classList.contains("space") && i !== annotation.spans.length - 1) {
+                        if (space && space.classList.contains("space") && i !== annotation.spans.length - 1) {
                             d3.select(space)
                             .classed("highlighted", true)
                             .classed("fade", false);

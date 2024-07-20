@@ -158,41 +158,41 @@ export default function Home() {
     };
 
     let sendData = (body) => {
-        if (process.env.NODE_ENV !== "production") {
-            let pid = studyModalRef.current?.pid ?? "test";
-    
-            fetch("/api/" + pid + "/data", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: body
-            })
-            .then(res => {
-                if (!res.ok)
-                    return res.text().then(text => { throw new Error(text); });
-                return res.text();
-            })
-            .then(data => {
-                console.log(data);
-            })
-            .catch(err => {
-                // console.error(err);
-    
-                toast.error("sendData: " + err, {
-                    position: "bottom-center",
-                    autoClose: false,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Flip,
-                    toastId: "sendData"
-                });
+        // if (process.env.NODE_ENV !== "production") {
+        let pid = studyModalRef.current?.pid ?? "test";
+
+        fetch("/api/" + pid + "/data", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: body
+        })
+        .then(res => {
+            if (!res.ok)
+                return res.text().then(text => { throw new Error(text); });
+            return res.text();
+        })
+        .then(data => {
+            console.log(data);
+        })
+        .catch(err => {
+            // console.error(err);
+
+            toast.error("sendData: " + err, {
+                position: "bottom-center",
+                autoClose: false,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "dark",
+                transition: Flip,
+                toastId: "sendData"
             });
-        }
+        });
+        // }
     };
 
 

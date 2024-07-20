@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
     if (action === "penStroke") {
         while (donePenStroke) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         donePenStroke = true;
         
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         res.status(200).send("Pen stroke data saved!");
     } else if (action === "eraseStroke") {
         while (donePenStroke) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         donePenStroke = true;
 
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         res.status(200).send("Erase stroke data saved!");
     } else if (action === "clusterChange" || action.startsWith("reply")) {
         while (doneCluster) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         doneCluster = true;
 
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
         res.status(200).send("Cluster data saved!");
     } else if (action === "openai") {
         while (doneOpenAI) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
         doneOpenAI = true;
 

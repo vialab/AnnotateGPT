@@ -23,23 +23,27 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // findAnnotations(`"Clarify Academic Focus": "The suggestion aims to refine the title to more effectively convey the primary focus or uniqueness of the work, potentially increasing its clarity and academic appeal."`)
 // findAnnotations(`The word 'utilizes' is underlined, and there is a handwritten note beside it suggesting to 'replace with 'use''. "Simplification of Vocabulary": "The editor has underlined the word to suggest a simpler or more direct vocabulary in the manuscript, which may help in making the text more accessible and easier to understand."`)
 // findAnnotations(`"Literature Review"`)
+// findAnnotations(`"Syntactic Errors: Look for misplaced modifiers, incorrect verb forms, or run-on sentences"`)
 
 export async function findAnnotations(purpose, callback, endCallback) {
-    // console.log(purpose);
-    // // await new Promise(r => setTimeout(r, 3000));
+    console.log(purpose);
+    let message = "";
+    // await new Promise(r => setTimeout(r, 3000));
 
-    // for (let token of data.test14) {
-    //     // console.log(token);
-    //     await new Promise(r => setTimeout(r, 30));
+    for (let token of data.test16) {
+        // console.log(token);
+        // await new Promise(r => setTimeout(r, 30));
+        message += token;
 
-    //     if (callback instanceof Function) {
-    //         callback(token);
-    //     }
-    // }
-    // if (endCallback instanceof Function)
-    //     endCallback();
+        if (callback instanceof Function) {
+            callback(token);
+        }
+    }
+    if (endCallback instanceof Function)
+        endCallback();
 
-    // return;
+    console.log(message);
+    return;
 
     try {
         const thread = await openai.beta.threads.create();
@@ -206,7 +210,7 @@ Here is a step-by-step list for annotating a document:
 
 1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way.
 2. Explain why you annnotated the sentence. Format the explanation as short as possible using 10 words or less. Make sure to include the purpose of the annotation in the explanation.
-3. Make a list of sentences for the section using three asterisks for sentences and two curly braces for the explanation. For example:
+3. Make a list of sentences for the section using triple asterisks for sentences and double curly braces for the explanation. For example:
    *** <sentence> ***
    {{ <explanation and suggestion> }}`
         });
@@ -265,6 +269,7 @@ Here is a step-by-step list for annotating a document:
                 const run = openai.beta.threads.runs.stream(thread.id, {
                     assistant_id: assistantAnnotateID,
                     tool_choice: { type: "file_search" },
+                    
                 })
                 // .on('textCreated', (text) => console.log('\nassistant > '))
                 .on('textDelta', (textDelta, snapshot) => {
@@ -276,18 +281,18 @@ Here is a step-by-step list for annotating a document:
                     // console.log(textDelta.value)
                 })
                 .on("end", async () => {
-                    console.log(newTextDeltaArray.join(""));
-                    console.log("Stream ended");
-                    console.log(textDeltaArray);
+                    // console.log(newTextDeltaArray.join(""));
+                    // console.log("Stream ended");
+                    // console.log(textDeltaArray);
 
-                    if (endCallback instanceof Function)
-                        endCallback(textDeltaArray);
-                    return;
+                    // if (endCallback instanceof Function)
+                    //     endCallback(textDeltaArray);
+                    // return;
                     
                     console.log(newTextDeltaArray.join(""));
     
                     if (checkFinish || totalRuns >= 5) {
-                        if (newTextDeltaArray.join("").toLowerCase().includes("yes") || !newTextDeltaArray.join("").toLowerCase().includes(`"""`) || totalRuns >= 5) {
+                        if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`) || totalRuns >= 5) {
                             console.log("Stream ended");
                             console.log(textDeltaArray);
     
@@ -325,44 +330,44 @@ export async function makeInference(image1, image2, type, annotatedText) {
     console.log(image1, image2);
     console.log(type, annotatedText);
     
-    // return new Promise(
-    //     resolve => {
-    //         setTimeout(() => {
-    //             console.log("Resolving promise...");
+    return new Promise(
+        resolve => {
+            setTimeout(() => {
+                console.log("Resolving promise...");
 
-    //             resolve({
-    //                 rawText: "Bla bla bla...",
-    //                 result: JSON.parse(`{
-    //                     "annotationDescription": "The user has circled '8 ] utilizes' in the document. The annotation involves the text being encased in a hand-drawn circle, emphasizing the phrase within the context of the surrounding text.",
-    //                     "pastAnnotationHistory": "Previous annotations have included both simplification of terminology (replacing 'utilize' with 'use') and recommendations for improvement or refinements, such as suggesting a better title for a thesis to better align it with academic standards or market expectations【6:1†history.txt】.",
-    //                     "purpose": [
-    //                         {
-    //                             "persona": "Academic Researcher",
-    //                             "purpose": "The annotation might serve to highlight a reference or method being used in a scholarly context, implying interest in or critique of the source or methodology cited.",
-    //                             "purposeTitle": "Highlighting Scholarly Reference"
-    //                         },
-    //                         {
-    //                             "persona": "Student",
-    //                             "purpose": "The student might have circled this text to remind themselves to look up the reference later, or to make a note of a significant term or concept that will be on an exam.",
-    //                             "purposeTitle": "Noting Significant Reference"
-    //                         },
-    //                         {
-    //                             "persona": "Editor or Reviewer",
-    //                             "purpose": "The circle might signify that the term 'utilizes' is either misused or can be replaced with a simpler word, similar to previous annotations where complex terms were simplified.",
-    //                             "purposeTitle": "Indication of Simplification"
-    //                         },
-    //                         {
-    //                             "persona": "Curious Reader",
-    //                             "purpose": "The reader may have circled this to indicate confusion or a point of interest, possibly requiring further investigation or clarity in the terminology or citation mentioned.",
-    //                             "purposeTitle": "Identification of Confusing Content"
-    //                         }
-    //                     ]
-    //                 }`)
-    //             });
+                resolve({
+                    rawText: "Bla bla bla...",
+                    result: JSON.parse(`{
+                        "annotationDescription": "The user has circled '8 ] utilizes' in the document. The annotation involves the text being encased in a hand-drawn circle, emphasizing the phrase within the context of the surrounding text.",
+                        "pastAnnotationHistory": "Previous annotations have included both simplification of terminology (replacing 'utilize' with 'use') and recommendations for improvement or refinements, such as suggesting a better title for a thesis to better align it with academic standards or market expectations【6:1†history.txt】.",
+                        "purpose": [
+                            {
+                                "persona": "Academic Researcher",
+                                "purpose": "The annotation might serve to highlight a reference or method being used in a scholarly context, implying interest in or critique of the source or methodology cited.",
+                                "purposeTitle": "Highlighting Scholarly Reference"
+                            },
+                            {
+                                "persona": "Student",
+                                "purpose": "The student might have circled this text to remind themselves to look up the reference later, or to make a note of a significant term or concept that will be on an exam.",
+                                "purposeTitle": "Noting Significant Reference"
+                            },
+                            {
+                                "persona": "Editor or Reviewer",
+                                "purpose": "The circle might signify that the term 'utilizes' is either misused or can be replaced with a simpler word, similar to previous annotations where complex terms were simplified.",
+                                "purposeTitle": "Indication of Simplification"
+                            },
+                            {
+                                "persona": "Curious Reader",
+                                "purpose": "The reader may have circled this to indicate confusion or a point of interest, possibly requiring further investigation or clarity in the terminology or citation mentioned.",
+                                "purposeTitle": "Identification of Confusing Content"
+                            }
+                        ]
+                    }`)
+                });
                     
-    //         }, 1000);
-    //     } 
-    // );
+            }, 1000);
+        } 
+    );
     
     return new Promise(async (resolve, reject) => {
         try {
