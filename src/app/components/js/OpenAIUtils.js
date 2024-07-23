@@ -30,7 +30,7 @@ export async function findAnnotations(purpose, callback, endCallback) {
     let message = "";
     // await new Promise(r => setTimeout(r, 3000));
 
-    for (let token of data.test16) {
+    for (let token of data.test18) {
         // console.log(token);
         // await new Promise(r => setTimeout(r, 30));
         message += token;
@@ -202,7 +202,7 @@ export async function findAnnotations(purpose, callback, endCallback) {
 //         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-`Read every page and find sentences that could be annotated with:
+`You are grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
 
 ${purpose}
 
@@ -210,13 +210,20 @@ Here is a step-by-step list for annotating a document:
 
 1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way.
 2. Explain why you annnotated the sentence. Format the explanation as short as possible using 10 words or less. Make sure to include the purpose of the annotation in the explanation.
-3. Make a list of sentences for the section using triple asterisks for sentences and double curly braces for the explanation. For example:
-   *** <sentence> ***
-   {{ <explanation and suggestion> }}`
+3. Suggest fixes for the sentence. Format the suggestion as short as possible using 10 words or less.
+4. Do not include any sentences that need no modification.
+5. Make a list of sentences for the question using triple asterisks for sentences and double curly braces for the explanation and suggestion. For example:
+
+## Question 1
+
+*** <sentence> ***
+{{ <explanation and suggestion> }}
+...
+`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-`Lets work this out in a step by step way to be sure we have the right answer.`
+`Lets work this out in a step by step way to be sure we have the correctly mark the first question.`
         });
 
         // let run = await openai.beta.threads.runs.createAndPoll(
@@ -242,6 +249,7 @@ Here is a step-by-step list for annotating a document:
         // }
 
         let totalRuns = 0;
+        let maxRuns = 8;
 
         const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
         const vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
@@ -261,6 +269,8 @@ Here is a step-by-step list for annotating a document:
         console.log("Running GPT-4o...");
         // return;
 
+        let runNumber = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
+
         let executeRun = (checkFinish) => {
             let newTextDeltaArray = [];
             totalRuns++;
@@ -269,6 +279,7 @@ Here is a step-by-step list for annotating a document:
                 const run = openai.beta.threads.runs.stream(thread.id, {
                     assistant_id: assistantAnnotateID,
                     tool_choice: { type: "file_search" },
+                    max_completion_tokens: 2048
                     
                 })
                 // .on('textCreated', (text) => console.log('\nassistant > '))
@@ -291,8 +302,8 @@ Here is a step-by-step list for annotating a document:
                     
                     console.log(newTextDeltaArray.join(""));
     
-                    if (checkFinish || totalRuns >= 5) {
-                        if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`) || totalRuns >= 5) {
+                    if (checkFinish || totalRuns >= maxRuns) {
+                        if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`) || totalRuns >= maxRuns) {
                             console.log("Stream ended");
                             console.log(textDeltaArray);
     
@@ -303,7 +314,7 @@ Here is a step-by-step list for annotating a document:
                     }
     
                     await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Are you done? Respond only with "yes" if you are done. Otherwise, annotate the next sections using the same format. Do not repeat any previously mentioned sentences.`
+                        `Lets work this out in a step by step way to be sure we have the correctly mark the ${runNumber[totalRuns]} question.`
                     });
     
                     executeRun(true);

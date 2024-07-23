@@ -54,11 +54,15 @@ hr {
 }
 
 .word.highlighted.accept, .space.highlighted.accept {
-    background: rgb(255, 204, 0, 1);
+    background: rgba(167, 241, 167, 1);
 }
 
 .word.highlighted.fade, .space.highlighted.fade {
     background: rgba(252, 232, 151, 0.3);
+}
+
+.word.highlighted.accept.fade, .space.highlighted.accept.fade {
+    background: rgba(167, 241, 167, 0.4);
 }
 
 .character, .space, .word {
@@ -129,15 +133,15 @@ input {
 .rateContainer {
     display: flex;
     gap: 10px;
-    min-width: 74px;
-    height: 32px;
+    min-width: 80px;
+    height: 40px;
     justify-content: space-around;
     align-items: center;
 }
 
 .rateButton {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -151,8 +155,8 @@ input {
 
 .rateButton::after {
     content: "";
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     position: absolute;
     z-index: -1;
@@ -164,8 +168,8 @@ input {
 }
 
 .rateButton:hover:active::after {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
 }
 
 .shimmerBGContainer {

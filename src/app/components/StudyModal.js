@@ -3,6 +3,7 @@
 import { useState, useRef, useReducer, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
 
 import Modal from "react-modal";
+import Player from "./Player";
 import { ImMail4, ImInfo, ImExit } from "react-icons/im";
 import { HiOutlineChevronDoubleRight } from "react-icons/hi";
 import { Tooltip } from "react-tooltip";
@@ -13,14 +14,17 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, documentChange }, ref) => {
+const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange }, ref) => {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
+    let [ ifFirst, setIfFirst ] = useState(true);
+    let [ llmFirst, setLlmFirst ] = useState(true);
     
     let preStudyContent = useRef([]);
+    let preTaskContent = useRef([]);
+    let instructionTaskContent = useRef([]);
     let postTaskContent = useRef([]);
     let postStudyContent = useRef([]);
-    let ifFirst = useRef(true);
 
     let onSettings = useRef(false);
 
@@ -34,11 +38,25 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
         setModalContent({ type: "show" });
         setModalIsOpen(true);
 
-        if (modalContent.currentTask + 1 <= 1) {
-            let documentIndex = (modalContent.currentTask + 1 === 0 && ifFirst.current) || (modalContent.currentTask + 1 === 1 && !ifFirst.current) ? 0 : 1;
-            onNextTask(documentIndex);
+        // console.log(modalContent.studyState)
+        // console.log(modalContent.currentTask)
+
+        if (modalContent.currentTask <= 1 && (modalContent.studyState === "instructionTask" || modalContent.studyState === "postTask")) {
+            let taskNum = modalContent.studyState === "postTask" ? modalContent.currentTask + 1 : modalContent.currentTask;
+            let currentMode = (taskNum === 0 && llmFirst) || (taskNum === 1 && !llmFirst) ? "llm" : "base";
+
+            if (modalContent.studyState === "postTask") {
+                setModalContent({ type: "nextTask" });
+
+                if (modalContent.currentTask < 1)
+                    onNextTask(-1, currentMode);
+            } else {
+                let documentIndex = (taskNum === 0 && ifFirst) || (taskNum === 1 && !ifFirst) ? 0 : 1;
+                onNextTask(documentIndex, currentMode);
+            }
+
         }
-    }, [modalContent, onNextTask]);
+    }, [modalContent.currentTask, modalContent.studyState, onNextTask, ifFirst, llmFirst]);
 
     useEffect(() => {
         if (studyState === "study") {
@@ -83,6 +101,12 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                 case "preStudy":
                     content = preStudyContent.current;
                     break;
+                case "preTask":
+                    content = preTaskContent.current;
+                    break;
+                case "instructionTask":
+                    content = instructionTaskContent.current;
+                    break;
                 case "postTask":
                     content = postTaskContent.current;
                     break;
@@ -99,16 +123,24 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
 
             switch (state.studyState) {
                 case "preStudy": {
+                    // setModalIsOpen(false);
+                    studyState = "preTask";
+                    break;
+                } case "preTask": {
+                    setModalIsOpen(false);
+                    studyState = "instructionTask";
+                    break;
+                } case "instructionTask": {
                     setModalIsOpen(false);
                     studyState = "postTask";
                     break;
                 } case "postTask": {
-                    if (state.currentTask === 1) {
+                    if (state.currentTask > 1) {
                         setModalIsOpen(true);
                         studyState = "postStudy";
                     } else {
-                        setModalIsOpen(false);
-                        studyState = "postTask";
+                        // setModalIsOpen(false);
+                        studyState = "preTask";
                     }
                     break;
                 } case "postStudy": {
@@ -222,6 +254,11 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                     bottomContent: bottomContent,
                     callback: content[modalIndex]?.callback,
                 };
+            } case "nextTask": {
+                return {
+                    ...state,
+                    currentTask: state.currentTask + 1
+                };
             } case "next": {
                 let modalIndex = state.modalIndex + 1;
 
@@ -242,11 +279,6 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                         callback: content[modalIndex]?.callback,
                     };
                 } else {
-                    let currentTask = state.currentTask;
-
-                    if (state.studyState === "postTask") {
-                        currentTask++;
-                    }
                     let studyState = getNextStudyState();
 
                     if (studyState === "finishStudy") {
@@ -271,7 +303,6 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                             modalIndex: 0,
                             callback: content[0]?.callback,
                             studyState: studyState,
-                            currentTask: currentTask
                         };
                     }
                 }
@@ -318,18 +349,53 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                                     <p>Document Order</p>
                                     <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
                                         <div>
-                                            <input type="radio" id="firstDocument" name="documentOrder" value="firstDocument" defaultChecked={ifFirst.current}/>
-                                            <label htmlFor="firstDocument">First Document</label>
+                                            <input type="radio" id="firstDocument" name="documentOrder" value="firstDocument" defaultChecked={ifFirst}/>
+                                            <label htmlFor="firstDocument">
+                                                First 
+                                                <svg stroke="currentColor" style={{ marginLeft: "5px", marginRight: "5px" }} fill="none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                                                Second
+
+                                            </label>
                                         </div>
                                         <div>
-                                            <input type="radio" id="secondDocument" name="documentOrder" value="secondDocument" defaultChecked={!ifFirst.current}/>
-                                            <label htmlFor="secondDocument">Second Document</label>
+                                            <input type="radio" id="secondDocument" name="documentOrder" value="secondDocument" defaultChecked={!ifFirst}/>
+                                            <label htmlFor="secondDocument">
+                                                Second 
+                                                <svg stroke="currentColor" style={{ marginLeft: "5px", marginRight: "5px" }} fill="none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true" height="1em" width="1em" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                                                First
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="settingsContainer"> 
+                                    <p>LLM Order</p>
+                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                                        <div>
+                                            <input type="radio" id="llmFirst" name="llmOrder" value="llmFirst" defaultChecked={llmFirst}/>
+                                            <label htmlFor="llmFirst">LLM First</label>
+                                        </div>
+                                        <div>
+                                            <input type="radio" id="llmSecond" name="llmOrder" value="llmSecond" defaultChecked={!llmFirst}/>
+                                            <label htmlFor="llmSecond">Baseline First</label>
                                         </div>
                                     </div>
                                 </div>
                             </>
                             :
                             <>
+                                <div className="settingsContainer"> 
+                                    <p>LLM</p>
+                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                                        <div>
+                                            <input type="radio" id="llmFirst" name="llmOrder" value="llmFirst" defaultChecked={llmFirst}/>
+                                            <label htmlFor="llmFirst">LLM</label>
+                                        </div>
+                                        <div>
+                                            <input type="radio" id="llmSecond" name="llmOrder" value="llmSecond" defaultChecked={!llmFirst}/>
+                                            <label htmlFor="llmSecond">No LLM</label>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="settingsContainer"> 
                                     <p>Data Upload</p>
                                     <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
@@ -342,12 +408,25 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                                 </div>
                                 <div className="settingsContainer"> 
                                     <p>Document Upload</p>
-                                    <i style={{ color: "#E58F65" }}>Make sure words are &quot;words&quot; <br/> Not images of words</i>
                                     <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
                                         <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                            
+                                            <div style={{ gap: "10px", flexDirection: "row", marginTop: "10px" }}>
+                                                <div>
+                                                    <input type="radio" id="firstDocument" name="documentOrder" value="firstDocument" defaultChecked={ifFirst}/>
+                                                    <label htmlFor="firstDocument">First Document</label>
+                                                </div>
+                                                <div>
+                                                    <input type="radio" id="secondDocument" name="documentOrder" value="secondDocument" defaultChecked={!ifFirst}/>
+                                                    <label htmlFor="secondDocument">Second Document</label>
+                                                </div>
+                                            </div>
+                                            <hr style={{ width: "100%" }} />
+                                            <i style={{ color: "#E58F65" }}>Make sure words are &quot;words&quot; <br/> Not images of words</i>
                                             <input type="file" id="documentfile" name="documentfile" accept=".pdf" style={{ display: "none" }} onChange={() => fileChangeHandler("document")} required="required" />
                                             <label htmlFor="documentfile">Upload File</label>
                                             <p id="documentfileName">No file selected</p>
+                                            
                                         </div>
                                     </div>
                                 </div>
@@ -390,15 +469,25 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                             onSettings.current = false;
                             setPid(document.getElementById("pid").value);
 
-                            if (d3.select("input[name='documentOrder']:checked").node().value === "firstDocument") {
-                                ifFirst.current = true;
-                            } else {
-                                ifFirst.current = false;
-                            }
+                            let currentIfFirst = d3.select("input[name='documentOrder']:checked").node().value === "firstDocument";
+                            let currentLlmFirst = d3.select("input[name='llmOrder']:checked").node().value === "llmFirst";
 
-                            if (documentChange instanceof Function) {
-                                let currentDocument = (state.currentTask === 0 && ifFirst.current) || (state.currentTask === 1 && !ifFirst.current) ? 0 : 1;
-                                documentChange(currentDocument);
+                            setIfFirst(currentIfFirst);
+                            setLlmFirst(currentLlmFirst);
+
+                            // console.log(modalContent.studyState)
+                            // console.log(currentLlmFirst)
+
+                            if (modalContent.studyState === "postTask" || modalContent.studyState === "instructionTask") {
+                                if (documentChange instanceof Function) {
+                                    let currentDocument = (state.currentTask === 0 && currentIfFirst) || (state.currentTask === 1 && !currentIfFirst) ? 0 : 1;
+                                    documentChange(currentDocument);
+                                }
+                                    
+                                if (modeChange instanceof Function) {
+                                    let currentMode = (state.currentTask === 0 && currentLlmFirst) || (state.currentTask === 1 && !currentLlmFirst) ? "llm" : "base";
+                                    modeChange(currentMode);
+                                }
                             }
                         }),
                     ] :
@@ -410,6 +499,17 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                         generateNextButton({ confirm: true }, 0, (e) => {
                             exitTransitionHome(e);
                             onSettings.current = false;
+                            
+                            let currentIfFirst = d3.select("input[name='documentOrder']:checked").node().value === "firstDocument";
+                            let currentLlmFirst = d3.select("input[name='llmOrder']:checked").node().value === "llmFirst";
+
+                            if (modeChange instanceof Function) {
+                                modeChange(currentLlmFirst ? "llm" : "base");
+                            }
+
+                            if (documentChange instanceof Function) {
+                                documentChange(currentIfFirst ? 0 : 1);
+                            }
 
                             if (fileHandler instanceof Function) {
                                 fileHandler(d3.select("#datafile").node().files[0], d3.select("#documentfile").node().files[0]);
@@ -463,7 +563,7 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                             setModalIsOpen(false);
 
                             if (onFinish instanceof Function) {
-                                onFinish();
+                                onFinish("withDraw");
                             }
                         });
                     }),
@@ -507,12 +607,56 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
             {
                 "content": 
                 <div>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Welcome to the Study</h3>
+                    <h3 style={{ width: "100%", textAlign: "center" }}>Welcome to the Study</h3>
                     <ul> 
                         <li style={{ margin: "30px 0px" }}>Your task is to annotate...</li>
                     </ul>
                 </div>,
                 "prev": true,
+            },
+        ];
+
+        
+        let currentMode = (modalContent.currentTask === 0 && llmFirst) || (modalContent.currentTask === 1 && !llmFirst) ? "LLM" : "Baseline";
+        let modeOrder = modalContent.currentTask === 0 ? "First" : "Second";
+
+        let instructionContent;
+
+        if (currentMode === "Baseline" && modeOrder === "Second") {
+            instructionContent = <ul> 
+                <li style={{ margin: "30px 0px" }}>You will be annotating the document without assistance</li>
+                <li style={{ margin: "30px 0px" }}>You can practice the interface your self</li>
+            </ul>;
+        } else {
+            instructionContent = <Player src={`./tutorial/${currentMode}%20${modeOrder}.mp4`} track={`./tutorial/${currentMode}%20${modeOrder}.vtt`}/>;
+        }
+
+        preTaskContent.current = [
+            {
+                "content": 
+                <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Pre Task</h3>
+                    { instructionContent }
+                </div>,
+            },
+            {
+                "content": 
+                <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Pre Task</h3>
+                </div>,
+                "prev": true
+            },
+        ];
+        
+        instructionTaskContent.current = [
+            {
+                "content": 
+                <div>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Instructions</h3>
+                    <ul> 
+                        <li style={{ margin: "30px 0px" }}>Bla bla bla</li>
+                    </ul>
+                </div>,
             },
         ];
 
@@ -539,7 +683,7 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                 </div>,
             },
         ];
-    }, [pid]);
+    }, [llmFirst, modalContent.currentTask, pid]);
 
     let setUp = useCallback(() => {
         if (modalIsOpen) {
@@ -715,7 +859,7 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
         }
 
         if (modalContent.studyState === "finishStudy" && onFinish instanceof Function) {
-            onFinish();
+            onFinish("finishStudy");
             setModalContent({ type: "start" });
         }
     }, [modalContent, setUp, onFinish]);
@@ -723,9 +867,12 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
     useImperativeHandle(ref, () => ({
         pid: pid,
         ifFirst: ifFirst,
+        llmFirst: llmFirst,
+        setIfFirst: setIfFirst,
+        setLlmFirst: setLlmFirst,
         setModalIsOpen: setModalIsOpen,
         setModalContent: setModalContent,
-    }), [pid]);
+    }), [pid, ifFirst, llmFirst, setIfFirst, setLlmFirst]);
 
     return (
         <>

@@ -3,7 +3,7 @@
     --headerHeight: 80px;
     --logoDisplay: flex;
     --borderRadius: 0;
-    --padding: 5px;
+    --padding: 0px;
 
     width: -webkit-fill-available;
     height: 80px;
@@ -124,12 +124,11 @@
 }
 
 #header #headerLogo {
-    width: 200px;
+    width: 250px;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-left: 20px;
     display: var(--logoDisplay);
 }
 

@@ -24,8 +24,12 @@ export default function Home() {
     const [svgContent, setSvgContent] = useState([]);
     const [screen, setScreen] = useState({ width: 0, height: 0 });
     const [document, setDocument] = useState("./public/Test 1.pdf");
+    const [mode, setMode] = useState("llm");
+
     const studyModalRef = useRef(null);
     const success = useRef(false);
+    const homeLLM = useRef(true);
+    const homeDocument = useRef("./public/Test 1.pdf");
 
     if (!success.current && typeof window !== "undefined") {
         success.current = true;
@@ -51,15 +55,6 @@ export default function Home() {
             // console.error(err);
 
             toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
-                position: "bottom-center",
-                autoClose: false,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Flip,
                 toastId: "clearStoreHistory"
             });
             success.current = false;
@@ -68,8 +63,11 @@ export default function Home() {
 
     let startStudy = useCallback(() => {
         setState("study");
-        setDocument("./public/Test 1.pdf");
-        studyModalRef.current.ifFirst.current = true;
+        setDocument("./public/Practice.pdf");
+        setMode("practiceLLM");
+        
+        studyModalRef.current?.setIfFirst(true);
+        studyModalRef.current?.setLlmFirst(true);
 
         fetch("/api/storeHistory", {
             method: "POST",
@@ -92,25 +90,14 @@ export default function Home() {
             // console.error(err);
 
             toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
-                position: "bottom-center",
-                autoClose: false,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Flip,
                 toastId: "clearStoreHistory"
             });
         });
     }, []);
 
-    let onFinish = useCallback(() => {
+    let moveHistory = () => {
         let pid = studyModalRef.current?.pid ?? "test";
-        setState("home");
 
-        // Move history file to history folder
         fetch("/api/storeHistory", {
             method: "POST",
             headers: {
@@ -133,32 +120,46 @@ export default function Home() {
             // console.error(err);
 
             toast.error("moveHistory: " + err.toString().replace("Error: ", ""), {
-                position: "bottom-center",
-                autoClose: false,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-                progress: undefined,
-                theme: "dark",
-                transition: Flip,
                 toastId: "moveHistory"
             });
         });
-    }, []);
+    };
 
-    let documents = ["./public/Test 1.pdf", "./public/Test 2.pdf"];
+    let onFinish = useCallback(() => {
+        setState("home");
 
-    let onNextTask = (taskNum) => {
-        setDocument(documents[taskNum]);
+        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && mode.toLowerCase() === "llm") {
+            moveHistory();
+        }
+    }, [mode]);
+
+    const documents = ["./public/Test 1.pdf", "./public/Test 2.pdf"];
+    // const llmOrder = [true, false];
+
+    let onNextTask = (taskNum, nextMode) => {
+        if (taskNum >= 0 && taskNum < documents.length) {
+            setDocument(documents[taskNum]);
+            setMode(nextMode);
+        } else {
+            setDocument("./public/Practice.pdf");
+            setMode("practice" + nextMode);
+        }
+
+        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && mode.toLowerCase() === "llm") {
+            moveHistory();
+        }
     };
 
     let documentChange = (taskNum) => {
         setDocument(documents[taskNum]);
     };
 
+    let modeChange = (mode) => {
+        setMode(mode);
+    };
+
     let sendData = (body) => {
-        if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && !mode.toLowerCase().includes("practice")) {
             let pid = studyModalRef.current?.pid ?? "test";
 
             fetch("/api/" + pid + "/data", {
@@ -180,15 +181,6 @@ export default function Home() {
                 // console.error(err);
 
                 toast.error("sendData: " + err.toString().replace("Error: ", ""), {
-                    position: "bottom-center",
-                    autoClose: false,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    theme: "dark",
-                    transition: Flip,
                     toastId: "sendData"
                 });
             });
@@ -341,6 +333,7 @@ export default function Home() {
                         onInferenceCallback={onInferenceCallback}
                         onEndAnnotateCallback={onEndAnnotateCallback}
                         onReplyCallback={onReplyCallback}
+                        mode={mode}
                     />
                 </> :
                 <>
@@ -359,11 +352,22 @@ export default function Home() {
                         onReplyCallback={onReplyCallback}
                         svgContent={svgContent}
                         screen={screen}
+                        mode={mode}
                     />
                 </>
             }
-            <StudyModal onNextTask={onNextTask} onFinish={onFinish} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
-            <ToastContainer />
+            <StudyModal onNextTask={onNextTask} onFinish={onFinish} modeChange={modeChange} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
+            <ToastContainer 
+                position="bottom-right"
+                autoClose={false}
+                newestOnTop
+                closeOnClick={false}
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                theme="colored"
+                transition={Flip}
+            />
         </>
     );
 }

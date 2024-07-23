@@ -55,14 +55,82 @@ function wrap(text, width = -1) {
     });
 }
 
-export default function Tooltip({ clusters, index, onClick, onInference, onNewActiveCluster, onClusterChange, toolTipRef, setUpAnnotations, penAnnnotationRef, onEndAnnotate }) {
+export default function Tooltip({ mode, clusters, index, onClick, onInference, onNewActiveCluster, onClusterChange, toolTipRef, setUpAnnotations, penAnnnotationRef, onEndAnnotate }) {
     let ref = useRef(null);
     let openTimeout = useRef(null);
     let closeTimeout = useRef(null);
     let clusterRef = useRef(clusters);
     const toolTipSize = 25;
 
+    const sendHistory = useCallback((data) => {
+        if (typeof mode === "string" && !mode.toLowerCase().includes("practice")) {
+            fetch("/api/storeHistory", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(res => {
+                if (!res.ok)
+                    return res.text().then(text => { throw new Error(text); });
+                return res.text();
+            })
+            .then((data) => {
+                console.log("Success:", data);
+            })
+            .catch((error) => {
+                // console.error("Error:", error);
+
+                toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
+                    toastId: "updatePurpose"
+                });
+            });
+        }
+    }, [mode]);
+
     const inferPurpose = useCallback(async (lastCluster) => {
+        if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
+            return new Promise(
+                resolve => {
+                    setTimeout(() => {
+                        console.log("Resolving promise...");
+        
+                        resolve({
+                            rawText: "Bla bla bla...",
+                            result: JSON.parse(`{
+                                "annotationDescription": "Test",
+                                "pastAnnotationHistory": "Test",
+                                "purpose": [
+                                    {
+                                        "persona": "Persona 1",
+                                        "purpose": "Purpose 1",
+                                        "purposeTitle": "Purpose 1"
+                                    },
+                                    {
+                                        "persona": "Persona 2",
+                                        "purpose": "Purpose 2",
+                                        "purposeTitle": "Purpose 2"
+                                    },
+                                    {
+                                        "persona": "Persona 3",
+                                        "purpose": "Purpose 3",
+                                        "purposeTitle": "Purpose 3"
+                                    },
+                                    {
+                                        "persona": "Persona 4",
+                                        "purpose": "Purpose 4",
+                                        "purposeTitle": "Purpose 4"
+                                    }
+                                ]
+                            }`),
+                            images: ["test image 1", "test image 2"]
+                        });
+                            
+                    }, 1000);
+                } 
+            );
+        }
         let bbox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
         let annotationPage1 = d3.select("#layer-" + index).node().cloneNode(true);
         let annotationPage2 = d3.select("#layer-" + index).node().cloneNode(true);
@@ -359,7 +427,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
         let [annotationWithText, annotationWithoutText] = await Promise.all([cropAnnotation, pageImage]);
         let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText.trim());
         return { rawText, result, images: [annotationWithText, annotationWithoutText] };
-    }, [index]);
+    }, [index, mode]);
     
     const updateTextTooltips = useCallback(() => {
         clusterRef.current = clusterRef.current.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial"));
@@ -1135,43 +1203,13 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 setUpAnnotations(clusterRef.current[k].purpose.annotationDescription, clusterRef.current[k].searching.purposeTitle, clusterRef.current[k].searching.purpose, onDetect, onEnd, penAnnnotationRef);
                             }
 
-                            fetch("/api/storeHistory", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    purpose: cluster.searching.purpose,
-                                    purposeTitle: cluster.searching.purposeTitle,
-                                    annotationDescription: cluster.purpose.annotationDescription,
-                                    action: "update"
-                                })
-                            })
-                            .then(res => {
-                                if (!res.ok)
-                                    return res.text().then(text => { throw new Error(text); });
-                                return res.text();
-                            })
-                            .then((data) => {
-                                console.log("Success:", data);
-                            })
-                            .catch((error) => {
-                                // console.error("Error:", error);
-
-                                toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
-                                    position: "bottom-center",
-                                    autoClose: false,
-                                    hideProgressBar: false,
-                                    closeOnClick: true,
-                                    pauseOnHover: true,
-                                    draggable: true,
-                                    progress: undefined,
-                                    theme: "dark",
-                                    transition: Flip,
-                                    toastId: "updatePurpose"
-                                });
+                            sendHistory({
+                                purpose: cluster.searching.purpose,
+                                purposeTitle: cluster.searching.purposeTitle,
+                                annotationDescription: cluster.purpose.annotationDescription,
+                                action: "update"
                             });
-                            
+
                             updateTooltips(clusterRef.current);
                             toolTipRef.current?.close();
                         });
@@ -1267,41 +1305,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                             setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
                         }
 
-                        fetch("/api/storeHistory", {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                purpose: "",
-                                purposeTitle: this.value,
-                                annotationDescription: cluster.purpose?.annotationDescription,
-                                action: "update"
-                            })
-                        })
-                        .then(res => {
-                            if (!res.ok)
-                                return res.text().then(text => { throw new Error(text); });
-                            return res.text();
-                        })
-                        .then((data) => {
-                            console.log("Success:", data);
-                        })
-                        .catch((error) => {
-                            // console.error("Error:", error);
-                            
-                            toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
-                                position: "bottom-center",
-                                autoClose: false,
-                                hideProgressBar: false,
-                                closeOnClick: true,
-                                pauseOnHover: true,
-                                draggable: true,
-                                progress: undefined,
-                                theme: "dark",
-                                transition: Flip,
-                                toastId: "updatePurpose"
-                            });
+                        sendHistory({
+                            purpose: "",
+                            purposeTitle: this.value,
+                            annotationDescription: cluster.purpose?.annotationDescription,
+                            action: "update"
                         });
 
                         updateTooltips(clusterRef.current);
@@ -1565,41 +1573,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                 setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
                             }
 
-                            fetch("/api/storeHistory", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    purpose: "",
-                                    purposeTitle: this.value,
-                                    annotationDescription: cluster.purpose?.annotationDescription,
-                                    action: "update"
-                                })
-                            })
-                            .then(res => {
-                                if (!res.ok)
-                                    return res.text().then(text => { throw new Error(text); });
-                                return res.text();
-                            })
-                            .then((data) => {
-                                console.log("Success:", data);
-                            })
-                            .catch((error) => {
-                                // console.error("Error:", error);
-
-                                toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
-                                    position: "bottom-center",
-                                    autoClose: false,
-                                    hideProgressBar: false,
-                                    closeOnClick: true,
-                                    pauseOnHover: true,
-                                    draggable: true,
-                                    progress: undefined,
-                                    theme: "dark",
-                                    transition: Flip,
-                                    toastId: "updatePurpose"
-                                });
+                            sendHistory({
+                                purpose: "",
+                                purposeTitle: this.value,
+                                annotationDescription: cluster.purpose?.annotationDescription,
+                                action: "update"
                             });
 
                             updateTooltips(clusterRef.current);
@@ -1692,41 +1670,11 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
                                     setUpAnnotations(clusterRef.current[k].purpose.annotationDescription, clusterRef.current[k].searching.purposeTitle, clusterRef.current[k].searching.purpose, onDetect, onEnd, penAnnnotationRef);
                                 }
 
-                                fetch("/api/storeHistory", {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-Type": "application/json"
-                                    },
-                                    body: JSON.stringify({
-                                        purpose: cluster.searching.purpose,
-                                        purposeTitle: cluster.searching.purposeTitle,
-                                        annotationDescription: cluster.purpose.annotationDescription,
-                                        action: "update"
-                                    })
-                                })
-                                .then(res => {
-                                    if (!res.ok)
-                                        return res.text().then(text => { throw new Error(text); });
-                                    return res.text();
-                                })
-                                .then((data) => {
-                                    console.log("Success:", data);
-                                })
-                                .catch((error) => {
-                                    // console.error("Error:", error);
-
-                                    toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
-                                        position: "bottom-center",
-                                        autoClose: false,
-                                        hideProgressBar: false,
-                                        closeOnClick: true,
-                                        pauseOnHover: true,
-                                        draggable: true,
-                                        progress: undefined,
-                                        theme: "dark",
-                                        transition: Flip,
-                                        toastId: "updatePurpose"
-                                    });
+                                sendHistory({
+                                    purpose: cluster.searching.purpose,
+                                    purposeTitle: cluster.searching.purposeTitle,
+                                    annotationDescription: cluster.purpose.annotationDescription,
+                                    action: "update"
                                 });
 
                                 updateTooltips(clusterRef.current);
@@ -2310,7 +2258,7 @@ export default function Tooltip({ clusters, index, onClick, onInference, onNewAc
         //         .remove()
         //     ),
         // );
-    }, [onClick, inferPurpose, onInference, toolTipRef, setUpAnnotations, updateTextTooltips, onNewActiveCluster, onClusterChange, penAnnnotationRef, onEndAnnotate]);
+    }, [onClick, inferPurpose, onInference, onNewActiveCluster, toolTipRef, setUpAnnotations, sendHistory, updateTextTooltips, onClusterChange, onEndAnnotate, penAnnnotationRef]);
 
     useEffect(() => {
         if (clusters) {

@@ -86,9 +86,9 @@ export default function Header({ children }) {
     }, [radius]);
 
     return (
-        <header id={"header"} onPointerLeave={onPointerLeave} onPointerEnter={onPointerEnter} onPointerMove={onPointerMove}>
+        <header id={"header"} >
             <div id={"headerInner"}>
-                <div id={"headerLogo"} >
+                <div id={"headerLogo"} onPointerLeave={onPointerLeave} onPointerEnter={onPointerEnter} onPointerMove={onPointerMove} >
                     <svg
                         viewBox="0 0 165 54"
                         className={"svg"}

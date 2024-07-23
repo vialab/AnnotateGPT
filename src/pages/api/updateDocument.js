@@ -31,14 +31,12 @@ export default async function handler(req, res) {
     
             const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
             let vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
-            let vectorStore;
             
-            if (vectorStoreID) {
-                vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
-            } else {
-                vectorStore = await openai.beta.vectorStores.create({
+            if (!vectorStoreID) {
+                let vectorStore = await openai.beta.vectorStores.create({
                     name: "Pen Annotation vector store",
                 });
+                vectorStoreID = vectorStore.id;
             }
             const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
     

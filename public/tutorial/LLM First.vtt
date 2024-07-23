@@ -1,0 +1,73 @@
+WEBVTT
+
+00:00:00.080 --> 00:00:02.540
+Welcome to the study.
+
+00:00:02.540 --> 00:00:05.600
+Your task is to evaluate our annotation systems.
+
+00:00:07.018 --> 00:00:12.658
+There are two tools you can use, the highlighter and the pen.
+
+00:00:14.571 --> 00:00:17.691
+You can change the color of the ink by tapping on the palette.
+
+00:00:20.940 --> 00:00:23.020
+You can annotate the document by placing
+
+00:00:23.020 --> 00:00:25.020
+ink using the digital pen provided.
+
+00:00:33.115 --> 00:00:38.635
+You can also erase your pen strokes by using the eraser tip or the side button on the digital pen.
+
+00:00:42.929 --> 00:00:46.496
+To use an assistant, you can hover the pen over the annotation.
+
+00:00:47.569 --> 00:00:50.529
+A tooltip would appear on the right side of the document.
+
+00:00:51.497 --> 00:00:53.737
+Tapping on the tooltip would activate it.
+
+00:00:54.949 --> 00:00:59.009
+The system will guess on what the purpose of the annotation is.
+
+00:00:59.009 --> 00:01:02.869
+Hovering over the options will give more details about the guesses.
+
+00:01:03.933 --> 00:01:05.933
+If you are not satisfied with the options, 
+
+00:01:05.933 --> 00:01:09.213
+you can type your own purpose using the input provided.
+
+00:01:10.851 --> 00:01:13.011
+When tapping an option, the system will
+
+00:01:13.011 --> 00:01:15.731
+search for further annotations with the given purpose.
+
+00:01:17.755 --> 00:01:22.195
+You can navigate recent annotations using the arrows on the left.
+
+00:01:22.195 --> 00:01:26.555
+The system will give further explanation on why the sentence was annotated.
+
+00:01:27.776 --> 00:01:31.696
+You can also hover over the annotation to navigate the annotations.
+
+00:01:35.082 --> 00:01:38.762
+If you are satisfied with the annotation, you can like the annotation.
+
+00:01:42.317 --> 00:01:46.237
+If you need to further annotate the sentence, you can do so by commenting.
+
+00:01:48.463 --> 00:01:50.643
+If you think the sentence should not be annotated,
+
+00:01:50.643 --> 00:01:53.183
+you can reject the annotation as well.
+
+00:01:55.907 --> 00:01:58.227
+You can now practice the interface yourself.

@@ -210,7 +210,7 @@ function nearPath(point, path) {
     return false;
 }
 
-const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
+const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
@@ -220,6 +220,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     const [lockCluster, setLockCluster] = useState([]);
     const clustersRef = useRef(clustersState);
     const lockClusterRef = useRef(lockCluster);
+    const modeRef = useRef(mode ?? "llm");
     const hoveredCluster = useRef(null);
     const hoverTimeout = useRef(null);
     const activeCluster = useRef(null);
@@ -415,7 +416,7 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
     useEffect(() => {
         svgPenSketch.current._element
         .on("pointermove.hover", (e) => {
-            if (e.buttons === 0 && e.button === -1) {
+            if (e.buttons === 0 && e.button === -1 && typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("llm")) {
                 handleHover(e);
             }
         })
@@ -1218,6 +1219,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         }
     }
 
+    function setMode(mode) {
+        modeRef.current = mode;
+    }
+
+    useEffect(() => {
+        modeRef.current = mode;
+    }, [mode]);
+
     useImperativeHandle(ref, () => ({
         updateClusters: (clusters) => {
             setClusters(clusters);
@@ -1228,13 +1237,14 @@ const PenAnnotation = forwardRef(({ content, index, tool, colour, toolTipRef, se
         clusters: clustersRef,
         lockClusters: lockClusterRef,
         svgRef: svgRef.current,
+        setMode: setMode
     }), []);
 
     return (
         <div className={"pen-annotation-layer"} id={"layer-" + index}>
             <svg ref={svgRef} width={"100%"} height={"100%"} style={{ position: "absolute" }} />
             
-            <Tooltip penAnnnotationRef={ref} index={index} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} onEndAnnotate={onEndAnnotate} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
+            <Tooltip penAnnnotationRef={ref} index={index} mode={mode} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} onEndAnnotate={onEndAnnotate} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
         </div>
     );
 });
