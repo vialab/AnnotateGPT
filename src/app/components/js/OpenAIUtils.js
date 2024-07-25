@@ -32,7 +32,7 @@ export async function findAnnotations(purpose, callback, endCallback) {
         let message = "";
         // await new Promise(r => setTimeout(r, 3000));
 
-        for (let token of data.test18) {
+        for (let token of data.test19) {
             // console.log(token);
             // await new Promise(r => setTimeout(r, 30));
             message += token;
@@ -52,158 +52,6 @@ export async function findAnnotations(purpose, callback, endCallback) {
         const thread = await openai.beta.threads.create();
         let textDeltaArray = [];
 
-//         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-// `Read every page and find sentences that could be annotated with:
-
-// "Clarify Academic Focus": "The suggestion aims to refine the title to more effectively convey the primary focus or uniqueness of the work, potentially increasing its clarity and academic appeal."
-
-// Here is a step-by-step list for annotating a document:
-
-// 1. Describe what to look for in the document
-// 2. Retrieve the first section
-// 3. Find all sentences that could be annotated. Directly quote sentences from the document without rephrasing.
-// 4. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
-//    """ <put sentence here> """
-//    {{{ <put explanation here> }}}
-//    """ <put sentence here> """
-//    {{{ <put explanation here> }}}
-//    ...
-// 5. Continue to the next section and repeat steps 1-4 for the next section until the end
-
-// Lets work in a step by step way to be sure we have all the sentences`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `Here are some additional sentences that embody the core principle of "Clarify Academic Focus" by aiming to refine content to more effectively convey the primary focus of the work:
-// 1. """The focus of this thesis is on introducing another way to use a camera, making it less obstructive and interruptive to create a more immersive and fluent experience."""
-// - {{{ This sentence succeeds in specifying the academic focus but might benefit from an expanded description of how the proposed method makes camera use less obstructive. }}}
-// 2. """The solution presented is to remove the display entirely to hide any distractions and mount the camera where the user does not need to reach for it."""
-// - {{{ This sentence outlines a key part of the thesis' innovation but could be framed better to highlight how it contributes uniquely to advancing user experience in camera usage. }}}
-// I will continue reading for more sentences that align with the request. Let's scroll further.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `Continuing, I found another set of sentences that align with the purpose of "Clarify Academic Focus":
-// 1. """Achieving the most immersive experience would require the user not to look at any display."""
-// - {{{ While this asserts an immersive experience, a clarification such as, “Aiming for an immersive hands-free interface, the device removes all visual displays requiring user interaction” might centralize the focus on a hands-free approach more explicitly. }}}
-// 2. """Combining eye tracking with image processing algorithms can provide more context and detail making different camera modes possible without needing a display or touching any devices."""
-// - {{{ This sentence could be modified for clarity on why the integration of eye-tracking enhances the functionality and uniqueness of camera modes, perhaps by specifying what additional data or user feedback is enabled by eye tracking. }}}
-// 3. """Brain-computer interfaces acquire the wearer’s brain signals and analyze them to execute the desired action."""
-// - {{{ It might be beneficial to specify what types of actions or commands are typical or particularly innovative in the context of this research, for clarity and focus. }}}
-// 4. """Wireless earbuds are used to hear any feedback from the camera with minimal time to set up and no wires in the way of the user."""
-// - {{{ Clarification could be given on how this wireless feedback contributes to the focus on creating a more user-centric and intuitive experience. }}}
-// I will continue reading the document to find more pertinent sentences. Let's move to the next sections.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `The following sentences from the latest section could also be annotated with the purpose of "Clarify Academic Focus" as they may benefit from refinements to better focus on or convey the academic novelty:
-// 1. """Photo taking, object detection, and translation are the implemented modes."""
-// - {{{ This sentence briefly lists the modes but could be expanded to clarify how each mode supports the overall academic or practical purpose of the technology. }}}
-// 2. """These modes present a solution to cover all the use cases for a camera by executing a hand gesture associated with the desired mode."""
-// - {{{ This sentence could be revised to specify how each mode individually contributes to covering all use cases of a camera, emphasizing the innovative aspect of using hand gestures. }}}
-// 3. """A custom cropping algorithm to reove noise from the image."""
-// - {{{ This sentence describes a process but could benefit from a clearer explanation of why focusing on the fixation point is innovative or beneficial for reducing visual noise in images. }}}
-// I will proceed to analyze the final parts of the document for any additional sentences that fit the purpose. Let's scroll further.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `In the conclusion section, several sentences that could benefit from clarification to enhance academic focus include:
-// 1. """This work presents solutions to create a fluent experience when using a camera."""
-// - {{{ Detailing the proposed solutions' innovative advancements or technical mechanisms might better underline the academic value of the work. }}}
-// 2. """It explores combining a brain-computer interface and eye-tracking glasses to create a touchless camera and take pictures with thoughts."""
-// - {{{ An elaboration on how the integration of these technologies results in a seamless user experience could provide clearer academic insight into the study's novelty. }}}
-// 3. """Overall the hardware used replaces touch interactions with touch-less ones allowing the user to be more attentive to the present moment."""
-// - {{{ A more detailed rationale or discussion on how touchless interactions enhance user attentiveness could finalize the academic focus more effectively. }}}`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-// `Read every page and find sentences that could be annotated with:
-
-// "Engage Technology Audience": "The aim is to capture the attention of an audience interested in innovative technologies, suggesting a more dynamic or precise title to better engage readers."
-
-// Here is a step-by-step list for annotating a document:
-
-// 1. Describe what to look for in the document
-// 2. Retrieve the first section
-// 3. Find all sentences that could be annotated. Directly quote sentences from the document without rephrasing.
-// 4. Make a list of sentences for the section using three double quotes for sentences and three curly braces for the explanation. For example:
-//    """ <put sentence here> """
-//    {{{ <put explanation here> }}}
-//    """ <put sentence here> """
-//    {{{ <put explanation here> }}}
-//    ...
-// 5. Continue to the next section and repeat steps 1-4 for the next section until the end
-
-// Lets work in a step by step way to be sure we have all the sentences`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `Based on the provided document and the purpose of annotation which is to "Engage Technology Audience," I will now begin analyzing the document to identify sentences that could be annotated to better engage readers interested in innovative technologies.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `The abstract of the document contains sentences that can be annotated for engaging a technology audience:
-// 1. """Technology has altered the immersion of our lives for the worse.""" 
-// - {{{ Highlight the impact of technology and suggest a title that emphasizes the dual nature of technological advancement. }}}
-// 2. """Using touch-free technology can lessen the divide between technology and reality and bring us closer to the immersion we once had before."""
-// - {{{ Emphasize the innovative aspect of touch-free technology to attract readers interested in seamless integrations of technology with daily life }}}
-// I will now continue to the next section to identify more sentences.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `In the Introduction section, the following sentences can be further annotated to engage a technology audience:
-// 1. """The focus of this thesis is on introducing another way to use a camera, making it less obstructive and interruptive to create a more immersive and fluent experience."""
-// - {{{ Highlight the innovative approach to camera use for an engaged technology audience, suggesting a catchier and more engaging title reflecting progressive camera utilization techniques. }}}
-// 2. """Mounting the camera alone does not solve the user reaching for the device."""
-// - {{{ Underline the need for innovative solutions beyond traditional methods, suggesting this as a pivotal point in engaging tech enthusiasts in the document. }}}
-// 3. """Touch-less gestures were used to interact with the camera, minimizing the user touching the device."""
-// - {{{ Emphasize the cutting-edge touch-less interaction technology to capture the attention of tech-oriented readers, suggesting a headline that highlights this revolutionary approach. }}}
-// I will continue to the next section to identify more relevant sentences.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `In the Body of the document, the following sentences can be annotated to engage a technology audience:
-// 1. """Different camera modes are implemented to fit the user’s needs or requirements."""
-// - {{{ Highlight the customization and adaptability of the camera modes to engage tech enthusiasts interested in modular technology. }}}
-// 2. """One possible solution is eye-tracking to determine where the user is interested in the scene."""
-// - {{{ Emphasize the innovative solution of eye-tracking to captivate an audience that values advanced interaction technologies, suggesting a title that resonates with these cutting-edge implementations. }}}
-// 3. """Combining eye tracking with image processing algorithms can provide more context and detail making different camera modes possible without needing a display or touching any devices."""
-// - {{{ Underline the combined use of eye-tracking and image processing to attract readers interested in seamless and intuitive tech solutions, suggesting a more dynamic title. }}}
-// 4. """Audio feedback can have many forms such as audio cues (sound effects) and speech."""
-// - {{{ Focus on the versatile use of audio feedback to attract readers interested in innovative audio interaction technologies. }}}
-// I will now continue to the next sections of the document.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `In the Implementation section, the following sentences are relevant to the annotation goal of engaging a technology audience:
-// 1. """Training is required for the brain-computer interface to recognize user-specific brain activity patterns to create mental commands."""
-// - {{{ Highlight the intersection of neuroscience and technology through brain-computer interfaces to captivate an audience interested in cutting-edge cerebral technologies. }}}
-// 2. """Photo taking, object detection, and translation are the implemented modes."""
-// - {{{ Emphasize the multifunctionality of the device to engage a tech-savvy audience, suggesting a title that highlights its various capabilities. }}}
-// 3. """Translation has been used for many purposes and it could help with academics or help with navigating a foreign country."""
-// - {{{ Focus on the practical applications of the translation feature to attract readers interested in real-world tech solutions, possibly suggesting a more targeted title discussing technology in daily life and travel. }}}
-// 4. """Visual search is designed to search for information on the Internet using images."""
-// - {{{ Underline the innovative feature of visual search to engage an audience interested in search technologies and image processing, suggesting a more striking title that captures the technology’s essence. }}}
-// I will continue to search for more sentences.`
-//         });
-
-//         await openai.beta.threads.messages.create(thread.id, { role: "assistant", content: 
-// `In the Conclusion section, several sentences can be annotated for engaging a technology audience:
-// 1. """This section will talk about the work accomplished and its limitations."""
-// - {{{ Highlight key innovative points and breakthroughs to captivate readers interested in the development and challenges in technology. }}}
-// 2. """Touch-free gestures with a head-mounted device can help users focus on the present moment rather than looking at a display and maneuvering the device."""
-// - {{{ Emphasize the advanced touch-free technology to engage audiences looking for futuristic interaction methods, suggesting an engaging title. }}}
-// 3. """All hardware limitations can be solved in the future. A BCI integrated with eye-tracking glasses can solve both devices hindering each other’s performance."""
-// - {{{ Focus on the potential of combining these technologies to intrigue readers about the future of integrative tech solutions. }}}
-// 4. """Many optimizations can be made to the touch-less camera but are not implemented due to accessibility of the technology and time constraints."""
-// - {{{ Discuss the potential improvements and current limitations to generate discussion among tech innovators and enthusiasts. }}}
-// 5. """The potential of this work can be extended with different interactions such as voice recognition and haptic"""
-// - {{{ Underline the multifunctional expansion possibilities to attract readers interested in versatile and adaptive technology. }}}
-// 6. """There are ethical concerns about how this work allows users to take pictures without noticing potentially invading someone’s privacy."""
-// - {{{ Engage readers in a critical ethical discussion about the implications of such technology, which could generate substantial interest and debate among a tech-conscious audience. }}}
-// This concludes the comprehensive search for sentences within the document that could be annotated to engage a technology audience.`
-//         });
-
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
 `You are grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
 
@@ -213,11 +61,11 @@ Here is a step-by-step list for annotating a document:
 
 1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way.
 2. Explain why you annnotated the sentence. Format the explanation as short as possible using 10 words or less. Make sure to include the purpose of the annotation in the explanation.
-3. Suggest fixes for the sentence. Format the suggestion as short as possible using 10 words or less.
+3. Suggest fixes for the sentence. Format the suggestion as short as possible using 10 words or less by describing the fix without giving the answer.
 4. Do not include any sentences that need no modification.
 5. Make a list of sentences for the question using triple asterisks for sentences and double curly braces for the explanation and suggestion. For example:
 
-## Question 1
+## Response #1
 
 *** <sentence> ***
 {{ <explanation and suggestion> }}
@@ -226,7 +74,7 @@ Here is a step-by-step list for annotating a document:
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-`Lets work this out in a step by step way to be sure we have the correctly mark the first question.`
+`Lets work this out in a step by step way to be sure we have the correctly mark all questions.`
         });
 
         // let run = await openai.beta.threads.runs.createAndPoll(
@@ -317,7 +165,7 @@ Here is a step-by-step list for annotating a document:
                     }
     
                     await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Lets work this out in a step by step way to be sure we have the correctly mark the ${runNumber[totalRuns]} question.`
+                        `Have you finished marking all eight questions? Respond with "yes" if so, otherwise continue marking without mentioning previous sentences.`
                     });
     
                     executeRun(true);
