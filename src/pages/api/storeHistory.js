@@ -34,7 +34,10 @@ async function updateHistory(dataFilePath) {
                 console.error(error);
             }
         }
-        deleteFiles();
+        deleteFiles()
+        .catch((error) => {
+            console.error(error);
+        });
     
         const historyFile = await openai.files.create({
             file: file,

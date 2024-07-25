@@ -284,7 +284,7 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
         let toolTipSpans;
 
         if (cluster && tAnnotations.length > 0) {
-            let tooltip = d3.select("g.toolTip#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+            let tooltip = d3.select("g.toolTip#toolTip" + cluster.strokes[cluster.strokes.length - 1]?.id).node();
 
             if (tooltip) {
                 toolTipSpans = { spans: [tooltip] };

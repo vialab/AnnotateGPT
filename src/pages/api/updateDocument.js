@@ -38,6 +38,8 @@ export default async function handler(req, res) {
                 });
                 vectorStoreID = vectorStore.id;
             }
+            console.log("Deleting document...");
+
             const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
     
             for (let file of vectorStoreFiles.data) {
@@ -51,23 +53,25 @@ export default async function handler(req, res) {
                     console.error(error.error.message, "in files");
                 });
             }
-    
-            console.log("Creating file...");
+            console.log("Creating document...");
             
             const file = await openai.files.create({
                 file: processDocument,
                 purpose: "assistants",
             });
     
+            console.log("Indexing document...");
+            
             await openai.beta.vectorStores.files.createAndPoll(
                 vectorStoreID, 
                 {
                     file_id: file.id
                 },
                 {
-                    pollIntervalMs: 500
+                    pollIntervalMs: 500,
                 }
             );
+            console.log("Done creating document...");
 
             if (file.status == "error") {
                 res.status(500).send("Error uploading document!");

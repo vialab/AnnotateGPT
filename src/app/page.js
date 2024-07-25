@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect, forwardRef, createRef } from "react";
 import localFont from "next/font/local";
 import dynamic from 'next/dynamic';
 import { parse } from 'csv-parse';
@@ -25,11 +25,28 @@ export default function Home() {
     const [screen, setScreen] = useState({ width: 0, height: 0 });
     const [document, setDocument] = useState("./public/Test 1.pdf");
     const [mode, setMode] = useState("llm");
+    const [disableNext, setDisableNext] = useState(true);
+    const [toastMessage, setToastMessage] = useState("");
 
     const studyModalRef = useRef(null);
     const success = useRef(false);
     const homeLLM = useRef(true);
     const homeDocument = useRef("./public/Test 1.pdf");
+    const practiceMessage = useRef([
+        [
+            "Make an annotation",
+            "Activate tooltip",
+            "Make annotations using the tooltip",
+            "Navigate annotations by hovering or with the arrows",
+            "Like or dislike an annotation",
+        ],
+        [
+            "Make an annotation",
+        ]
+    ]);
+    const practiceMessageIndex = useRef(0);
+    const modeRef = useRef(mode);
+    const annotationeRef = useRef(null);
 
     if (!success.current && typeof window !== "undefined") {
         success.current = true;
@@ -65,7 +82,9 @@ export default function Home() {
         setState("study");
         setDocument("./public/Practice.pdf");
         setMode("practiceLLM");
-        
+        practiceMessageIndex.current = 0;
+        setToastMessage(practiceMessage.current[0][0]);
+
         studyModalRef.current?.setIfFirst(true);
         studyModalRef.current?.setLlmFirst(true);
 
@@ -90,7 +109,8 @@ export default function Home() {
             // console.error(err);
 
             toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
-                toastId: "clearStoreHistory"
+                toastId: "clearStoreHistory",
+                containerId: "errorMessage"
             });
         });
     }, []);
@@ -140,9 +160,26 @@ export default function Home() {
         if (taskNum >= 0 && taskNum < documents.length) {
             setDocument(documents[taskNum]);
             setMode(nextMode);
+
+            setToastMessage(null);
+            // practiceMessageIndex.current = 0;
+            // console.log("Test")
         } else {
             setDocument("./public/Practice.pdf");
             setMode("practice" + nextMode);
+            
+            practiceMessageIndex.current = 0;
+
+            if (typeof mode === "string") {
+                let messages;
+                
+                if (mode.toLowerCase().includes("llm")) {
+                    messages = practiceMessage.current[0];
+                } else {
+                    messages = practiceMessage.current[1];
+                }
+                setToastMessage(messages[0]);
+            }
         }
 
         if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && mode.toLowerCase() === "llm") {
@@ -156,10 +193,25 @@ export default function Home() {
 
     let modeChange = (mode) => {
         setMode(mode);
+
+        practiceMessageIndex.current = 0;
+
+        if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
+            let messages;
+            
+            if (mode.toLowerCase().includes("llm")) {
+                messages = practiceMessage.current[0];
+            } else {
+                messages = practiceMessage.current[1];
+            }
+            setToastMessage(messages[0]);
+            setDisableNext(true);
+        }
+        modeRef.current = mode;
     };
 
     let sendData = (body) => {
-        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && !mode.toLowerCase().includes("practice")) {
+        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof modeRef.current === "string" && !modeRef.current.toLowerCase().includes("practice")) {
             let pid = studyModalRef.current?.pid ?? "test";
 
             fetch("/api/" + pid + "/data", {
@@ -187,6 +239,25 @@ export default function Home() {
         }
     };
 
+    let updatePracticeMessages = (currentIndex) => {
+        if (typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("practice") && practiceMessageIndex.current === currentIndex) {
+            let messages;
+            
+            if (modeRef.current.toLowerCase().includes("llm")) {
+                messages = practiceMessage.current[0];
+            } else {
+                messages = practiceMessage.current[1];
+            }
+
+            if (practiceMessageIndex.current + 1 < messages.length) {
+                setToastMessage(messages[practiceMessageIndex.current + 1]);
+                practiceMessageIndex.current += 1;
+            } else {
+                setToastMessage("Click the top left button to continue");
+                setDisableNext(false);
+            }
+        }
+    };
 
     let penEndCallback = (param) => {
         let annotatedText = param.stroke.annotatedText.map( element => element.innerText).join(" ").replace(/"/g, `""`);
@@ -194,6 +265,8 @@ export default function Home() {
 
         let strokeData = `${param.path.id},createStroke,${param.page},${param.stroke.startTime},${param.stroke.endTime},${param.stroke.type},"${annotatedText}","${marginalText}","${param.path.outerHTML.replace(/"/g, `""`)}"`;
         let bbox = d3.select(".page-container").node().getBoundingClientRect();
+
+        updatePracticeMessages(0);
 
         sendData(JSON.stringify({
             action: "penStroke",
@@ -226,6 +299,8 @@ export default function Home() {
         });
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "inference", actionTimestamp: timestamp});
 
+        updatePracticeMessages(1);
+
         sendData(JSON.stringify({
             action: "clusterChange",
             data: clusterData
@@ -251,6 +326,8 @@ export default function Home() {
         });
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "annotate", actionTimestamp: timestamp});
 
+        updatePracticeMessages(2);
+
         sendData(JSON.stringify({
             action: "clusterChange",
             data: clusterData
@@ -264,6 +341,10 @@ export default function Home() {
         }));
     };
 
+    let navigateCallback = () => {
+        updatePracticeMessages(3);
+    };
+    
     let onReplyCallback = (cluster, type) => {
         let timestamp = Date.now();
 
@@ -275,6 +356,10 @@ export default function Home() {
             }
         });
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "reply " + type, actionTimestamp: timestamp});
+
+        if (type.includes("accept") || type.includes("reject")) {
+            updatePracticeMessages(4);
+        }
 
         sendData(JSON.stringify({
             action: "clusterChange",
@@ -322,6 +407,12 @@ export default function Home() {
             setDocument(document);
     };
 
+    // console.log(annotationeRef)
+
+    useEffect(() => {
+        modeRef.current = mode;
+    }, [mode]);
+
     return (
         <>
             { state === "study" ?
@@ -332,8 +423,10 @@ export default function Home() {
                         onECallback={onEraseCallback}
                         onInferenceCallback={onInferenceCallback}
                         onEndAnnotateCallback={onEndAnnotateCallback}
+                        navigateCallback={navigateCallback}
                         onReplyCallback={onReplyCallback}
                         mode={mode}
+                        annotateRef={annotationeRef}
                     />
                 </> :
                 <>
@@ -353,11 +446,29 @@ export default function Home() {
                         svgContent={svgContent}
                         screen={screen}
                         mode={mode}
+                        annotateRef={annotationeRef}
                     />
                 </>
             }
-            <StudyModal onNextTask={onNextTask} onFinish={onFinish} modeChange={modeChange} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
+            <StudyModal toastMessage={toastMessage} disableNext={disableNext} onNextTask={onNextTask} onFinish={onFinish} modeChange={modeChange} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
+            
+            <ToastContainer
+                containerId="studyMessage"
+                position="top-center"
+                autoClose={false}
+                // limit={1}
+                closeButton={false}
+                newestOnTop
+                closeOnClick={false}
+                rtl={false}
+                pauseOnFocusLoss={false}
+                draggable={false}
+                theme="dark"
+                transition= {Flip}
+            />
+
             <ToastContainer 
+                containerId="errorMessage"
                 position="bottom-right"
                 autoClose={false}
                 newestOnTop
@@ -367,6 +478,7 @@ export default function Home() {
                 draggable
                 theme="colored"
                 transition={Flip}
+                stacked
             />
         </>
     );

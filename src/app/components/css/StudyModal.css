@@ -27,6 +27,7 @@
     justify-content: center;
     align-items: center;
     outline: none;
+    font-size: 1.1em;
 }
 
 .contentContainer {
@@ -125,7 +126,7 @@
     pointer-events: all;
 }
 
-.contentContainer .modalButton.disabled::before {
+.contentContainer .modalButton.disabled::before, .continue.disabled::before {
     width: 100%;
     top: 50%;
     left: 0em;
@@ -137,7 +138,7 @@
     transform: rotate(-45deg);
 }
 
-.contentContainer .modalButton.disabled::after {
+.contentContainer .modalButton.disabled::after, .continue.disabled::after {
     width: 100%;
     top: 50%;
     left: 0em;
@@ -150,7 +151,8 @@
 }
 
 .contentContainer .modalButton.disabled.enable::before,
-.contentContainer .modalButton.disabled.enable::after {
+.contentContainer .modalButton.disabled.enable::after,
+.continue.disabled.enable::before, .continue.disabled.enable::after {
     opacity: 0;
     transition: opacity 1s ease-in-out;
 }
@@ -534,6 +536,18 @@
 
 .continue {
 	background-color: #2EB086;
+    transition: opacity 1s ease-in-out;
+}
+
+
+.continue.disabled {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.continue.disabled.enable {
+    pointer-events: all;
+    opacity: 1;
 }
 
 .continue > svg {
@@ -554,4 +568,90 @@
 	100% {
 	  opacity: 1;
 	}
+}
+
+.googleSubmit {
+    min-width: auto;
+    background-color: rgb(0, 145, 0);
+    position: relative;
+    cursor: pointer;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 0 12px;
+    margin-bottom: 12px;
+}
+
+.googleSubmit:hover {
+    box-shadow: 0px 2px 1px -1px rgba(0, 145, 0, 0.2), 0px 1px 1px 0px rgba(0, 145, 0, 0.14), 0px 1px 3px 0px rgba(0, 145, 0, 0.12);
+}
+
+.googleSubmit .buttonOverlay {
+    background-color: #fff;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    opacity: 0;
+    border-radius: 4px;
+}
+
+.googleSubmit:hover .buttonOverlay {
+    opacity: 0.08;
+}
+
+.googleSubmit span {    
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: .25px;
+    line-height: 36px;
+    text-transform: none;
+    padding: 0 24px;
+}
+
+.Toastify#studyMessage {
+    z-index: 4;
+    user-select: none;
+    pointer-events: none;
+}
+
+.Toastify#studyMessage .pop {
+    animation: pop 0.7s ease-in-out;
+}
+
+.flipOutX {
+    animation-name: flipOutX;
+    animation-duration: 0.5s;
+    animation-fill-mode: forwards;
+}
+
+@keyframes pop {
+	0% {
+	  	transform: scale(1);
+		box-shadow: 0 0 0 0 rgba(102, 102, 102, 0.6), 0 1px 10px 0 rgb(0 0 0 / 10%), 0 2px 15px 0 rgb(0 0 0 / 5%);
+	}
+	50% {
+		transform: scale(1.07);
+	}
+	100% {
+		transform: scale(1);
+		box-shadow: 0 0 0 30px rgba(102, 102, 102, 0.0), 0 1px 10px 0 rgb(0 0 0 / 10%), 0 2px 15px 0 rgb(0 0 0 / 5%);
+	}
+}
+
+@keyframes flipOutX {
+    from {
+        transform: perspective(400px);
+    }
+
+    30% {
+        transform: perspective(400px) rotate3d(1, 0, 0, -20deg);
+        opacity: 1;
+    }
+
+    to {
+        transform: perspective(400px) rotate3d(1, 0, 0, 90deg);
+        opacity: 0;
+    }
 }

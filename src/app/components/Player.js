@@ -5,6 +5,8 @@ import * as d3 from "d3";
 import "video.js/dist/video-js.css";
 import "./css/Player.css";
 
+import { googleSans } from "../page";
+
 const Component = videojs.getComponent('Component');
 
 class Gradient extends Component {
@@ -111,7 +113,7 @@ export default function Player({ src, track }) {
     }, [src, track, videoRef]);
 
     return (
-        <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }} ref={videoRef}>
+        <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: googleSans.style.fontFamily }} ref={videoRef}>
         </div>
     );
 }

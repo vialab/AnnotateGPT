@@ -172,7 +172,7 @@ let workerLevenshteinDistance = () => {
     };
 };
 
-export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, onReplyCallback, svgContent, screen, mode }) {
+export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef }) {
     const defaultColour = "#000000";
 
     const [numPages, setNumPages] = useState();
@@ -199,6 +199,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     const activeClusterRef = useRef(null);
     const penAnnotationRef = useRef([]);
     const modeRef = useRef(mode);
+
+    if (annotateRef)
+        annotateRef.current = penAnnotationRef.current;
 
     const textRenderer = useCallback((textItem) => {
         let text = textItem.str;
@@ -1383,6 +1386,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     fadeDisplayExplanation(content, annotation);
                 }
                 activeAnnotation.current = annotation;
+
+                if (navigateCallback instanceof Function) {
+                    navigateCallback(annotation);
+                }
             };
             // activeClusterRef.current = cluster;
             // setActiveCluster(cluster);
@@ -1496,6 +1503,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     fadeDisplayExplanation(content, annotation);
                 }
                 activeAnnotation.current = annotation;
+
+                if (navigateCallback instanceof Function) {
+                    navigateCallback(annotation);
+                }
             };
 
             let showTooltipContent = () => {
@@ -1780,6 +1791,14 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         place: "left",
                     });
                 });
+            } else {
+                let content = generateContent(annotation, annotations);
+
+                explanationToolTipRef.current?.open({
+                    anchorSelect: ".explanation-tooltip",
+                    content: content,
+                    place: "left",
+                });
             }
             // console.log(annotations.ref?.current.lockClusters.current);
     
@@ -1865,6 +1884,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
         let overlappingAnnotations = [{groupIndex: annotatedTokens.current.findIndex(group => group === annotations), index: annotations.annotations.findIndex(a => a === annotation), annotation: annotation, groupAnnotation: annotations}];
         // console.log(overlappingAnnotations[0]);
+        // console.log(hoverGroupAnnotationRef.current);
         for (let i = 0; i < annotatedTokens.current.length; i++) {
             let searchAnnotations = annotatedTokens.current[i];
             
@@ -1873,8 +1893,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let searchAnnotation = searchAnnotations.annotations[j];
 
                     if (searchAnnotation.accepted !== false) {
-                        
-                        if (annotation.spans instanceof Array && searchAnnotation.spans instanceof Array && searchAnnotation.spans.every((searchSpan) => annotation.spans.includes(searchSpan))) {
+                        if (annotation.spans instanceof Array && searchAnnotation.spans instanceof Array && searchAnnotation.spans.every((searchSpan) => annotation.spans.includes(searchSpan)) &&
+                            !overlappingAnnotations.find(a => a.groupIndex === i && a.index === j)
+                        ) {
                             overlappingAnnotations.push({groupIndex: i, index: j, annotation: searchAnnotation, groupAnnotation: searchAnnotations});
                             break loop;
                         }
@@ -1882,6 +1903,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
         }
+
+        // console.log(overlappingAnnotations)
 
         for (let overlappingAnnotation of overlappingAnnotations) {
             let a = overlappingAnnotation.annotation;
@@ -1935,7 +1958,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 </div>
             );
         }
-        let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+        let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
         let activeAnnotationsFound = cluster.annotationsFound ? [...cluster.annotationsFound] : [];
 
         let onNavigateCallback = (annotation) => {
@@ -1958,6 +1981,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 fadeDisplayExplanation(content, annotation);
             }
             activeAnnotation.current = annotation;
+
+            if (navigateCallback instanceof Function) {
+                navigateCallback(annotation);
+            }
         };
 
         let content = 
@@ -1969,7 +1996,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         </div>;
 
         return content;
-    }, [onReplyCallback]);
+    }, [navigateCallback, onReplyCallback]);
     
     function fadeDisplayExplanation(content, annotation, overrideDisplay = true) {
         let closestTextLayer = d3.select(".textLayer").node();
@@ -2116,7 +2143,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                 if (x >= x1 && x <= x2 && y >= y1 && y <= y2) {
                                     hoverFound = true;
 
-                                    if (hoverAnnotation.current !== annotation && annotation.accepted !== false && activeAnnotation.current !== annotation) {
+                                    if (hoverAnnotation.current !== annotation && annotation.accepted !== false && activeAnnotation.current !== annotation && 
+                                        !hoverAnnotation.current?.spans?.every(s => annotation.spans.includes(s)) && !activeAnnotation.current?.spans?.every(s => annotation.spans.includes(s))
+                                    ) {
                                         hoverAnnotation.current = annotation;
                                         hoverGroupAnnotationRef.current = annotations;
                                         found = true;
@@ -2180,6 +2209,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
                     cluster.open = false;
                     annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+
+                    if (navigateCallback instanceof Function) {
+                        navigateCallback(annotation);
+                    }
                 }, 500);
             }
             // explanationToolTipRef.current?.close();
@@ -2189,7 +2222,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             d3.select("body")
             .on("pointermove", null);
         };
-    }, [onReplyCallback, generateContent]);
+    }, [onReplyCallback, generateContent, navigateCallback]);
 
     let prevDocumentPDF = useRef(null);
     let loadBuffer = useRef(false);

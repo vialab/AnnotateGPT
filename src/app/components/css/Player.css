@@ -121,8 +121,9 @@
     height: auto !important;
     aspect-ratio: 16/9 !important;
     border-radius: 10px;
-    /* overflow: hidden; */
-    margin-bottom: 6em;
+    overflow: visible;
+    margin-top: 6em;
+    font-family: inherit !important;
 }
 
 .video-js.vjs-theme-fantasy {
@@ -289,11 +290,15 @@
 
 .vjs-text-track-display {
     bottom: -7em !important;
+    transform: translateY(-100%);
 }
 
 .vjs-text-track-display div {
-    font-size: 0.7em;
+    font-size: 0.65em;
+    font-family: inherit !important;
+    letter-spacing: 1px;
+    z-index: 3;
 }
 .vjs-text-track-cue div {
-    background-color: rgba(0, 0, 0, 0) !important;
+    background-color: rgba(67, 67, 67, 0.5) !important;
 }

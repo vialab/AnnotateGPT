@@ -37,7 +37,7 @@ The system will guess on what the purpose of the annotation is.
 Hovering over the options will give more details about the guesses.
 
 00:01:03.933 --> 00:01:05.933
-If you are not satisfied with the options, 
+If you are not satisfied with the options,
 
 00:01:05.933 --> 00:01:09.213
 you can type your own purpose using the input provided.
@@ -69,5 +69,11 @@ If you think the sentence should not be annotated,
 00:01:50.643 --> 00:01:53.183
 you can reject the annotation as well.
 
-00:01:55.907 --> 00:01:58.227
+00:01:55.794 --> 00:01:58.034
+You can continue to annotate the document.
+
+00:02:01.865 --> 00:02:06.345
+Hovering over the tooltip will reveal which pen strokes are associated with it.
+
+00:02:08.139 --> 00:02:10.459
 You can now practice the interface yourself.

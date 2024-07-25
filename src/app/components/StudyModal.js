@@ -7,6 +7,7 @@ import Player from "./Player";
 import { ImMail4, ImInfo, ImExit } from "react-icons/im";
 import { HiOutlineChevronDoubleRight } from "react-icons/hi";
 import { Tooltip } from "react-tooltip";
+import { toast, cssTransition } from "react-toastify";
 import * as d3 from "d3";
 
 import { googleSans } from "@/app/page.js";
@@ -14,7 +15,7 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange }, ref) => {
+const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange }, ref) => {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     let [ ifFirst, setIfFirst ] = useState(true);
@@ -54,7 +55,6 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                 let documentIndex = (taskNum === 0 && ifFirst) || (taskNum === 1 && !ifFirst) ? 0 : 1;
                 onNextTask(documentIndex, currentMode);
             }
-
         }
     }, [modalContent.currentTask, modalContent.studyState, onNextTask, ifFirst, llmFirst]);
 
@@ -478,7 +478,7 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                             // console.log(modalContent.studyState)
                             // console.log(currentLlmFirst)
 
-                            if (modalContent.studyState === "postTask" || modalContent.studyState === "instructionTask") {
+                            if ((modalContent.studyState === "postTask" && !modalIsOpen) || (modalContent.studyState === "instructionTask" && modalIsOpen)) {
                                 if (documentChange instanceof Function) {
                                     let currentDocument = (state.currentTask === 0 && currentIfFirst) || (state.currentTask === 1 && !currentIfFirst) ? 0 : 1;
                                     documentChange(currentDocument);
@@ -486,7 +486,14 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                                     
                                 if (modeChange instanceof Function) {
                                     let currentMode = (state.currentTask === 0 && currentLlmFirst) || (state.currentTask === 1 && !currentLlmFirst) ? "llm" : "base";
+                                    // console.log(currentMode)
                                     modeChange(currentMode);
+                                }
+                            } else {
+                                if (modeChange instanceof Function) {
+                                    let currentMode = (state.currentTask === 0 && currentLlmFirst) || (state.currentTask === 1 && !currentLlmFirst) ? "llm" : "base";
+                                    // console.log("practice" + currentMode)
+                                    modeChange("practice" + currentMode);
                                 }
                             }
                         }),
@@ -583,16 +590,18 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
     
     useEffect(() => {
         preStudyContent.current = [
-            // {
-            //     "content": <>
-            //         <h3 style={{width: "100%", textAlign: "center"}}>Pre Study Questionnaire</h3>
-            //         <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSfZgJz4b0MjiIblc-hrb4QKoZvQ0S0J9Ddw0xHgqxENAUMQRA/viewform?usp=pp_url&entry.1500102265=" + pid} title="preStudy" />
-            //     </>,
-            //     "prev": false,
-            // },
+            {
+                "content": <>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Pre-Study Questionnaire</h3>
+                    <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLScgmHDH7qSFIwq9FuaU9Wen7tTIRU-OLhTl1E5eA3GloANh6A/viewform?usp=pp_url&entry.1005799276=" + pid} title="preStudy" />
+                </>,
+                "prev": false,
+            },
             // {
             //     "content": <div style={{ textAlign: "center" }}>
-            //         Have you submitted the questionnaire?
+                    
+            //         Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
+            //         (Not the button with double arrows)
             //     </div>,
             //     "prev": true,
             //     "confirm": true,
@@ -604,16 +613,16 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
             //         }, 1000);
             //     },
             // },
-            {
-                "content": 
-                <div>
-                    <h3 style={{ width: "100%", textAlign: "center" }}>Welcome to the Study</h3>
-                    <ul> 
-                        <li style={{ margin: "30px 0px" }}>Your task is to annotate...</li>
-                    </ul>
-                </div>,
-                "prev": true,
-            },
+            // {
+            //     "content": 
+            //     <div>
+            //         <h3 style={{ width: "100%", textAlign: "center" }}>Welcome to the Study</h3>
+            //         <ul> 
+            //             <li style={{ margin: "30px 0px" }}>Your task is to annotate...</li>
+            //         </ul>
+            //     </div>,
+            //     "prev": true,
+            // },
         ];
 
         
@@ -635,17 +644,24 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
             {
                 "content": 
                 <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Pre Task</h3>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Tutorial</h3>
                     { instructionContent }
                 </div>,
             },
-            {
-                "content": 
-                <div style={{ width: "100%", display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column" }}>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Pre Task</h3>
-                </div>,
-                "prev": true
-            },
+            // {
+            //     "content": <div style={{ textAlign: "center" }}>
+            //         Are you ready?
+            //     </div>,
+            //     "prev": true,
+            //     "confirm": true,
+            //     "disableNext": true,
+            //     "callback": () => {
+            //         setTimeout(() => {
+            //             d3.select(".modalButton.disabled")
+            //             .classed("enable", true);
+            //         }, 1000);
+            //     },
+            // },
         ];
         
         instructionTaskContent.current = [
@@ -662,25 +678,53 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
 
         postTaskContent.current = [
             {
-                "content": 
-                <div>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Post Task Questionnaire</h3>
-                    <ul> 
-                        <li style={{ margin: "30px 0px" }}>Bla bla bla</li>
-                    </ul>
+                "content": <>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Post-Task Questionnaire</h3>
+                    <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSdB6cL-3ku9O4mDSkaZPK_Sm_RLe0W1737jSVM0ac5QsYgGHA/viewform?usp=pp_url&entry.1937451035=" + pid} title="postTask" />
+                </>,
+                "prev": false,
+            },
+            {
+                "content": <div style={{ textAlign: "center" }}>
+                    
+                    Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
+                    (Not the button with double arrows)
                 </div>,
+                "prev": true,
+                "confirm": true,
+                "disableNext": true,
+                "callback": () => {
+                    setTimeout(() => {
+                        d3.select(".modalButton.disabled")
+                        .classed("enable", true);
+                    }, 1000);
+                },
             },
         ];
 
         postStudyContent.current = [
             {
-                "content": 
-                <div>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Post Study Questionnaire</h3>
-                    <ul> 
-                        <li style={{ margin: "30px 0px" }}>Bla bla bla</li>
-                    </ul>
+                "content": <>
+                    <h3 style={{width: "100%", textAlign: "center"}}>Post-Study Questionnaire</h3>
+                    <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSfQ3H4nwXmNOBFue5Uu_nY_h_5ANmwGq9sGLvLuwo0O_aiGVA/viewform?usp=pp_url&entry.879680390=" + pid} title="postStudy" />
+                </>,
+                "prev": false,
+            },
+            {
+                "content": <div style={{ textAlign: "center" }}>
+                    
+                    Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
+                    (Not the button with double arrows)
                 </div>,
+                "prev": true,
+                "confirm": true,
+                "disableNext": true,
+                "callback": () => {
+                    setTimeout(() => {
+                        d3.select(".modalButton.disabled")
+                        .classed("enable", true);
+                    }, 1000);
+                },
             },
         ];
     }, [llmFirst, modalContent.currentTask, pid]);
@@ -864,6 +908,41 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
         }
     }, [modalContent, setUp, onFinish]);
 
+    useEffect(() => {
+        if (studyState === "study" && toastMessage && toastMessage !== "") {
+            let messageContainer = <div id={"prompt"} style={{ textAlign: "center" }}>
+                {toastMessage}
+            </div>;
+
+            if (!toast.isActive("practiceMessage")) {
+                toast(messageContainer, {
+                    containerId: "studyMessage",
+                    toastId: "practiceMessage",
+                });
+            } else {
+                toast.update("practiceMessage", {
+                    render: messageContainer,
+                    containerId: "studyMessage",
+                    autoClose: false,
+                    // limit={1}
+                    closeButton: false,
+                    closeOnClick: false,
+                    pauseOnFocusLoss: false,
+                    draggable: false,
+                    theme: "dark",
+                    transition: cssTransition({
+                        enter: "pop",
+                        exit: "flipOutX",
+                    }),
+                });
+            }
+        } else {
+            toast.dismiss({
+                id: "practiceMessage"
+            });
+        }
+    }, [toastMessage, studyState]);
+
     useImperativeHandle(ref, () => ({
         pid: pid,
         ifFirst: ifFirst,
@@ -882,7 +961,7 @@ const StudyModal = forwardRef(({ onNextTask, onFinish, studyState, fileHandler, 
                         <div className="withdraw" onClick={withdraw}>
                             <ImExit />
                         </div>
-                        <div className="continue" onClick={continueStudy}>
+                        <div className={"continue disabled " + (disableNext ? "" : "enable")} onClick={continueStudy}>
                             <HiOutlineChevronDoubleRight />
                         </div>
                     </div>

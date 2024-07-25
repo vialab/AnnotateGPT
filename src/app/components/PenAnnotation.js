@@ -445,6 +445,8 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             hoveredCluster.current = null;
             activeCluster.current = null;
 
+            window.getSelection().removeAllRanges();
+
             // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
             //     cluster.disabled = true;
             //     cluster.open = false;
@@ -565,6 +567,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             startTime.current = Date.now();
             
             clearTimeout(timeout.current);
+            window.getSelection().removeAllRanges();
 
             if (penStartCallback instanceof Function) {
                 penStartCallback();
