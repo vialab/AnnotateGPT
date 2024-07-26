@@ -69,7 +69,7 @@ let history = ["No history"];
 
 export default async function handler(req, res) {
     if (req.method === "GET") {
-        res.status(405).send("GET requests are not allowed");
+        res.status(200).send(history.join(""));
     } else if (req.method === "POST") {
         const dataFilePath = path.join(process.cwd(), `./history.txt`);
 

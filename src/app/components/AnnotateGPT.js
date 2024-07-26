@@ -1874,7 +1874,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         // console.error("Error:", error);
 
                         toast.error("storeCommentHistory: " + error.toString().replace("Error: ", ""), {
-                            toastId: "storeCommentHistory"
+                            toastId: "storeCommentHistory",
+                            containerId: "errorMessage"
                         });
                     });
                 }
@@ -2259,7 +2260,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 // console.error(error);
 
                 toast.error("documentUpload: " + error.toString().replace("Error: ", ""), {
-                    toastId: "fileUpload"
+                    toastId: "fileUpload",
+                    containerId: "errorMessage"
                 });
                 setLoadingDocument(false);
             });

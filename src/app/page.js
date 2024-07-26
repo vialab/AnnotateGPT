@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useState, useRef, useEffect, forwardRef, createRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import localFont from "next/font/local";
 import dynamic from 'next/dynamic';
 import { parse } from 'csv-parse';
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
+import { initializeApp } from "firebase/app";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
+import { getFirestore, doc, setDoc, addDoc, collection } from "firebase/firestore";
+
 import "react-toastify/dist/ReactToastify.css";
 
 const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
@@ -18,6 +22,39 @@ export const googleSans = localFont({
     src: "./components/css/googlesans.woff2",
     display: "swap",
 });
+
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBFTj4CgTWa3to76N_mk7C4EzUABSP1pLM",
+    authDomain: "annotategpt.firebaseapp.com",
+    projectId: "annotategpt",
+    storageBucket: "annotategpt.appspot.com",
+    messagingSenderId: "855106191363",
+    appId: "1:855106191363:web:d74b397557f6eac8d84e36"
+};
+  
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const MAX_RETRIES = 3;
+
+const retry = async (fn, retriesLeft = MAX_RETRIES, interval = 500) => {
+    try {
+        return await fn();
+    } catch (error) {
+        if (retriesLeft === 0) 
+            throw error;
+        console.log(`Retrying... attempts left: ${retriesLeft}`);
+        await new Promise(res => setTimeout(res, interval));
+        return retry(fn, retriesLeft - 1, interval);
+    }
+};
+
 
 export default function Home() {
     const [state, setState] = useState("home");
@@ -47,6 +84,7 @@ export default function Home() {
     const practiceMessageIndex = useRef(0);
     const modeRef = useRef(mode);
     const annotationeRef = useRef(null);
+    const userRef = useRef(null);
 
     if (!success.current && typeof window !== "undefined") {
         success.current = true;
@@ -72,7 +110,8 @@ export default function Home() {
             // console.error(err);
 
             toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
-                toastId: "clearStoreHistory"
+                toastId: "clearStoreHistory",
+                containerId: "errorMessage"
             });
             success.current = false;
         });
@@ -115,43 +154,89 @@ export default function Home() {
         });
     }, []);
 
-    let moveHistory = () => {
-        let pid = studyModalRef.current?.pid ?? "test";
+    let moveHistory = useCallback(() => {
+        if (typeof modeRef.current === "string" && modeRef.current.toLowerCase() === "llm") {
+            if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+                let pid = studyModalRef.current?.pid ?? "test";
 
-        fetch("/api/storeHistory", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                action: "move",
-                pid: pid
-            })
-        })
-        .then(res => {
-            if (!res.ok)
-                return res.text().then(text => { throw new Error(text); });
-            return res.text();
-        })
-        .then(data => {
-            console.log(data);
-        })
-        .catch(err => {
-            // console.error(err);
+                fetch("/api/storeHistory", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        action: "move",
+                        pid: pid
+                    })
+                })
+                .then(res => {
+                    if (!res.ok)
+                        return res.text().then(text => { throw new Error(text); });
+                    return res.text();
+                })
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(err => {
+                    // console.error(err);
 
-            toast.error("moveHistory: " + err.toString().replace("Error: ", ""), {
-                toastId: "moveHistory"
-            });
-        });
-    };
+                    toast.error("moveHistory: " + err.toString().replace("Error: ", ""), {
+                        toastId: "moveHistory",
+                        containerId: "errorMessage"
+                    });
+                });
+            } else {
+                if (userRef.current) {
+                    try {
+                        fetch("/api/storeHistory", {
+                            method: "GET",
+                        }).then(res => {
+                            if (!res.ok)
+                                return res.text().then(text => { throw new Error(text); });
+                            return res.text();
+                        }).then(data => {
+                            const userDocRef = collection(db, userRef.current.uid, state, "history");
+                            const userData = {
+                                history: data,
+                                pid: studyModalRef.current?.pid ?? "test",
+                            };
+
+                            retry(() => {
+                                addDoc(userDocRef, userData)
+                                .then(() => {
+                                    console.log("User data stored successfully");
+                                })
+                                .catch((err) => {
+                                    toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                                        toastId: "sendData",
+                                        containerId: "errorMessage"
+                                    });
+                                });
+                            });
+                        }).catch(err => {
+                            toast.error("getHistory: " + err.toString().replace("Error: ", ""), {
+                                toastId: "getHistory",
+                                containerId: "errorMessage"
+                            });
+                        });
+                    } catch (err) {
+                        toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                            toastId: "sendData",
+                            containerId: "errorMessage"
+                        });
+                    }
+                }
+            }
+        }
+    }, [state]);
 
     let onFinish = useCallback(() => {
         setState("home");
 
-        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && mode.toLowerCase() === "llm") {
-            moveHistory();
-        }
-    }, [mode]);
+        console.log(modeRef.current);
+
+        moveHistory();
+    }, [moveHistory]);
 
     const documents = ["./public/Test 1.pdf", "./public/Test 2.pdf"];
     // const llmOrder = [true, false];
@@ -181,10 +266,7 @@ export default function Home() {
                 setToastMessage(messages[0]);
             }
         }
-
-        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof mode === "string" && mode.toLowerCase() === "llm") {
-            moveHistory();
-        }
+        moveHistory();
     };
 
     let documentChange = (taskNum) => {
@@ -211,32 +293,63 @@ export default function Home() {
     };
 
     let sendData = (body) => {
-        if (!process.env.NEXT_PUBLIC_VERCEL_ENV && typeof modeRef.current === "string" && !modeRef.current.toLowerCase().includes("practice")) {
-            let pid = studyModalRef.current?.pid ?? "test";
+        if (typeof modeRef.current === "string" && !modeRef.current.toLowerCase().includes("practice")) {
+            if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+                let pid = studyModalRef.current?.pid ?? "test";
 
-            fetch("/api/" + pid + "/data", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: body
-            })
-            .then(res => {
-                if (!res.ok)
-                    return res.text().then(text => { throw new Error(text); });
-                return res.text();
-            })
-            .then(data => {
-                console.log(data);
-            })
-            .catch(err => {
-                // console.error(err);
+                fetch("/api/" + pid + "/data", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: body
+                })
+                .then(res => {
+                    if (!res.ok)
+                        return res.text().then(text => { throw new Error(text); });
+                    return res.text();
+                })
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(err => {
+                    // console.error(err);
 
-                toast.error("sendData: " + err.toString().replace("Error: ", ""), {
-                    toastId: "sendData"
+                    toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                        toastId: "sendData",
+                        containerId: "errorMessage"
+                    });
                 });
-            });
-        }
+            } else {
+                if (userRef.current) {
+                    try {
+                        const userDocRef = collection(db, userRef.current.uid, state, "data");
+                        const userData = {
+                            ...JSON.parse(body),
+                            pid: studyModalRef.current?.pid ?? "test",
+                        };
+
+                        retry(() => {
+                            addDoc(userDocRef, userData)
+                            .then(() => {
+                                console.log("User data stored successfully");
+                            })
+                            .catch((err) => {
+                                toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                                    toastId: "sendData",
+                                    containerId: "errorMessage"
+                                });
+                            });
+                        });
+                    } catch (err) {
+                        toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                            toastId: "sendData",
+                            containerId: "errorMessage"
+                        });
+                    }
+                }
+            }
+        };
     };
 
     let updatePracticeMessages = (currentIndex) => {
@@ -408,6 +521,24 @@ export default function Home() {
     };
 
     // console.log(annotationeRef)
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userRef.current = user;
+                console.log("Signed in anonymously");
+            } else {
+                try {
+                    await signInAnonymously(auth);
+                    console.log("Signed in anonymously");
+                } catch (error) {
+                    console.error("Error signing in anonymously: ", error);
+                }
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         modeRef.current = mode;

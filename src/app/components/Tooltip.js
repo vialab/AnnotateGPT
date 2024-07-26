@@ -83,7 +83,8 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 // console.error("Error:", error);
 
                 toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
-                    toastId: "updatePurpose"
+                    toastId: "updatePurpose",
+                    containerId: "errorMessage"
                 });
             });
         }
