@@ -116,6 +116,7 @@ Here is a step-by-step list for annotating a document:
             }
         } else {
             console.log("Vector store is not available");
+            return;
         }
         console.log("Running GPT-4o...");
         // return;

@@ -33,10 +33,16 @@ export default async function handler(req, res) {
             let vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
             
             if (!vectorStoreID) {
+                console.log("Creating vector store...");
+
                 let vectorStore = await openai.beta.vectorStores.create({
                     name: "Pen Annotation vector store",
                 });
                 vectorStoreID = vectorStore.id;
+
+                await openai.beta.assistants.update(annotateAssistant.id, {
+                    tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
+                });
             }
             console.log("Deleting document...");
 
@@ -87,8 +93,6 @@ export default async function handler(req, res) {
             } else {
                 res.status(200).send("Updated document!");
             }
-
-            await new Promise(r => setTimeout(r, 500));
             loading = false;
         };
         
@@ -109,12 +113,10 @@ export default async function handler(req, res) {
                                 let filePath = jsonData["document"];
                                 filePath = filePath.startsWith("./public") ? "./" + filePath.slice(8) : filePath;
 
-
                                 processDocument = createReadStream(path.resolve("./public", filePath));
                             } else {
                                 const fileName = jsonData.fileName;
                                 const uint8Array = new Uint8Array(jsonData.data);
-            
                                 let file = new File([new Blob([uint8Array], { type: "application/pdf" })], fileName);
                                 
                                 processDocument = file;
@@ -140,6 +142,7 @@ export default async function handler(req, res) {
                 throw new Error("Not JSON");
             }
         } catch (error) {
+            loading = false;
             res.status(500).send("Error updating document: " + error);
         }
     }

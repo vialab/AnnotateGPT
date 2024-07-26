@@ -8,10 +8,19 @@ const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 async function updateHistory(dataFilePath) {
     try {
         const purposeAssistant = await openai.beta.assistants.retrieve(purposeAssistantID);
-        const vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
+        let vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
         
         if (!vectorStoreID) {
-            throw new Error("Vector store is not available");
+            console.log("Creating vector store...");
+            
+            let vectorStore = await openai.beta.vectorStores.create({
+                name: "Pen Purpose vector store",
+            });
+            vectorStoreID = vectorStore.id;
+
+            await openai.beta.assistants.update(purposeAssistant.id, {
+                tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
+            });
         }
         const file = new File([history.join("")], "history.txt");
 

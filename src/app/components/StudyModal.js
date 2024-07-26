@@ -597,32 +597,31 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                 </>,
                 "prev": false,
             },
-            // {
-            //     "content": <div style={{ textAlign: "center" }}>
-                    
-            //         Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
-            //         (Not the button with double arrows)
-            //     </div>,
-            //     "prev": true,
-            //     "confirm": true,
-            //     "disableNext": true,
-            //     "callback": () => {
-            //         setTimeout(() => {
-            //             d3.select(".modalButton.disabled")
-            //             .classed("enable", true);
-            //         }, 1000);
-            //     },
-            // },
-            // {
-            //     "content": 
-            //     <div>
-            //         <h3 style={{ width: "100%", textAlign: "center" }}>Welcome to the Study</h3>
-            //         <ul> 
-            //             <li style={{ margin: "30px 0px" }}>Your task is to annotate...</li>
-            //         </ul>
-            //     </div>,
-            //     "prev": true,
-            // },
+            {
+                "content": <div style={{ textAlign: "center" }}>
+                    Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
+                    (Not the button with double arrows)
+                </div>,
+                "prev": true,
+                "confirm": true,
+                "disableNext": true,
+                "callback": () => {
+                    setTimeout(() => {
+                        d3.select(".modalButton.disabled")
+                        .classed("enable", true);
+                    }, 1000);
+                },
+            },
+            {
+                "content": 
+                <div>
+                    <h3 style={{ width: "100%", textAlign: "center" }}>Welcome to the Study</h3>
+                    <ul> 
+                        <li style={{ margin: "30px 0px" }}>Your task is to annotate...</li>
+                    </ul>
+                </div>,
+                "prev": true,
+            },
         ];
 
         
@@ -648,20 +647,20 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                     { instructionContent }
                 </div>,
             },
-            // {
-            //     "content": <div style={{ textAlign: "center" }}>
-            //         Are you ready?
-            //     </div>,
-            //     "prev": true,
-            //     "confirm": true,
-            //     "disableNext": true,
-            //     "callback": () => {
-            //         setTimeout(() => {
-            //             d3.select(".modalButton.disabled")
-            //             .classed("enable", true);
-            //         }, 1000);
-            //     },
-            // },
+            {
+                "content": <div style={{ textAlign: "center" }}>
+                    Are you ready?
+                </div>,
+                "prev": true,
+                "confirm": true,
+                "disableNext": true,
+                "callback": () => {
+                    setTimeout(() => {
+                        d3.select(".modalButton.disabled")
+                        .classed("enable", true);
+                    }, 1000);
+                },
+            },
         ];
         
         instructionTaskContent.current = [
