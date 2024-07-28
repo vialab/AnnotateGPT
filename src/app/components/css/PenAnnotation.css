@@ -28,3 +28,15 @@
 .pen-annotation-layer canvas {
     border-radius: 1em;
 }
+
+.pageNumber {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 24px;
+    font-size: 1rem;
+    color: black;
+    user-select: none;
+    text-align: center;
+    pointer-events: none;
+}

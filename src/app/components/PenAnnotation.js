@@ -11,6 +11,7 @@ import "./js/OpenAIUtils";
 import './css/PenAnnotation.css';
 
 import toolbarStyles from "./css/Toolbar.module.css";
+import { googleSans } from '../page';
 
 function isHorizontalLine(coordinates) {
     if (coordinates.length < 2) {
@@ -1246,6 +1247,8 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
     return (
         <div className={"pen-annotation-layer"} id={"layer-" + index}>
             <svg ref={svgRef} width={"100%"} height={"100%"} style={{ position: "absolute" }} />
+
+            <span className={"pageNumber " + googleSans.className}>{index}</span>
             
             <Tooltip penAnnnotationRef={ref} index={index} mode={mode} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} onEndAnnotate={onEndAnnotate} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
         </div>

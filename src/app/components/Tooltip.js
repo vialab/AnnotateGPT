@@ -80,7 +80,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 console.log("Success:", data);
             })
             .catch((error) => {
-                // console.error("Error:", error);
+                console.error("updatePurpose:", error);
 
                 toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
                     toastId: "updatePurpose",

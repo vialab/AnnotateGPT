@@ -7,8 +7,8 @@ import { parse } from 'csv-parse';
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, doc, setDoc, addDoc, collection } from "firebase/firestore";
+import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence, deleteUser  } from "firebase/auth";
+import { getFirestore, addDoc, collection } from "firebase/firestore";
 
 import "react-toastify/dist/ReactToastify.css";
 
@@ -23,10 +23,6 @@ export const googleSans = localFont({
     display: "swap",
 });
 
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyBFTj4CgTWa3to76N_mk7C4EzUABSP1pLM",
     authDomain: "annotategpt.firebaseapp.com",
@@ -35,11 +31,12 @@ const firebaseConfig = {
     messagingSenderId: "855106191363",
     appId: "1:855106191363:web:d74b397557f6eac8d84e36"
 };
-  
-// Initialize Firebase
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+setPersistence(auth, inMemoryPersistence);
 
 const MAX_RETRIES = 3;
 
@@ -54,7 +51,6 @@ const retry = async (fn, retriesLeft = MAX_RETRIES, interval = 500) => {
         return retry(fn, retriesLeft - 1, interval);
     }
 };
-
 
 export default function Home() {
     const [state, setState] = useState("home");
@@ -107,7 +103,7 @@ export default function Home() {
             console.log(data);
         })
         .catch(err => {
-            // console.error(err);
+            console.error("clearStoreHistory:", err);
 
             toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
                 toastId: "clearStoreHistory",
@@ -145,7 +141,7 @@ export default function Home() {
             console.log(data);
         })
         .catch(err => {
-            // console.error(err);
+            console.error("clearStoreHistory:", err);
 
             toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
                 toastId: "clearStoreHistory",
@@ -178,7 +174,7 @@ export default function Home() {
                     console.log(data);
                 })
                 .catch(err => {
-                    // console.error(err);
+                    console.error("moveHistory:", err);
 
                     toast.error("moveHistory: " + err.toString().replace("Error: ", ""), {
                         toastId: "moveHistory",
@@ -195,10 +191,12 @@ export default function Home() {
                                 return res.text().then(text => { throw new Error(text); });
                             return res.text();
                         }).then(data => {
-                            const userDocRef = collection(db, userRef.current.uid, state, "history");
+                            const pid = studyModalRef.current?.pid ?? "test";
+                            const userDocRef = collection(db, userRef.current.uid, state + modeRef.current.toLowerCase() + pid, "history");
                             const userData = {
                                 history: data,
                                 pid: studyModalRef.current?.pid ?? "test",
+                                timestamp: Date.now()
                             };
 
                             retry(() => {
@@ -207,6 +205,8 @@ export default function Home() {
                                     console.log("User data stored successfully");
                                 })
                                 .catch((err) => {
+                                    console.error("sendData:", err);
+
                                     toast.error("sendData: " + err.toString().replace("Error: ", ""), {
                                         toastId: "sendData",
                                         containerId: "errorMessage"
@@ -214,12 +214,16 @@ export default function Home() {
                                 });
                             });
                         }).catch(err => {
+                            console.error("getHistory:", err);
+
                             toast.error("getHistory: " + err.toString().replace("Error: ", ""), {
                                 toastId: "getHistory",
                                 containerId: "errorMessage"
                             });
                         });
                     } catch (err) {
+                        console.error("sendData:", err);
+
                         toast.error("sendData: " + err.toString().replace("Error: ", ""), {
                             toastId: "sendData",
                             containerId: "errorMessage"
@@ -233,8 +237,6 @@ export default function Home() {
     let onFinish = useCallback(() => {
         setState("home");
 
-        console.log(modeRef.current);
-
         moveHistory();
     }, [moveHistory]);
 
@@ -242,31 +244,92 @@ export default function Home() {
     // const llmOrder = [true, false];
 
     let onNextTask = (taskNum, nextMode) => {
-        if (taskNum >= 0 && taskNum < documents.length) {
-            setDocument(documents[taskNum]);
-            setMode(nextMode);
+        let continueStudy = true;
 
-            setToastMessage(null);
-            // practiceMessageIndex.current = 0;
-            // console.log("Test")
-        } else {
-            setDocument("./public/Practice.pdf");
-            setMode("practice" + nextMode);
-            
-            practiceMessageIndex.current = 0;
+        if (typeof modeRef.current === "string" && !modeRef.current.toLowerCase().includes("practice")) {
+            let strokesFound = false;
+            let annotationsFound = false;
+            let annotating = false;
+            let uncompletedPages = new Set();
 
-            if (typeof mode === "string") {
-                let messages;
+            for (let i = 0; i < annotationeRef.current.length; i++) {
+                let penAnnotation = annotationeRef.current[i]?.current;
                 
-                if (mode.toLowerCase().includes("llm")) {
-                    messages = practiceMessage.current[0];
-                } else {
-                    messages = practiceMessage.current[1];
+                if (penAnnotation.clusters?.current && penAnnotation.lockClusters?.current) {
+                    for (let cluster of [...penAnnotation.clusters.current, ...penAnnotation.lockClusters.current]) {
+
+                        if (cluster.strokes.length > 1 || (cluster.strokes.length > 0 && cluster.strokes[0].id !== "initial")) {
+                            strokesFound = true;
+                        }
+
+                        if (cluster.annotating) {
+                            annotating = true;
+                        }
+
+                        if (cluster.annotationsFound) {
+                            annotationsFound = true;
+
+                            for (let annotation of cluster.annotationsFound) {
+                                if (annotation.accepted === undefined || annotation.accepted === null) {
+                                    for (let span of annotation.spans) {
+                                        let pageContainer = span.closest(".react-pdf__Page");
+
+                                        if (pageContainer) {
+                                            let pageNumber = d3.select(pageContainer).attr("data-page-number");
+                                            uncompletedPages.add(pageNumber);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                setToastMessage(messages[0]);
+            }
+            
+            if (strokesFound && annotationsFound && uncompletedPages.size === 0 && !annotating) {
+                continueStudy = true;
+            } else {
+                continueStudy = <>
+                    <h3 style={{ textAlign: "center" }}>Uncompleted tasks:</h3>
+                    <ul>
+                        { strokesFound ? null : <li>Must make at least one annotation</li> }
+                        { (annotationsFound || !modeRef.current.toLowerCase().includes("llm")) ? null : <li>Must use the assistance at least once</li> }
+                        { annotating ? <li>Assistance is still annotating</li> : null }
+                        { (uncompletedPages.size > 0 && modeRef.current.toLowerCase().includes("llm")) ? <li>You did not rate all annotation on page: {[...uncompletedPages].sort((a, b) => a - b).join(", ")}</li> : null }
+                    </ul>
+                </>;
             }
         }
-        moveHistory();
+
+        if (continueStudy === true) {
+            if (taskNum >= 0 && taskNum < documents.length) {
+                setDocument(documents[taskNum]);
+                setMode(nextMode);
+    
+                setToastMessage(null);
+                // practiceMessageIndex.current = 0;
+                // console.log("Test")
+            } else {
+                setDocument("./public/Practice.pdf");
+                setMode("practice" + nextMode);
+                
+                practiceMessageIndex.current = 0;
+    
+                if (typeof mode === "string") {
+                    let messages;
+                    
+                    if (mode.toLowerCase().includes("llm")) {
+                        messages = practiceMessage.current[0];
+                    } else {
+                        messages = practiceMessage.current[1];
+                    }
+                    setToastMessage(messages[0]);
+                }
+            }
+            moveHistory();
+        }
+        return continueStudy;
     };
 
     let documentChange = (taskNum) => {
@@ -313,7 +376,7 @@ export default function Home() {
                     console.log(data);
                 })
                 .catch(err => {
-                    // console.error(err);
+                    console.error("sendData:", err);
 
                     toast.error("sendData: " + err.toString().replace("Error: ", ""), {
                         toastId: "sendData",
@@ -323,7 +386,9 @@ export default function Home() {
             } else {
                 if (userRef.current) {
                     try {
-                        const userDocRef = collection(db, userRef.current.uid, state, "data");
+                        const pid = studyModalRef.current?.pid ?? "test";
+                        const userDocRef = collection(db, userRef.current.uid, state + modeRef.current.toLowerCase() + pid, "data");
+
                         const userData = {
                             ...JSON.parse(body),
                             pid: studyModalRef.current?.pid ?? "test",
@@ -335,6 +400,8 @@ export default function Home() {
                                 console.log("User data stored successfully");
                             })
                             .catch((err) => {
+                                console.error("sendData:", err);
+
                                 toast.error("sendData: " + err.toString().replace("Error: ", ""), {
                                     toastId: "sendData",
                                     containerId: "errorMessage"
@@ -342,6 +409,8 @@ export default function Home() {
                             });
                         });
                     } catch (err) {
+                        console.error("sendData:", err);
+
                         toast.error("sendData: " + err.toString().replace("Error: ", ""), {
                             toastId: "sendData",
                             containerId: "errorMessage"
@@ -529,15 +598,35 @@ export default function Home() {
                 console.log("Signed in anonymously");
             } else {
                 try {
-                    await signInAnonymously(auth);
-                    console.log("Signed in anonymously");
+                    let user = await signInAnonymously(auth);
+                    userRef.current = user.user;
                 } catch (error) {
                     console.error("Error signing in anonymously: ", error);
+
+                    toast.error("Error signing in anonymously: " + error.toString().replace("Error: ", ""), {
+                        toastId: "signInAnonym",
+                        containerId: "errorMessage"
+                    });
                 }
             }
         });
 
-        return () => unsubscribe();
+        let handleVisibilityChange = async (event) => {
+            if (!event.persisted && auth.currentUser) {
+                const headers = {
+                    type: 'application/json',
+                };
+                const blob = new Blob([JSON.stringify({id: auth.currentUser.uid})], headers);
+                navigator.sendBeacon("/api/cleanUp", blob);
+            }
+        };
+
+        window.addEventListener('pagehide', handleVisibilityChange);
+
+        return () => {
+            unsubscribe();
+            window.removeEventListener('pagehide', handleVisibilityChange);
+        };
     }, []);
 
     useEffect(() => {

@@ -1871,7 +1871,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         console.log("Success:", data);
                     })
                     .catch((error) => {
-                        // console.error("Error:", error);
+                        console.error("storeCommentHistory:", error);
 
                         toast.error("storeCommentHistory: " + error.toString().replace("Error: ", ""), {
                             toastId: "storeCommentHistory",
@@ -2257,7 +2257,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 setLoadingDocument(false);
             })
             .catch((error) => {
-                // console.error(error);
+                console.error("documentUpload:", error);
 
                 toast.error("documentUpload: " + error.toString().replace("Error: ", ""), {
                     toastId: "fileUpload",
