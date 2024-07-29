@@ -388,7 +388,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             .style("position", "absolute")
             .style("top", "0")
             .style("left", "0")
-            .style("width", "100%")
+            .style("width", "var(--annotation-width)")
             .style("display", "flex")
             .style("justify-content", "center")
             .style("z-index", "-1000");
@@ -404,7 +404,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             .style("position", "absolute")
             .style("top", "0")
             .style("left", "0")
-            .style("width", "100%")
+            .style("width", "var(--annotation-width)")
             .style("height", "var(--annotation-height)")
             .style("display", "flex")
             .style("justify-content", "center")
@@ -854,7 +854,8 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                     marginalText,
                     {x: textBBox.x1, y: textBBox.y1, width: textBBox.x2 - textBBox.x1, height: textBBox.y2 - textBBox.y1},
                     {x: marginalTextBBox.x1, y: marginalTextBBox.y1, width: marginalTextBBox.x2 - marginalTextBBox.x1, height: marginalTextBBox.y2 - marginalTextBBox.y1},
-                    {x: lineBBox.x1, y: lineBBox.y1, width: lineBBox.x2 - lineBBox.x1, height: lineBBox.y2 - lineBBox.y1}
+                    {x: lineBBox.x1, y: lineBBox.y1, width: lineBBox.x2 - lineBBox.x1, height: lineBBox.y2 - lineBBox.y1},
+                    index
                 );
                 clearTimeout(timeout.current);
                 clusterStrokes(clusters, stopIteration);

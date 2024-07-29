@@ -201,7 +201,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     const modeRef = useRef(mode);
 
     if (annotateRef)
-        annotateRef.current = penAnnotationRef.current;
+        annotateRef.current = {
+            penAnnotation: penAnnotationRef.current,
+            annotate: annotate,
+            annotatedTokens: annotatedTokens.current,
+        };
 
     const textRenderer = useCallback((textItem) => {
         let text = textItem.str;
@@ -411,9 +415,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         .nodes();
 
         let height = d3.select(".page-container").node().getBoundingClientRect().height;
+        let width = d3.select(".page-container").node().getBoundingClientRect().width;
 
         d3.select(".pen-annotation-container").style("--annotation-height", height + "px");
+        d3.select(".screenshot-container1").style("--annotation-width", width + "px");
         d3.select(".screenshot-container1").style("--annotation-height", height + "px");
+        d3.select(".screenshot-container2").style("--annotation-width", width + "px");
         d3.select(".screenshot-container2").style("--annotation-height", height + "px");
 
         // spanPresentation.forEach((span) => {
@@ -573,9 +580,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
 
                         if (done2 === executed2) {
-                            worker.terminate();
                             console.log("Annotating", lastToken.sentence.trim());
                             annotate(lastToken.sentence.trim(), callback);
+                            worker.terminate();
                         }
                     };
 
@@ -594,6 +601,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                 worker.postMessage({ a: sentence, b: sentence2, i, i2: setUpAnnotatedTokens.length - 1 });
                             }
                         }
+                    }
+
+                    if (executed2 === 0) {
+                        worker.terminate();
                     }
 
                     if (setUpAnnotatedTokens.length === 1) {
@@ -729,12 +740,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     onEnd(rawAnnotationOutput.current[index].output);
                 }
                 console.log(annotatedTokens.current);
-                console.log(rawAnnotationOutput.current[index].output);
+                // console.log(rawAnnotationOutput.current[index].output);
             }
         }
 
         if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
-            // await new Promise(r => setTimeout(r, 3000));
+            await new Promise(r => setTimeout(r, 2000));
             let message = "";
             let testData = `*** Suspendisse quis lorem sed est blandit sodales. ***
             {{ Test Explanation }}
@@ -761,7 +772,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 handleToken(token);
             }
             handleEnd();
-            console.log(message);
         } else {
             let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"`;
 
@@ -1762,7 +1772,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             if (overlappingAnnotations.length === 1) {
                 let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
             
-                let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{height: height + "px"}}>
+                let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{ height: height + "px", pointerEvents: "none" }}>
                     <NavigateCluster cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
                 </div>;
 
@@ -1784,6 +1794,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 .transition()
                 .duration(200)
                 .style("background", "rgba(34, 38, 43, 0)")
+                .style("pointer-events", "none")
                 .on("end", () => {
                     explanationToolTipRef.current?.open({
                         anchorSelect: ".explanation-tooltip",

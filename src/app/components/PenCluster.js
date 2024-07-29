@@ -87,7 +87,7 @@ export class Cluster {
 }
 
 class Stroke {
-    constructor(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
+    constructor(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}, page = 0) {
         this.startTime = time;
         this.type = type;
         this.endTime = id === "initial" ? 0 : Date.now();
@@ -98,6 +98,7 @@ class Stroke {
         this.textBbox = Stroke.normalizeBoundingBox(textBbox);
         this.marginalTextBbox = Stroke.normalizeBoundingBox(marginalTextBbox);
         this.lineBbox = Stroke.normalizeBoundingBox(lineBbox);
+        this.page = page;
     }
 
     static normalizeBoundingBox(bbox) {
@@ -121,9 +122,9 @@ export default class PenCluster {
         this.history = [];
     }
 
-    add(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}) {
+    add(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}, page = 0) {
         // console.clear();
-        this.strokes.push(new Stroke(id, bbox, type, time, text, marginalText, textBbox, marginalTextBbox, lineBbox));
+        this.strokes.push(new Stroke(id, bbox, type, time, text, marginalText, textBbox, marginalTextBbox, lineBbox, page));
         return this.update();
     }
 

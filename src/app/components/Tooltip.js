@@ -364,6 +364,9 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
         let [c1, c2] = contexts;
 
         let cropAnnotation = domToCanvas(c1).then(canvas => {
+            c1.workers.forEach(worker => worker.terminate());
+            destroyContext(c1);
+
             return new Promise((resolve, reject) => {
                 let dataUrl = canvas.toDataURL('image/png');
                 // console.log(dataUrl);
@@ -389,11 +392,13 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         resolve(croppedBase64);
                     };
                 }
-                destroyContext(c1);
             });
         });
 
         let pageImage = domToCanvas(c2).then(canvas => {
+            c2.workers.forEach(worker => worker.terminate());
+            destroyContext(c2);
+
             return new Promise((resolve, reject) => {
                 let dataUrl = canvas.toDataURL('image/png');
                 // console.log(dataUrl);
@@ -419,7 +424,6 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         resolve(croppedBase64);
                     };
                 }
-                destroyContext(c2);
             });
         });
 
@@ -494,10 +498,12 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 if (strokeID !== "initial" && !d3.select(`path[id="${strokeID}"]`).empty()) {
                     let strokeColour = d3.select(`path[id="${strokeID}"]`).style("stroke");
                     strokeList.push({bbox: stroke.bbox, colour: strokeColour});
+                } else if (strokeID !== "initial") {
+                    strokeList.push({bbox: stroke.bbox, colour: "black"});
                 }
             }
             if (strokeList.length === 0)
-                return [];
+                return [{bbox: {x: 0, y: 0, width: 0, height: 0}, colour: "black"}];
 
             strokeList.sort((a, b) => a.bbox.y - b.bbox.y);
 

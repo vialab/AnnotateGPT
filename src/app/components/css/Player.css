@@ -216,8 +216,10 @@
 
 .vjs-theme-fantasy .vjs-big-play-button {
     outline: none;
-    color: var(--vjs-theme-fantasy--secondary);
-    background-color: transparent !important;
+    color: var(--vjs-theme-fantasy--primary);
+    background-color: var(--vjs-theme-fantasy--secondary);
+    border-radius: 50%;
+    font-size: 60px;
 }
 
 .video-js .vjs-big-play-button .vjs-icon-placeholder:before {
@@ -228,7 +230,8 @@
 
 .vjs-theme-fantasy.vjs-big-play-button:focus,
 .vjs-theme-fantasy:hover .vjs-big-play-button {
-    color: var(--vjs-theme-fantasy--primary);
+    color: var(--vjs-theme-fantasy--secondary);
+    background-color: var(--vjs-theme-fantasy--primary);
 }
 
 .vjs-theme-fantasy .vjs-play-control .vjs-icon-placeholder:before,

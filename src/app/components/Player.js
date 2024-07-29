@@ -58,6 +58,7 @@ export default function Player({ src, track }) {
                     label: "English",
                     default: true
                 }],
+                inactivityTimeout: 2000,
             });
 
             playerRef.current.addClass("vjs-theme-fantasy");
@@ -68,36 +69,13 @@ export default function Player({ src, track }) {
             player.src({ src: src, type: "video/mp4" });
             player.addRemoteTextTrack({ src: track, kind: "subtitles", srclang: "en", label: "English", default: true }, false);
         }
-        let timeout = null;
     
         d3.select(".video-js.vjs-theme-fantasy")
-        .on("click", () => {
-            if (playerRef.current?.paused()) 
-                return;
-
-            if (d3.select(".vjs-control-bar").style("opacity") === "0") {
-                d3.select(".vjs-control-bar").style("opacity", "1");
-                d3.select(".video-js.vjs-theme-fantasy").style("cursor", "auto");
-            }
-            clearTimeout(timeout);
-            
-            timeout = setTimeout(() => {
-                if (playerRef.current?.paused())
-                    return;
-
-                d3.select(".vjs-control-bar").transition().style("opacity", "0");
-                d3.select(".video-js.vjs-theme-fantasy").style("cursor", "none");
-            }, 2000);
-        })
         .on("pointerenter", () => {
-            d3.select(".vjs-control-bar").transition().style("opacity", "1");
-            d3.select(".video-js.vjs-theme-fantasy").style("cursor", "auto");
+            d3.select(".video-js.vjs-theme-fantasy").classed("vjs-user-inactive", false);
         })
         .on("pointerleave", () => {
-            d3.select(".vjs-control-bar").transition().style("opacity", "0");
-        })
-        .on("pointermove", () => {
-            d3.select(".video-js.vjs-theme-fantasy").on("click")();
+            d3.select(".video-js.vjs-theme-fantasy").classed("vjs-user-inactive", true);
         });
 
         playerRef.current?.getChild("ControlBar").addChild("Gradient", {}, 0);
@@ -109,6 +87,9 @@ export default function Player({ src, track }) {
                 player.dispose();
                 playerRef.current = null;
             }
+            d3.select(".video-js.vjs-theme-fantasy")
+            .on("pointerenter", null)
+            .on("pointerleave", null);
         };
     }, [src, track, videoRef]);
 

@@ -18,7 +18,6 @@ export default async function handler(req, res) {
     let uid = req.body.id;
 
     if (uid) {
-        // Delete the user, if fail retry 3 times
         const retry = async (retriesLeft = 3, interval = 500) => {
             try {
                 return await auth.deleteUser(uid);
@@ -31,7 +30,7 @@ export default async function handler(req, res) {
             }
         };
 
-        retry()
+        await retry()
         .then(() => {
             res.status(200).send("User deleted successfully");
         })
