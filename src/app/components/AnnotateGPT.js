@@ -534,7 +534,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                     for (let span1 of spans1) {
                                         for (let span2 of spans2) {
                                             if (span1 === span2) {
-                                                cutIndex.push(spans1.length > spans2.length ? [j, i] : [i, j]);
+                                                let cut = spans1.length > spans2.length ? [j, i] : [i, j];
+                                                cutIndex.push(cut);
+                                                setUpAnnotatedTokens[cut[1]].accepted = false;
                                                 done--;
                                                 break loop1;
                                             }
@@ -549,7 +551,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         } else {
                             console.log(result);
                         }
-                        
                         if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
                             handleEnd();
                         }
@@ -571,6 +572,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         if (distance < substring.length / 2) {
                             // console.log("Cut", lastToken.sentence.trim());
                             cutIndex.push([i, i2]);
+                            setUpAnnotatedTokens[i2].accepted = false;
 
                             if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
                                 handleEnd();
@@ -608,7 +610,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
 
                     if (setUpAnnotatedTokens.length === 1) {
-                        // console.log("Annotating", lastToken.sentence.trim());
+                        console.log("Annotating", lastToken.sentence.trim());
                         annotate(lastToken.sentence.trim(), callback);
                     }
                 } else {
@@ -688,23 +690,24 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
                     }
 
-                    // for (let span of setUpAnnotatedTokens[index[0]].spans) {
                     for (let i = 0; i < setUpAnnotatedTokens[index[0]].spans.length; i++) {
-                        let span = setUpAnnotatedTokens[index[0]].spans[i];
+                        if (setUpAnnotatedTokens[index[0]].accepted !== false) {
+                            let span = setUpAnnotatedTokens[index[0]].spans[i];
 
-                        if (span instanceof Element) {
-                            d3.select(span)
-                            .classed("highlighted", true);
-
-                            let space = d3.select(span).node().nextSibling;
-
-                            if (!space) {
-                                space = span.parentNode.nextSibling?.firstChild;
-                            }
-        
-                            if (space && space.classList.contains("space") && i !== setUpAnnotatedTokens[index[0]].spans.length - 1) {
-                                d3.select(space)
+                            if (span instanceof Element) {
+                                d3.select(span)
                                 .classed("highlighted", true);
+
+                                let space = d3.select(span).node().nextSibling;
+
+                                if (!space) {
+                                    space = span.parentNode.nextSibling?.firstChild;
+                                }
+            
+                                if (space && space.classList.contains("space") && i !== setUpAnnotatedTokens[index[0]].spans.length - 1) {
+                                    d3.select(space)
+                                    .classed("highlighted", true);
+                                }
                             }
                         }
                     }
@@ -1075,7 +1078,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         let span = listOfSpans[i];
     
                         d3.select(span)
-                        .classed("highlighted", true);
+                        .classed("highlighted", activeAnnotation.current ? true : false)
+                        .classed("fade", activeAnnotation.current ? false : true);
     
                         let space = d3.select(span).node().nextSibling;
 
@@ -1085,7 +1089,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     
                         if (space && space.classList.contains("space") && i !== listOfSpans.length - 1) {
                             d3.select(space)
-                            .classed("highlighted", true);
+                            .classed("highlighted", true)
+                            .classed("fade", activeAnnotation.current ? false : true);
                         }
                     }
                     
@@ -1549,7 +1554,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (cluster.annotationsFound?.find(annotation => annotation === activeAnnotation.current)) {
                     if (activeAnnotation.current.spans[0] instanceof Element && activeAnnotation.current.spans[0].classList.contains("toolTip")) {
                         showTooltipContent();
-                    } else if (explanationToolTipRef.current?.isOpen) {
+                    } else if (explanationToolTipRef.current?.isOpen && activeAnnotation.current?.accepted !== false) {
                         let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === activeAnnotation.current));
                         let content = generateContent(activeAnnotation.current, annotations);
 
@@ -1705,7 +1710,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
     
-            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
+            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
                     
             if (cluster) {
                 if (onReplyCallback instanceof Function) {
@@ -1761,13 +1766,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
     
-            for (let i = 0; i < annotations.annotations.length; i++) {
-                if (annotations.annotations[i] === a) {
-                    annotations.annotations.splice(i, 1);
-                    break;
-                }
-            }
-            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
+            // for (let i = 0; i < annotations.annotations.length; i++) {
+            //     if (annotations.annotations[i] === a) {
+            //         annotations.annotations.splice(i, 1);
+            //         break;
+            //     }
+            // }
+            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
     
             if (overlappingAnnotations.length === 1) {
                 let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
@@ -1838,7 +1843,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         let a = overlappingAnnotation.annotation;
                         a.explanation.push(value);
                         
-                        let cluster = overlappingAnnotation.groupAnnotation.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(a));
+                        let cluster = overlappingAnnotation.groupAnnotation.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
                         
                         if (cluster) {
                             if (onReplyCallback instanceof Function) {
@@ -2218,7 +2223,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     fadeDisplayExplanation(content, annotation);
                     activeAnnotation.current = annotation;
 
-                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound.includes(annotation));
+                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
                     cluster.open = false;
                     annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
 

@@ -1,6 +1,7 @@
 // import { getAuth, deleteUser } from "firebase/auth";
 import { getAuth } from "firebase-admin/auth";
 import * as admin from "firebase-admin";
+import fs from "fs";
 
 const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
     
@@ -13,6 +14,52 @@ const app = admin.apps.length ? admin.apps[0] : admin.initializeApp({
 }, "service");
 
 const auth = getAuth(app);
+const db = admin.firestore(app);
+
+async function getAllCollectionsAndDocuments(db) {
+    const result = {};
+    await traverseCollectionsAndDocuments(db, result);
+    return result;
+}
+
+async function traverseCollectionsAndDocuments(db, parentObj, ref = null, parentPath = "") {
+    const collections = ref ? await ref.listCollections() : await db.listCollections();
+
+    for (const collection of collections) {
+        const collectionPath = parentPath ? `${parentPath}/${collection.id}` : collection.id;
+        parentObj[collection.id] = {};
+
+        const documents = await collection.listDocuments();
+        for (const docRef of documents) {
+            const docSnapshot = await docRef.get();
+
+            if (docSnapshot.exists) {
+                parentObj[collection.id][docRef.id] = await docSnapshot.data();
+
+                // Recursively traverse subcollections
+                await traverseCollectionsAndDocuments(db, parentObj[collection.id][docRef.id], docRef, `${collectionPath}/${docRef.id}`);
+            } else {
+                parentObj[collection.id][docRef.id] = {};
+                await traverseCollectionsAndDocuments(db, parentObj[collection.id][docRef.id], docRef, `${collectionPath}/${docRef.id}`);
+            }
+        }
+    }
+}
+
+// (async () => {
+//     const data = await getAllCollectionsAndDocuments(db);
+//     // Write the data to a file, if file already exists create a new filename with numbers appended
+//     if (!fs.existsSync("data.json")) {
+//         fs.writeFileSync("data.json", JSON.stringify(data, null, 2));
+//     } else {
+//         let i = 1;
+//         while (fs.existsSync(`data (${i}).json`)) {
+//             i++;
+//         }
+//         fs.writeFileSync(`data (${i}).json`, JSON.stringify(data, null, 2));
+//     }
+// })();
+  
 
 export default async function handler(req, res) {
     let uid = req.body.id;

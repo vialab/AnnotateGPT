@@ -50,8 +50,8 @@ function isHorizontalLine(coordinates) {
     for (let i = 1; i < coordinates.length; i++) {
         let next = coordinates[i];
 
-        averageX += Math.abs(next[0] - current[0]);
-        averageY += Math.abs(next[1] - current[1]);
+        averageX += next[0] - current[0];
+        averageY += next[1] - current[1];
 
         current = next;
     }
@@ -60,7 +60,7 @@ function isHorizontalLine(coordinates) {
 
     // console.log(averageX / averageY);
 
-    return averageX / averageY > 15;
+    return Math.abs(averageX / averageY) > 15;
 }
 
 function findClosestLine(lines, point) {
@@ -877,7 +877,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                     let wordsOfInterest = [];
                     let rectLines = words.map(word => {
                         let rect = word.getBoundingClientRect();
-                        let y = tool.current === "highlighter" ? rect.top + rect.height / 2 : rect.bottom + 5;
+                        let y = tool.current === "highlighter" ? rect.top + rect.height / 2 : rect.bottom;
                         let type = tool.current === "highlighter" ? "highlighted" : "underlined";
 
                         return {

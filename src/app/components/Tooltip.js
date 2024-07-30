@@ -450,7 +450,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 update
                 .select(".annotationCount")
                 .style("opacity", (d, i) => ((clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) && !clusterRef.current[i].open) ? 1 : 0)
-                .text((d, i) => clusterRef.current[i].annotationsFound?.length || 0);
+                .text((d, i) => clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length || 0);
                 
                 let annotationStatus = update
                 .select("text.annotateStatus");
@@ -463,7 +463,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                 })
                 .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
-                .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.length} annotations`);
+                .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length} annotations`);
             },
             exit => exit
         );
@@ -1387,7 +1387,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 })
                 .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
                 .attr("dy", "3em")
-                .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.length} annotations`)
+                .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length} annotations`)
                 .style("pointer-events", "none");
 
                 annotateStatus
@@ -1417,7 +1417,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .attr("fill", "white")
                 .style("font-family", "cursive")
                 .style("pointer-events", "none")
-                .text((d, i) => clusterRef.current[i].annotationsFound?.length);
+                .text((d, i) => clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length);
             },
 
             update => {
@@ -1437,7 +1437,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                     })
                     .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2 + 1)
                     .style("opacity", (d, i) => ((clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) && !clusterRef.current[i].open) ? 1 : 0)
-                    .text((d, i) => clusterRef.current[i].annotationsFound?.length);
+                    .text((d, i) => clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length);
 
                     let annotationStatus = update
                     .select("text.annotateStatus");
@@ -1490,7 +1490,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
                     })
                     .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
-                    .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.length} annotations`);
+                    .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length} annotations`);
 
                     annotationStatus
                     .select("tspan.navagation")
