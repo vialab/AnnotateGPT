@@ -832,6 +832,10 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .append("g")
                 .attr("class", "toolTip")
                 .classed("found", (d, i) => clusterRef.current[i].annotationsFound)
+                .classed("open", (d, i) => clusterRef.current[i].open)
+                .classed("annotating", (d, i) => clusterRef.current[i].annotating)
+                .classed("done", (d, i) => clusterRef.current[i].annotating === false)
+                .classed("havePurpose", (d, i) => clusterRef.current[i].purpose)
                 .attr("id", (d, i) => "toolTip" + clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id)
                 .attr("opacity", 0);
 
@@ -1067,7 +1071,8 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 let spinner = d3.select(".comment-wrapper")
                 .node();
 
-                let spinnerBBox = spinner.getBBox();
+                // let spinnerBBox = spinner.getBBox();
+                let spinnerBBox = {width: 80, height: 66.60443115234375};
 
                 let padding = 12;
                 let topPadding = 40;
@@ -1081,6 +1086,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 })
                 .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 90) - spinnerBBox.height / 2 - padding)
                 .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                .style("display", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? "unset" : "none")
                 .selectAll("*")
                 .style("pointer-events", "none");
 
@@ -1326,7 +1332,8 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 let glass = d3.select(".glass-wrapper")
                 .node();
 
-                let glassBBox = glass.getBBox();
+                // let glassBBox = glass.getBBox();
+                let glassBBox = {width: 60, height: 60};
                 
                 tooltip
                 .append("g")
@@ -1335,8 +1342,9 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140) - glassBBox.height / 2 - padding)
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 120) - glassBBox.height / 2 - padding)
                 .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
+                .style("display", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? "unset" : "none")
                 .selectAll("*")
                 .attr("transform", null)
                 .style("pointer-events", "none");
@@ -1503,22 +1511,29 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                     .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
                     .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0);
 
-                    let glass = d3.select(".glass-wrapper")
-                    .node();
+                    // let glass = d3.select(".glass-wrapper")
+                    // .node();
 
-                    let glassBBox = glass.getBBox();
+                    // let glassBBox = glass.getBBox();
+                    let glassBBox = { width: 60, height: 60 };
 
                     update
                     .select("g.glass")
                     .select("svg")
+                    .style("display", "unset")
                     .transition()
                     .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
                     .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
                     .attr("x", (d, i) => {
                         return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
                     })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140) - glassBBox.height / 2 - padding)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0);
+                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 120) - glassBBox.height / 2 - padding)
+                    .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
+                    .on("end", function(d, i) {
+                        if (!(clusterRef.current[i]?.open && clusterRef.current[i]?.annotating)) {
+                            d3.select(this).style("display", "none");
+                        }
+                    });
 
                     update
                     .select("foreignObject.input-wrapper")
@@ -1591,10 +1606,10 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         }
                     });
 
-                    let spinner = d3.select(".comment-wrapper")
-                    .node();
+                    // let spinner = d3.select(".comment-wrapper")
+                    // .node();
 
-                    let spinnerBBox = spinner.getBBox();
+                    let spinnerBBox = {width: 80, height: 66.60443115234375};
                     
                     for (let i = 0; i < 2; i++) {
                         for (let j = 0; j < 2; j++) {
@@ -1756,6 +1771,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                     update
                     .select("g.spinner")
                     .select("svg")
+                    .style("display", "unset")
                     .transition()
                     .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
                     .delay((d, k) => clusterRef.current[k].open && clusterRef.current[k].annotating === undefined && !clusterRef.current[k].purpose ? 500 : 0)
@@ -1763,7 +1779,12 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - spinnerBBox.width / 2;
                     })
                     .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 90) - spinnerBBox.height / 2 - padding)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0);
+                    .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                    .on("end", function(d, i) {
+                        if (!(clusterRef.current[i]?.open && !clusterRef.current[i]?.purpose)) {
+                            d3.select(this).style("display", "none");
+                        }
+                    });
 
                     update
                     .select("circle")
@@ -1983,6 +2004,8 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                                     .node();
                 
                                     d3.select(rect.closest("g")).raise();
+
+                                    console.log(clusterRef.current[i]);
                 
                                     if (clusterRef.current[i].open && !clusterRef.current[i].purpose && clusterRef.current[i].purpose !== false) {
                                         clusterRef.current[i].purpose = false;
@@ -2018,6 +2041,10 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
 
                     update
                     .classed("found", (d, i) => clusterRef.current[i].annotationsFound)
+                    .classed("open", (d, i) => clusterRef.current[i].open)
+                    .classed("annotating", (d, i) => clusterRef.current[i].annotating)
+                    .classed("done", (d, i) => clusterRef.current[i].annotating === false)
+                    .classed("havePurpose", (d, i) => clusterRef.current[i].purpose)
                     .transition()
                     .duration(1000)
                     .attr("opacity", 1);

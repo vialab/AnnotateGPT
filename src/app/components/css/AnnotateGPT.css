@@ -45,6 +45,10 @@ hr {
     background-color: #f9fbfd;
 }
 
+span[role="presentation"] {
+    content-visibility: auto;
+}
+
 .word, .space {
     transition: background 0.5s;
 }
@@ -82,6 +86,10 @@ hr {
 
 #toolTipcanvas * {
     pointer-events: all;
+}
+
+.annotateContainer > .comment-wrapper, .annotateContainer > .glass-wrapper {
+    content-visibility: hidden;
 }
 
 #toolTipcanvas.disabled * {

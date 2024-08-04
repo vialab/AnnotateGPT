@@ -14,7 +14,7 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // makeInference(test, cropTest, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
 // makeInference(img.img1, img.img2, "underlined", "utilizes").catch(console.error);
 // makeInference(img.img7, img.img8, "circled", "8 ] utilizes").catch(console.error);
-// makeInference(img.img5, img.img6, "annotated (not circled, underlined or highlighted)", "(i.e.").catch(console.error);
+// makeInference(img.img5, img.img6, "annotated (not circled, underlined or highlighted)", "(i.e.").catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -34,13 +34,15 @@ export async function findAnnotations(purpose, callback, endCallback) {
 
         for (let token of data.test19) {
             // console.log(token);
-            // await new Promise(r => setTimeout(r, 30));
+            // await new Promise(r => setTimeout(r, 0.1));
             message += token;
 
             if (callback instanceof Function) {
                 callback(token);
             }
-        }
+        }        
+        await new Promise(r => setTimeout(r, 8000));
+
         if (endCallback instanceof Function)
             endCallback();
 
@@ -53,19 +55,20 @@ export async function findAnnotations(purpose, callback, endCallback) {
         let textDeltaArray = [];
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-`You are grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
+`You are an expert in English grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
 
 ${purpose}
 
 Here is a step-by-step list for annotating a document:
 
 1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way.
-2. Explain why you annnotated the sentence. Format the explanation as short as possible using 10 words or less. Make sure to include the purpose of the annotation in the explanation.
-3. Suggest fixes for the sentence. Format the suggestion as short as possible using 10 words or less by describing the fix without giving the answer.
-4. Do not include any sentences that need no modification.
-5. Make a list of sentences for the question using triple asterisks for sentences and double curly braces for the explanation and suggestion. For example:
+2. Explain why you annnotated the sentence.
+3. Suggest fixes for the sentence by describing the fix without giving the answer.
+4. Combine the explanation and suggestion without quoting the sentence using less than 20 words.
+5. Do not include any sentences that need no modification.
+6. Make a list of sentences for each response using triple asterisks for sentences and double curly braces for the explanation and suggestion. For example:
 
-## Response #1
+## Response <number>
 
 *** <sentence> ***
 {{ <explanation and suggestion> }}
@@ -74,30 +77,8 @@ Here is a step-by-step list for annotating a document:
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-`Lets work this out in a step by step way to be sure we have the correctly mark all questions.`
+            `Lets work this out in a step by step way to be sure we have the correctly mark all questions.`
         });
-
-        // let run = await openai.beta.threads.runs.createAndPoll(
-        //     thread.id,
-        //     { 
-        //         assistant_id: assistantID,
-        //         max_completion_tokens: 4096
-        //     }
-        // );
-
-        // if (run.status === 'completed') {
-        //     const messages = await openai.beta.threads.messages.list(
-        //         run.thread_id
-        //     );
-
-        //     console.log(messages);
-
-        //     for (const message of messages.data.reverse()) {
-        //         console.log(`${message.role} > ${message.content[0].text.value}`);
-        //     }
-        // } else {
-        //     console.log(run.status);
-        // }
 
         let totalRuns = 0;
         let maxRuns = 8;
@@ -179,12 +160,9 @@ Here is a step-by-step list for annotating a document:
         executeRun(false);
     } catch (error) {
         console.log("error", error);
-
-        // return new Promise((resolve, reject) => {
-        //     setTimeout(() => {
-        //         resolve(findAnnotations(purpose));
-        //     }, 10000);
-        // });
+        
+        await new Promise(r => setTimeout(r, 1000));
+        findAnnotations(purpose, callback, endCallback);
     }
 }
 
@@ -287,37 +265,37 @@ export async function makeInference(image1, image2, type, annotatedText) {
                     {
                         role: "user",
                         content: `Parse your response as a JSON object in this format:
-    {
-        "annotationDescription": "<annotation description>",
-        "pastAnnotationHistory": "<annotation history>",
-        "purpose": [
-            {
-                "persona": "<persona 1>",
-                "purpose": "<purpose 1>",
-                "purposeTitle": "<purpose_title 1>"
-            },
-            {
-                "persona": "<persona 2>",
-                "purpose": "<purpose 2>",
-                "purposeTitle": "<purpose_title 2>"
-            },
-            {
-                "persona": "<persona 3>",
-                "purpose": "<purpose 3>",
-                "purposeTitle": "<purpose_title 3>"
-            },
-            {
-                "persona": "<persona 4>",
-                "purpose": "<purpose 4>",
-                "purposeTitle": "<purpose_title 4>"
-            },
-        ]
-    }
+{
+    "annotationDescription": "<annotation description>",
+    "pastAnnotationHistory": "<annotation history>",
+    "purpose": [
+        {
+            "persona": "<persona 1>",
+            "purpose": "<purpose 1>",
+            "purposeTitle": "<purpose_title 1>"
+        },
+        {
+            "persona": "<persona 2>",
+            "purpose": "<purpose 2>",
+            "purposeTitle": "<purpose_title 2>"
+        },
+        {
+            "persona": "<persona 3>",
+            "purpose": "<purpose 3>",
+            "purposeTitle": "<purpose_title 3>"
+        },
+        {
+            "persona": "<persona 4>",
+            "purpose": "<purpose 4>",
+            "purposeTitle": "<purpose_title 4>"
+        },
+    ]
+}
 
-    <annotation description>: is a detailed description of the annotation.
-    <annotation history>: is a detailed annotation history related to the annotation.
-    <purpose>: is a description of the annotation purpose using the <annotation description> and <annotation history> as context. Talk in second first person (you, your, etc.) and use as few words as possible.
-    <purpose_title>: is a short title for <purpose> without mentioning the persona.`
+<annotation description>: is a detailed description of the annotation.
+<annotation history>: is a detailed annotation history related to the annotation.
+<purpose>: is a description of the annotation purpose and annotation type using the <annotation description> and <annotation history> as context. Talk in second person (you, your, etc.) and use as few words as possible.
+<purpose_title>: is a short title for <purpose> without mentioning the persona, be very specific.`
                     },
                     {
                         role: "user",
@@ -354,11 +332,14 @@ export async function makeInference(image1, image2, type, annotatedText) {
             //     // response_format: { type: "json_object" }
             // });
 
-            let run = await openai.beta.threads.runs.createAndPoll(thread.id, {
-                assistant_id: assistantPurposeID,
-                tool_choice: { type: "file_search" },
-                // response_format: { type: "json_object" }
-            });
+            let run = await openai.beta.threads.runs.createAndPoll(thread.id, 
+                {
+                    assistant_id: assistantPurposeID,
+                    tool_choice: { type: "file_search" },
+                    // response_format: { type: "json_object" }
+                }, 
+                { pollIntervalMs: 500 }
+            );
 
     //         const m = await openai.beta.threads.messages.list(thread.id, {
     //             run_id: run.id,
@@ -408,7 +389,7 @@ export async function makeInference(image1, image2, type, annotatedText) {
             
             const messages = await openai.beta.threads.messages.list(thread.id, {
                 run_id: run.id,
-            });
+            }, { maxRetries: 3 });
         
             const message = messages.data.pop();
             
@@ -459,7 +440,8 @@ export async function makeInference(image1, image2, type, annotatedText) {
                 console.error(error);
             }
             await new Promise(r => setTimeout(r, 1000));
-            makeInference(image1, image2, type, annotatedText);
+            // return await makeInference(image1, image2, type, annotatedText);
+            resolve(await makeInference(image1, image2, type, annotatedText));
         }
     });
 }

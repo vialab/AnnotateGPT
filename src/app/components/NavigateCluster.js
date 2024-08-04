@@ -74,6 +74,11 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
         }
         let annotation = annotationsRef.current[index.current]?.spans;
 
+        if (annotationsRef.current[index.current]?.accepted === false && index.current > 0) {
+            onPrev();
+            return;
+        }
+
         if (annotation) {
             let yCoord = d3.mean(annotation.map(span => {
                 if (span.classList?.contains("toolTip")) {
@@ -149,6 +154,12 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
         if (index.current < annotationsRef.current.length - 1) {
             index.current++;
         }
+
+        if (annotationsRef.current[index.current]?.accepted === false && index.current < annotationsRef.current.length - 1) {
+            onNext();
+            return;
+        }
+
         let annotation = annotationsRef.current[index.current]?.spans;
 
         if (annotation) {

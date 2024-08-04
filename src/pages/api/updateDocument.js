@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     } else if (req.method === "POST") {
         let processDocument;
         
-        let uploadFile = async () => {
+        let uploadFile = async (retry = 3) => {
             let waitInterval = 0;
 
             while (loading && waitInterval < 40) {
@@ -29,72 +29,71 @@ export default async function handler(req, res) {
                 await new Promise(r => setTimeout(r, 500));
             }
             loading = true;
-    
-            const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
-            let vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
             
-            if (!vectorStoreID) {
-                console.log("Creating vector store...");
-
-                let vectorStore = await openai.beta.vectorStores.create({
-                    name: "Pen Annotation vector store",
-                });
-                vectorStoreID = vectorStore.id;
-
-                await openai.beta.assistants.update(annotateAssistant.id, {
-                    tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
-                });
-            }
-            console.log("Deleting document...");
-
-            const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
+            try {
+                const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
+                let vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
+                
+                if (!vectorStoreID) {
+                    console.log("Creating vector store...");
     
-            for (let file of vectorStoreFiles.data) {
-                openai.files.del(file.id)
-                .catch((error) => {
-                    openai.beta.vectorStores.files.del(vectorStoreID, file.id)
-                    .catch((error) => {
-                        console.error(error.error.message, "in vector store");
+                    let vectorStore = await openai.beta.vectorStores.create({
+                        name: "Pen Annotation vector store",
                     });
-
-                    console.error(error.error.message, "in files");
-                });
-            }
-            console.log("Creating document...");
-            
-            const file = await openai.files.create({
-                file: processDocument,
-                purpose: "assistants",
-            });
+                    vectorStoreID = vectorStore.id;
     
-            console.log("Indexing document...");
-            
-            await openai.beta.vectorStores.files.createAndPoll(
-                vectorStoreID, 
-                {
-                    file_id: file.id
-                },
-                {
-                    pollIntervalMs: 500,
+                    await openai.beta.assistants.update(annotateAssistant.id, {
+                        tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
+                    });
                 }
-            );
-            console.log("Done creating document...");
-
-            if (file.status == "error") {
-                res.status(500).send("Error uploading document!");
-
+                console.log("Deleting document...");
+    
                 const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
-                    
+        
                 for (let file of vectorStoreFiles.data) {
                     openai.files.del(file.id)
                     .catch((error) => {
+                        openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                        .catch((error) => {
+                            console.error(error.error.message, "in vector store");
+                        });
+    
                         console.error(error.error.message, "in files");
                     });
                 }
-            } else {
-                res.status(200).send("Updated document!");
+                console.log("Creating document...");
+                
+                const file = await openai.files.create({
+                    file: processDocument,
+                    purpose: "assistants",
+                });
+        
+                console.log("Indexing document...");
+                
+                const processedFile = await openai.beta.vectorStores.files.createAndPoll(
+                    vectorStoreID, 
+                    { file_id: file.id },
+                    { pollIntervalMs: 500 }
+                );
+                console.log("Done creating document...");
+                loading = false;
+    
+                if (processedFile.status !== "completed") {
+                    throw new Error("Document processing failed");
+                } else {
+                    res.status(200).send("Updated document!");
+                }
+            } catch (error) {
+                loading = false;
+
+                if (retry > 0) {
+                    console.error("Retrying updateDocument...", retry);
+                    console.error(error);
+                    return uploadFile(retry - 1);
+                } else {
+                    throw error;
+                }
             }
-            loading = false;
         };
         
         try {

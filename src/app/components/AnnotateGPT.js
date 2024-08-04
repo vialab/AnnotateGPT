@@ -248,6 +248,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         // numPages = 8;
         setNumPages(numPages);
           
+        d3.selectAll(".page-container").style("content-visibility", "visible");
         svgContentRef.current = Array(numPages).fill(null);
         textContent.current = Array(numPages).fill(null);
 
@@ -329,6 +330,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
     useEffect(() => {
         if (svgContent instanceof Array) {
+            d3.selectAll(".page-container").style("content-visibility", "visible");
+
             for (let svg of svgContent) {
                 let page = svg.page;
                 let svgContent = svg.svg;
@@ -338,6 +341,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.replace("lineDraw", ""));
                 }
             }
+            d3.selectAll(".page-container").style("content-visibility", "auto");
         }
     }, [svgContent]);
 
@@ -347,6 +351,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         initCanvas.current = (width) => {
             svgContentRef.current = Array(numPages).fill(null);
             textContent.current = Array(numPages).fill(null);
+            d3.selectAll(".page-container").style("content-visibility", "visible");
     
             let pageContent = Array.from(new Array(numPages), (el, index) =>
                 <div className="page-container" key={`pageContainer_${index + 1}`} style={{ position: "relative" }}>
@@ -470,6 +475,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         if (textContent.current.every((text) => text !== null)) {
             setProgress(100);
             setLoading(false);
+
+            d3.selectAll(".page-container").style("content-visibility", "auto");
 
             // setUpAnnotations("")
             // setUpAnnotations("");
@@ -1076,10 +1083,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (found) {
                     for (let i = 0; i < listOfSpans.length; i++) {
                         let span = listOfSpans[i];
-    
+
                         d3.select(span)
-                        .classed("highlighted", activeAnnotation.current ? true : false)
-                        .classed("fade", activeAnnotation.current ? false : true);
+                        .classed("highlighted", true)
+                        .classed("fade", !(activeAnnotation.current && activeAnnotation.current instanceof Element));
     
                         let space = d3.select(span).node().nextSibling;
 
@@ -1090,7 +1097,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         if (space && space.classList.contains("space") && i !== listOfSpans.length - 1) {
                             d3.select(space)
                             .classed("highlighted", true)
-                            .classed("fade", activeAnnotation.current ? false : true);
+                            .classed("fade", !(activeAnnotation.current && activeAnnotation.current instanceof Element));
                         }
                     }
                     
@@ -1396,6 +1403,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
                 } else {
+                    cluster.open = false;
+                    ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
                     let content = generateContent(annotation, annotations);
     
                     fadeDisplayExplanation(content, annotation);

@@ -5,7 +5,7 @@ import OpenAI from "openai";
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
 const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 
-async function updateHistory(dataFilePath) {
+async function updateHistory(retry = 3) {
     try {
         const purposeAssistant = await openai.beta.assistants.retrieve(purposeAssistantID);
         let vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
@@ -53,14 +53,23 @@ async function updateHistory(dataFilePath) {
             purpose: "assistants",
         });
     
-        const vfile = await openai.beta.vectorStores.files.create(
+        const vfile = await openai.beta.vectorStores.files.createAndPoll(
             vectorStoreID,
-            { file_id: historyFile.id }
+            { file_id: historyFile.id },
+            { pollIntervalMs: 500 }
         );
-    
+
+        if (vfile.status !== "completed") {
+            throw new Error("Vector file not completed");
+        }    
         return vfile;
     } catch (error) {
-        throw error;
+        if (retry > 0) {
+            console.error("Retrying updateHistory...", retry);
+            return await updateHistory(retry - 1);
+        } else {
+            throw error;
+        }
     }
 }
 
@@ -85,7 +94,7 @@ export default async function handler(req, res) {
                         // await fsPromises.writeFile(dataFilePath, `No history`);
                         history = ["No history"];
                             
-                        await updateHistory(dataFilePath);
+                        await updateHistory();
                         res.status(200).send("Initial history file created!\n" + history.join(""));
                     }
                 } else {
@@ -95,7 +104,7 @@ export default async function handler(req, res) {
                 historyStatus = "empty";
                 // await fsPromises.writeFile(dataFilePath, `No history`);
                 history = ["No history"];
-                await updateHistory(dataFilePath);
+                await updateHistory();
 
                 res.status(200).send("Initial history file created!\n" + history.join(""));
             
@@ -112,7 +121,7 @@ export default async function handler(req, res) {
                 }
                 // await fsPromises.appendFile(dataFilePath, historyEntry);
                 history.push(historyEntry);
-                await updateHistory(dataFilePath);
+                await updateHistory();
         
                 res.status(200).send("History updated!\n" + history.join(""));
             } else if (action === "comment") {
@@ -128,7 +137,7 @@ export default async function handler(req, res) {
                 }
                 // await fsPromises.appendFile(dataFilePath, historyEntry);
                 history.push(historyEntry);
-                await updateHistory(dataFilePath);
+                await updateHistory();
         
                 res.status(200).send("History updated!\n" + history.join(""));
             } else if (action === "move") {
