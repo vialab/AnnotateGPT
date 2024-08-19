@@ -87,3 +87,37 @@ export default async function handler(req, res) {
         });
     }
 }
+
+// const deleteAllUsers = (nextPageToken) => {
+//     let allUsers = [];
+
+//     auth
+//     .listUsers(1000, nextPageToken)
+//     .then((listUsersResult) => {
+//         listUsersResult.users.forEach((userRecord) => {
+//             allUsers.push(userRecord.uid);
+//         });
+//         if (listUsersResult.pageToken) {
+//             // List next batch of users.
+//             deleteAllUsers(listUsersResult.pageToken);
+//         }
+
+//         auth
+//         .deleteUsers(allUsers)
+//         .then((deleteUsersResult) => {
+//             console.log(`Successfully deleted ${deleteUsersResult.successCount} users`);
+//             console.log(`Failed to delete ${deleteUsersResult.failureCount} users`);
+//             deleteUsersResult.errors.forEach((err) => {
+//                 console.log(err.error.toJSON());
+//             });
+//         })
+//         .catch((error) => {
+//             console.log('Error deleting users:', error);
+//         });
+//     })
+//     .catch((error) => {
+//         console.log('Error listing users:', error);
+//     });
+// };
+
+// deleteAllUsers();

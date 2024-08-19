@@ -245,7 +245,7 @@ export default function Home() {
     const documents = ["./public/Test 1.pdf", "./public/Test 2.pdf"];
     // const llmOrder = [true, false];
 
-    let onNextTask = (taskNum, nextMode) => {
+    let checkTask = () => {
         let continueStudy = true;
 
         if (typeof modeRef.current === "string" && !modeRef.current.toLowerCase().includes("practice")) {
@@ -289,7 +289,7 @@ export default function Home() {
                 }
             }
             
-            if (strokesFound && annotationsFound && uncompletedPages.size === 0 && !annotating) {
+            if (strokesFound && (annotationsFound || !modeRef.current.toLowerCase().includes("llm")) && !annotating && uncompletedPages.size === 0) {
                 continueStudy = true;
             } else {
                 continueStudy = <>
@@ -298,40 +298,43 @@ export default function Home() {
                         { strokesFound ? null : <li>Must make at least one annotation</li> }
                         { (annotationsFound || !modeRef.current.toLowerCase().includes("llm")) ? null : <li>Must use the assistance at least once</li> }
                         { annotating ? <li>Assistance is still annotating</li> : null }
-                        { (uncompletedPages.size > 0 && modeRef.current.toLowerCase().includes("llm")) ? <li>You did not rate all annotation on page: {[...uncompletedPages].sort((a, b) => a - b).join(", ")}</li> : null }
+                        { (uncompletedPages.size > 0 && modeRef.current.toLowerCase().includes("llm")) ? <li>You did not rate all annotations on page: {[...uncompletedPages].sort((a, b) => a - b).join(", ")}</li> : null }
                     </ul>
                 </>;
             }
         }
-
-        if (continueStudy === true) {
-            if (taskNum >= 0 && taskNum < documents.length) {
-                setDocument(documents[taskNum]);
-                setMode(nextMode);
-    
-                setToastMessage(null);
-                // practiceMessageIndex.current = 0;
-                // console.log("Test")
-            } else {
-                setDocument("./public/Practice.pdf");
-                setMode("practice" + nextMode);
-                
-                practiceMessageIndex.current = 0;
-    
-                if (typeof mode === "string") {
-                    let messages;
-                    
-                    if (mode.toLowerCase().includes("llm")) {
-                        messages = practiceMessage.current[0];
-                    } else {
-                        messages = practiceMessage.current[1];
-                    }
-                    setToastMessage(messages[0]);
-                }
-            }
-            moveHistory();
-        }
         return continueStudy;
+    };
+
+    let onNextTask = (taskNum, nextMode) => {
+        if (taskNum >= 0 && taskNum < documents.length) {
+            setDocument(documents[taskNum]);
+            setMode(nextMode);
+
+            setToastMessage(null);
+            
+            setDisableNext(false);
+            // practiceMessageIndex.current = 0;
+            // console.log("Test")
+        } else {
+            setDocument("./public/Practice.pdf");
+            setMode("practice" + nextMode);
+            
+            practiceMessageIndex.current = 0;
+
+            if (typeof mode === "string") {
+                let messages;
+                
+                if (mode.toLowerCase().includes("llm")) {
+                    messages = practiceMessage.current[0];
+                } else {
+                    messages = practiceMessage.current[1];
+                }
+                setToastMessage(messages[0]);
+                setDisableNext(true);
+            }
+        }
+        moveHistory();
     };
 
     let documentChange = (taskNum) => {
@@ -447,7 +450,7 @@ export default function Home() {
         let annotatedText = param.stroke.annotatedText.map( element => element.innerText).join(" ").replace(/"/g, `""`);
         let marginalText = param.stroke.marginalText.map( element => element.innerText).join(" ").replace(/"/g, `""`);
 
-        let strokeData = `${param.path.id},createStroke,${param.page},${param.stroke.startTime},${param.stroke.endTime},${param.stroke.type},"${annotatedText}","${marginalText}","${param.path.outerHTML.replace(/"/g, `""`)}"`;
+        let strokeData = `${param.path.id},createStroke,${param.page},${param.stroke.startTime},${param.stroke.endTime},${param.stroke.type},"${annotatedText}","${marginalText}","${JSON.stringify(param.stroke.textBbox).replace(/"/g, `""`)}","${JSON.stringify(param.stroke.marginalTextBbox).replace(/"/g, `""`)}","${JSON.stringify(param.stroke.lineBbox).replace(/"/g, `""`)}","${param.path.outerHTML.replace(/"/g, `""`)}"`;
         let bbox = d3.select(".page-container").node().getBoundingClientRect();
 
         updatePracticeMessages(0);
@@ -476,7 +479,7 @@ export default function Home() {
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return value.map(element => element.innerText).join(" ");
+                return typeof value === "string" ? value : value.map(element => element.innerText).join(" ");
             } else {
                 return value;
             }
@@ -503,7 +506,7 @@ export default function Home() {
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return value.map(element => element.innerText).join(" ");
+                return typeof value === "string" ? value : value.map(element => element.innerText).join(" ");
             } else {
                 return value;
             }
@@ -534,7 +537,7 @@ export default function Home() {
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return value.map(element => element.innerText).join(" ");
+                return typeof value === "string" ? value : value.map(element => element.innerText).join(" ");
             } else {
                 return value;
             }
@@ -552,7 +555,7 @@ export default function Home() {
     };
 
     let fileHandler = (strokeFile, clusterFile, document) => {
-        if (strokeFile) {
+        let initiateProcessStrokes = () => {
             let strokeReader = new FileReader();
 
             strokeReader.onload = (e) => {
@@ -584,6 +587,10 @@ export default function Home() {
                 });
             };
             strokeReader.readAsText(strokeFile);
+        };
+
+        if (strokeFile && !clusterFile) {
+            initiateProcessStrokes();
         }
 
         if (clusterFile) {
@@ -618,8 +625,26 @@ export default function Home() {
                 }
 
                 for (let [pageNumber, clusters] of newPageClusters) {
-                    annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.updateLockCluster(clusters);
+                    let mergedClusters = annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.lockClusters.current.concat(clusters);
+                    annotationeRef.current.penAnnotation[pageNumber - 1].current.lockClusters.current = mergedClusters;
+                    annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.updateLockCluster(mergedClusters);
 
+                    for (let cluster of clusters) {
+                        for (let lockCluster of annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.clusters.current) {
+                            let strokeID;
+
+                            if (lockCluster.strokes.some(stroke => cluster.strokes.some(s => {
+                                strokeID = s.id;
+                                return s.id === stroke.id && s.id !== "initial";
+                            }))) {
+                                lockCluster.strokes = [...lockCluster.strokes.filter(stroke => stroke.id !== strokeID)];                                
+                                annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.penCluster.remove(strokeID);
+                            }
+                        }
+                        let [clusters, stopIteration] = annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.penCluster.update();
+                        annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.clusterStrokes(clusters, stopIteration);
+                    }
+                    
                     for (let cluster of clusters) {
                         if (cluster.annotationsFound) {
 
@@ -660,6 +685,10 @@ export default function Home() {
                             }
                         }
                     }
+                }
+
+                if (strokeFile) {
+                    initiateProcessStrokes();
                 }
             };
             clusterReader.readAsText(clusterFile);
@@ -750,7 +779,7 @@ export default function Home() {
                     />
                 </>
             }
-            <StudyModal toastMessage={toastMessage} disableNext={disableNext} onNextTask={onNextTask} onFinish={onFinish} modeChange={modeChange} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
+            <StudyModal toastMessage={toastMessage} disableNext={disableNext} checkTask={checkTask} onNextTask={onNextTask} onFinish={onFinish} modeChange={modeChange} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
             
             <ToastContainer
                 containerId="studyMessage"

@@ -400,12 +400,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         JSON.parse(svg.marginalTextBbox),
                         JSON.parse(svg.lineBbox),
                         page,
-                        svgContent.endTime
+                        svg.endTime
                     );
 
                     console.log(penAnnnotationRef.current.penCluster);
                 }
-                
+
                 if (strokeAdded) {
                     penAnnnotationRef.current.clusterStrokes(clusters, stopIteration);
                 }
@@ -1156,7 +1156,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                         d3.select(span)
                         .classed("highlighted", true)
-                        .classed("fade", !(activeAnnotation.current && activeAnnotation.current instanceof Element));
+                        .classed("fade", activeAnnotation.current && !(activeAnnotation.current instanceof Element) && !activeAnnotation.current.spans.some((r) => r === span));
     
                         let space = d3.select(span).node().nextSibling;
 
@@ -1167,7 +1167,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         if (space && space.classList.contains("space") && i !== listOfSpans.length - 1) {
                             d3.select(space)
                             .classed("highlighted", true)
-                            .classed("fade", !(activeAnnotation.current && activeAnnotation.current instanceof Element));
+                            .classed("fade", activeAnnotation.current && !(activeAnnotation.current instanceof Element) && !activeAnnotation.current.spans.some((r) => r === span));
                         }
                     }
                     

@@ -613,7 +613,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             }
             newClusters.push(c);
         }
-        setClusters(newClusters.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp));
+        setClusters(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")).sort((a, b) => a.lastestTimestamp - b.lastestTimestamp));
         // onChange(c, index);
     };
 
