@@ -304,16 +304,21 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
         }
 
         let sortAnnotations = tAnnotations.sort((a, b) => {
-            // console.log(a.spans, b.spans);
-            let aY = d3.mean(a.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));
-            let bY = d3.mean(b.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));
-            return aY - bY;
+            if (a.spans instanceof Array && b.spans instanceof Array) {
+                let aY = d3.mean(a.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));
+                let bY = d3.mean(b.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));
+                return aY - bY;
+            } else {
+                return 0;
+            }
         });
         annotationsRef.current = sortAnnotations;
 
         for (let i = 0; i < annotationsRef.current.length; i++) {
             // console.log(annotationsRef.current[i].spans);
-            annotationsRef.current[i].spans = annotationsRef.current[i].spans.filter(span => span instanceof Element);
+            if (annotationsRef.current[i].spans instanceof Array) {
+                annotationsRef.current[i].spans = annotationsRef.current[i].spans.filter(span => span instanceof Element);
+            }
         }
         // findIndex();
         

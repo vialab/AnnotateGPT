@@ -113,6 +113,10 @@
     border-color: #2eb086;
 }
 
+.contentContainer .modalButton.skip {
+    border-color: #8783D1;
+}
+
 .contentContainer .modalButton.disabled {
     opacity: 0.5;
     pointer-events: none;
@@ -123,7 +127,7 @@
 .contentContainer .modalButton.disabled.enable {
     border-color: white;
     opacity: 1;
-    pointer-events: all;
+    pointer-events: all !important;
 }
 
 .contentContainer .modalButton.disabled::before, .continue.disabled::before {
@@ -396,6 +400,14 @@
     margin: 0;
 }
 
+.contentContainer .settings {
+    display: flex;
+    width: 600px;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
 .contentContainer .settings div {
     align-items: center;
     display: flex;
@@ -433,7 +445,7 @@
     margin-top: 17px;
     padding-top: 50px;
     position: relative;
-    width: 50%;
+    width: 632px;
 }
 
 .contentContainer .field input,

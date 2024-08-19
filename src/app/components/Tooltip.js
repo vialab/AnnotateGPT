@@ -237,7 +237,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
             return stroke.annotatedText;
         }).flat());
         
-        annotatedText = word ? [...annotatedTextNodes].map(node => node.textContent).join(" ") : [...annotatedTextNodes].map(node => node.textContent).join(" ");
+        annotatedText = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
 
         let type = "annotated (not circled, underlined, highlighted or crossed out)";
 

@@ -99,7 +99,7 @@ function findClosestLine(lines, point) {
     for (let line of lines) {
         let dist = distance(line.x1, line.y1, line.x2, line.y2, point.x, point.y);
 
-        if (dist < minDistance && dist < 20) {
+        if (dist < minDistance && dist < 30) {
             minDistance = dist;
             closestLine = line;
         }
@@ -579,48 +579,48 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
     let startTime = useRef(null);
     let timeout = useRef(null);    
 
+    let clusterStrokes = async (clusters, stopIteration) => {
+        console.log(clusters, stopIteration);
+        let newClusterArray = clusters[stopIteration[stopIteration.length - 1]];
+        // let noText = true;
+
+        // loop1: for (let i = stopIteration[stopIteration.length - 1]; i < clusters.length; i++) {
+        //     for (let stroke of clusters[i][clusters[i].length - 1].strokes) {
+        //         lastCluster = clusters[i][clusters[i].length - 1];
+
+        //         if (stroke.annotatedText !== "") {
+        //             console.log(clusters[i]);
+        //             break loop1;
+        //         }
+        //     }
+        // }
+        let newClusters = [...clustersRef.current];
+        // lastCluster.current = newClusterArray[newClusterArray.length - 1];
+
+        for (let c of newClusterArray) {
+            if (c.strokes.length === 0) {
+                continue;
+            }
+            c = new Cluster(c.strokes);
+            c.disabled = true;
+
+            for (let stroke of c.strokes) {
+                let findStroke = newClusters.findIndex(cluster => cluster.strokes.find(s => s.id === stroke.id));
+
+                if (findStroke !== -1) {
+                    newClusters.splice(findStroke, 1);
+                }
+            }
+            newClusters.push(c);
+        }
+        setClusters(newClusters.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp));
+        // onChange(c, index);
+    };
+
     useEffect(() => {
         let toolbar = d3.select("." + toolbarStyles.toolbar);
         let toolTip = d3.selectAll("#toolTipcanvas");
         let navagation = d3.select(".navigateContainer");
-
-        let clusterStrokes = async (clusters, stopIteration) => {
-            console.log(clusters, stopIteration);
-            let newClusterArray = clusters[stopIteration[stopIteration.length - 1]];
-            // let noText = true;
-
-            // loop1: for (let i = stopIteration[stopIteration.length - 1]; i < clusters.length; i++) {
-            //     for (let stroke of clusters[i][clusters[i].length - 1].strokes) {
-            //         lastCluster = clusters[i][clusters[i].length - 1];
-
-            //         if (stroke.annotatedText !== "") {
-            //             console.log(clusters[i]);
-            //             break loop1;
-            //         }
-            //     }
-            // }
-            let newClusters = [...clustersRef.current];
-            // lastCluster.current = newClusterArray[newClusterArray.length - 1];
-
-            for (let c of newClusterArray) {
-                if (c.strokes.length === 0) {
-                    continue;
-                }
-                c = new Cluster(c.strokes);
-                c.disabled = true;
-
-                for (let stroke of c.strokes) {
-                    let findStroke = newClusters.findIndex(cluster => cluster.strokes.find(s => s.id === stroke.id));
-
-                    if (findStroke !== -1) {
-                        newClusters.splice(findStroke, 1);
-                    }
-                }
-                newClusters.push(c);
-            }
-            setClusters(newClusters.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp));
-            // onChange(c, index);
-        };
 
         svgPenSketch.current.penUpCallback = (path, e, coords) => {
             toolbar.classed(toolbarStyles.disabled, false);
@@ -1242,7 +1242,9 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
         clusters: clustersRef,
         lockClusters: lockClusterRef,
         svgRef: svgRef.current,
-        setMode: setMode
+        penCluster: penCluster.current,
+        setMode: setMode,
+        clusterStrokes: clusterStrokes,
     }), []);
 
     return (

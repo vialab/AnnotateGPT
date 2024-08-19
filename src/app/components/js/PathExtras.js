@@ -164,6 +164,61 @@ function getSvgPathFromStroke(points, closed = true) {
     return result;
 }
 
+function getStrokeFromSvgPath(d) {
+    const parts = d.split(' ');
+
+    if (parts.length < 3) {
+        return [];
+    }
+
+    const points = [];
+    let x = 0;
+    let y = 0;
+    let prevCommand = 'M';
+
+    for (let i = 0, max = parts.length; i < max; i++) {
+        const part = parts[i];
+        const command = part[0];
+        
+        let x, y;
+
+        if (command !== 'M' && command !== 'Q' && command !== 't' && command !== 'L') {
+            [x, y] = parts[i].split(',').map(parseFloat);
+        } else {
+            [x, y] = parts[i].slice(1).split(',').map(parseFloat);
+        }
+
+        if (command === 'M') {
+            points.push([x, y]);
+            prevCommand = command;
+        } else if (command === 'Q') {
+            points.push([x, y]);
+            prevCommand = command;
+        } else if (command === 't') {
+            const prevPoint = points[points.length - 1];
+            const dx = x;
+            const dy = y;
+
+            points.push([prevPoint[0] + dx, prevPoint[1] + dy]);
+            prevCommand = command;
+        } else if (command === 'L') {
+            points.push([x, y]);
+            prevCommand = command;
+        } else if (command === 'Z') {
+            break;
+        } else if (prevCommand === 't') {
+            const prevPoint = points[points.length - 1];
+            const dx = x;
+            const dy = y;
+
+            points.push([prevPoint[0] + dx, prevPoint[1] + dy]);
+        }
+        
+    }
+
+    return points;
+}
+
 function getFlatSvgPathFromStroke(stroke) {
     try {
         const faces = polygonClipping.union([stroke]);
@@ -190,6 +245,7 @@ const PathExtras = {
     closestPoint: closestPoint,
     getSvgPathFromStroke: getSvgPathFromStroke,
     getFlatSvgPathFromStroke: getFlatSvgPathFromStroke,
+    getStrokeFromSvgPath: getStrokeFromSvgPath
 };
 
 Object.freeze(PathExtras);

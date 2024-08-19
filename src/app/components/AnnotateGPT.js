@@ -24,6 +24,7 @@ import "react-tooltip/dist/react-tooltip.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "./css/AnnotateGPT.css";
+import PathExtras from "./js/PathExtras.js";
 
 // pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -331,16 +332,85 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     useEffect(() => {
         if (svgContent instanceof Array) {
             d3.selectAll(".page-container").style("content-visibility", "visible");
+            let newStrokes = new Map();
 
             for (let svg of svgContent) {
                 let page = svg.page;
                 let svgContent = svg.svg;
+                let strokeID = svg.id;
 
-                if (page && svgContent) {
-                    let penAnnnotationRef = penAnnotationRef.current[page - 1];
-                    d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.replace("lineDraw", ""));
+                if (page && svgContent && strokeID) {
+                    // let penAnnnotationRef = penAnnotationRef.current[page - 1];
+                    // d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.replace("lineDraw", ""));
+                    // let pathD = svgContent.match(/d="[^"]*"/g);
+                    
+                    // console.log(PathExtras.getStrokeFromSvgPath(pathD));
+                    
+                    if (newStrokes.has(page)) {
+                        newStrokes.set(page, newStrokes.get(page).push([strokeID, svg]));
+                    } else {
+                        newStrokes.set(page, [[strokeID, svg]]);
+                    }
                 }
             }
+
+            for (let [page, svgContent] of newStrokes) {
+                let penAnnnotationRef = penAnnotationRef.current[page - 1];
+                d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.map((svg) => svg[1].svg).join(""));
+            }
+
+            for (let [page, svgContent] of newStrokes) {
+                let clusters, stopIteration, strokeAdded = false;
+                let penAnnnotationRef = penAnnotationRef.current[page - 1];
+
+                loop1: for (let [id, svg] of svgContent) {
+                    for (let cluster of penAnnnotationRef.current.lockClusters.current) {
+                        for (let stroke of cluster.strokes) {
+                            if (stroke.id === id) {
+                                continue loop1;
+                            }
+                        }
+                    }
+                    strokeAdded = true;
+
+                    let path = d3.select(`.lineDraw[id="${id}"]`);
+                    let pageTop = d3.select(".pen-annotation-layer#layer-" + page).node().getBoundingClientRect().top;
+                    let outLinePath = d3.select(penAnnnotationRef.current.svgRef).append("path");
+
+                    outLinePath
+                    .attr("d", path.attr("d"))
+                    .attr("class", "lineDrawOutline")
+                    .style("fill", "none")
+                    .style("stroke", "none")
+                    .style("opacity", "0")
+                    .style("stroke-width", 30)
+                    .attr("id", path.attr("id") + "Outline");
+
+                    let bbox = path.node().getBoundingClientRect();
+                    bbox.y -= pageTop;
+
+                    [clusters, stopIteration] = penAnnnotationRef.current?.penCluster.add(
+                        id,
+                        bbox,
+                        svg.type,
+                        svg.startTime,
+                        svg.annotatedText,
+                        svg.marginalText,
+                        JSON.parse(svg.textBbox),
+                        JSON.parse(svg.marginalTextBbox),
+                        JSON.parse(svg.lineBbox),
+                        page,
+                        svgContent.endTime
+                    );
+
+                    console.log(penAnnnotationRef.current.penCluster);
+                }
+                
+                if (strokeAdded) {
+                    penAnnnotationRef.current.clusterStrokes(clusters, stopIteration);
+                }
+            }
+
             d3.selectAll(".page-container").style("content-visibility", "auto");
         }
     }, [svgContent]);
@@ -400,13 +470,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     });
 
     useEffect(() => {
-        if (screen?.width && screen?.height) {
-            for (let penAnnnotationRef of penAnnotationRef.current) {
-                d3.select(penAnnnotationRef.current.svgRef)
-                .attr("viewBox", `${0} ${0} ${screen.width} ${screen.height}`);
-            }
-            initCanvas.current(screen.width);
-        }
+        // if (screen?.width && screen?.height) {
+        //     for (let penAnnnotationRef of penAnnotationRef.current) {
+        //         d3.select(penAnnnotationRef.current.svgRef)
+        //         .attr("viewBox", `${0} ${0} ${screen.width} ${screen.height}`);
+        //     }
+        //     initCanvas.current(screen.width);
+        // }
     }, [screen]);
 
     function onLoad(index) {

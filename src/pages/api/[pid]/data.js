@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
         if (!fs.existsSync(path)) {
             await fsPromises.mkdir(`./data/${pid}`, { recursive: true });
-            await fsPromises.writeFile(path, `${req.body.screen.width} ${req.body.screen.height}\nid,action,page,startTime,endTime,type,annotatedText,marginalText,svg\n`);
+            await fsPromises.writeFile(path, `${req.body.screen.width} ${req.body.screen.height}\nid,action,page,startTime,endTime,type,annotatedText,marginalText,textBbox,marginalTextBbox,lineBbox,svg\n`);
         }
         await fsPromises.appendFile(path, data + "\n");
         donePenStroke = false;
