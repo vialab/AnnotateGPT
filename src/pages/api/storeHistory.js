@@ -75,12 +75,18 @@ async function updateHistory(retry = 3) {
 
 let historyStatus = "initial";
 let history = ["No history"];
+let done = false;
 
 export default async function handler(req, res) {
     if (req.method === "GET") {
         res.status(200).send(history.join(""));
     } else if (req.method === "POST") {
         const dataFilePath = path.join(process.cwd(), `./history.txt`);
+
+        while (done) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        done = true;
 
         try {
             let action = req.body.action;
@@ -108,7 +114,7 @@ export default async function handler(req, res) {
 
                 res.status(200).send("Initial history file created!\n" + history.join(""));
             
-            } else if (action === "update") {
+            } else if (action === "update" || action === "update2") {
                 if (historyStatus === "empty") {
                     // await fsPromises.writeFile(dataFilePath, "");
                     history = [];
@@ -121,10 +127,12 @@ export default async function handler(req, res) {
                 }
                 // await fsPromises.appendFile(dataFilePath, historyEntry);
                 history.push(historyEntry);
-                await updateHistory();
-        
+
+                if (action === "update") {
+                    await updateHistory();
+                }
                 res.status(200).send("History updated!\n" + history.join(""));
-            } else if (action === "comment") {
+            } else if (action === "comment" || action === "comment2") {
                 if (historyStatus === "empty") {
                     // await fsPromises.writeFile(dataFilePath, "");
                     history = [];
@@ -137,8 +145,10 @@ export default async function handler(req, res) {
                 }
                 // await fsPromises.appendFile(dataFilePath, historyEntry);
                 history.push(historyEntry);
-                await updateHistory();
-        
+
+                if (action === "comment") {
+                    await updateHistory();
+                }
                 res.status(200).send("History updated!\n" + history.join(""));
             } else if (action === "move") {
                 const pid = req.body.pid;
@@ -161,11 +171,16 @@ export default async function handler(req, res) {
                 // await fsPromises.rename(dataFilePath, newFilePath);
     
                 res.status(200).send("History file moved!");
+            } else if (action === "upload") {
+                await updateHistory();
+                res.status(200).send("History file uploaded!\n" + history.join(""));
             } else {
                 res.status(400).send("Invalid action");
             }
+            done = false;
         } catch (error) {
             console.log(history);
+            done = false;
             
             res.status(500).send("Error updating history file: " + error);
         }

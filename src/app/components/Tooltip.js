@@ -82,7 +82,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
             .catch((error) => {
                 console.error("updatePurpose:", error);
 
-                toast.error("updatePurpose: " + error.toString().replace("Error: ", ""), {
+                toast.error("updatePurpose: " + error.toString().replaceAll("Error: ", ""), {
                     toastId: "updatePurpose",
                     containerId: "errorMessage"
                 });
@@ -2300,13 +2300,15 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 if (cluster["open"] === undefined)
                     cluster["open"] = false;
             }
-            clusterRef.current = clusters.filter(cluster => !cluster.disabled || cluster.annotationsFound);
+            clusterRef.current = [...clusters].filter(cluster => !cluster.disabled || cluster.annotationsFound);
 
-            for (let cluster of clusterRef.current) {
-                if (cluster.annotationsFound) {
-                    cluster.annotationsFound = cluster.annotationsFound.filter(annotation => annotation.accepted !== false);
-                }
-            }
+            // console.log(clusterRef.current);
+
+            // for (let cluster of clusterRef.current) {
+            //     if (cluster.annotationsFound) {
+            //         cluster.annotationsFound = [...cluster.annotationsFound].filter(annotation => annotation.accepted !== false);
+            //     }
+            // }
             updateTooltips();
         } else {
             clusterRef.current = [];

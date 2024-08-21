@@ -107,8 +107,7 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
             d3.select("#topButton").classed("disabled", index.current === 0);
         });
 
-
-        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+        // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
 
         if (onPrevCallback instanceof Function) {
             onPrevCallback(annotationsRef.current[index.current]);
@@ -195,7 +194,7 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
             d3.select("#topButton").classed("disabled", topDisabled);
         });
 
-        annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+        // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
 
         if (onNextCallback instanceof Function) {
             onNextCallback(annotationsRef.current[removedRef.current ? index.current - 1 : index.current]);

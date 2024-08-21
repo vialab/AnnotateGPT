@@ -107,7 +107,7 @@ export default function Home() {
         .catch(err => {
             console.error("clearStoreHistory:", err);
 
-            toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
+            toast.error("clearStoreHistory: " + err.toString().replaceAll("Error: ", ""), {
                 toastId: "clearStoreHistory",
                 containerId: "errorMessage"
             });
@@ -145,7 +145,7 @@ export default function Home() {
         .catch(err => {
             console.error("clearStoreHistory:", err);
 
-            toast.error("clearStoreHistory: " + err.toString().replace("Error: ", ""), {
+            toast.error("clearStoreHistory: " + err.toString().replaceAll("Error: ", ""), {
                 toastId: "clearStoreHistory",
                 containerId: "errorMessage"
             });
@@ -178,7 +178,7 @@ export default function Home() {
                 .catch(err => {
                     console.error("moveHistory:", err);
 
-                    toast.error("moveHistory: " + err.toString().replace("Error: ", ""), {
+                    toast.error("moveHistory: " + err.toString().replaceAll("Error: ", ""), {
                         toastId: "moveHistory",
                         containerId: "errorMessage"
                     });
@@ -209,7 +209,7 @@ export default function Home() {
                                 .catch((err) => {
                                     console.error("sendData:", err);
 
-                                    toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                                    toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
                                         toastId: "sendData",
                                         containerId: "errorMessage"
                                     });
@@ -218,7 +218,7 @@ export default function Home() {
                         }).catch(err => {
                             console.error("getHistory:", err);
 
-                            toast.error("getHistory: " + err.toString().replace("Error: ", ""), {
+                            toast.error("getHistory: " + err.toString().replaceAll("Error: ", ""), {
                                 toastId: "getHistory",
                                 containerId: "errorMessage"
                             });
@@ -226,7 +226,7 @@ export default function Home() {
                     } catch (err) {
                         console.error("sendData:", err);
 
-                        toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                        toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
                             toastId: "sendData",
                             containerId: "errorMessage"
                         });
@@ -383,7 +383,7 @@ export default function Home() {
                 .catch(err => {
                     console.error("sendData:", err);
 
-                    toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                    toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
                         toastId: "sendData",
                         containerId: "errorMessage"
                     });
@@ -407,7 +407,7 @@ export default function Home() {
                             .catch((err) => {
                                 console.error("sendData:", err);
 
-                                toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                                toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
                                     toastId: "sendData",
                                     containerId: "errorMessage"
                                 });
@@ -416,7 +416,7 @@ export default function Home() {
                     } catch (err) {
                         console.error("sendData:", err);
 
-                        toast.error("sendData: " + err.toString().replace("Error: ", ""), {
+                        toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
                             toastId: "sendData",
                             containerId: "errorMessage"
                         });
@@ -476,6 +476,7 @@ export default function Home() {
 
     let onInferenceCallback = (startTimetamp, cluster, rawText, images) => {
         let timestamp = Date.now();
+        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", "visible");
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
@@ -484,6 +485,7 @@ export default function Home() {
                 return value;
             }
         });
+        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", null);
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "inference", actionTimestamp: timestamp});
 
         updatePracticeMessages(1);
@@ -503,6 +505,7 @@ export default function Home() {
 
     let onEndAnnotateCallback = (startTimetamp, cluster, rawText) => {
         let timestamp = Date.now();
+        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", "visible");
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
@@ -511,6 +514,7 @@ export default function Home() {
                 return value;
             }
         });
+        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", null);
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "annotate", actionTimestamp: timestamp});
 
         updatePracticeMessages(2);
@@ -534,6 +538,7 @@ export default function Home() {
     
     let onReplyCallback = (cluster, type) => {
         let timestamp = Date.now();
+        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", "visible");
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
@@ -542,6 +547,8 @@ export default function Home() {
                 return value;
             }
         });
+        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", null);
+
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "reply " + type, actionTimestamp: timestamp});
 
         if (type.includes("accept") || type.includes("reject")) {
@@ -598,16 +605,127 @@ export default function Home() {
             let newClusters = new Map();
             let newPageClusters = new Map();
 
-            clusterReader.onload = (e) => {
+            clusterReader.onload = async (e) => {
                 let clustersData = JSON.parse(e.target.result);
 
-                for (let clusterData of clustersData) {
+                // for (let clusterData of clustersData) {
+                for (let i = 0; i < clustersData.length; i++) {
+                    let clusterData = clustersData[i];
                     let lastStroke = clusterData.strokes[clusterData.strokes.length - 1];
 
                     if (lastStroke.type !== "initial") {
                         newClusters.set(lastStroke.id, clusterData);
+                        
+                        if (clusterData["actionType"] === "annotate") {
+                            fetch("/api/storeHistory", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    purpose: clusterData.searching.purpose,
+                                    purposeTitle: clusterData.searching.purposeTitle,
+                                    annotationDescription: clusterData.purpose.annotationDescription,
+                                    action: "update2"
+                                })
+                            })
+                            .then(res => {
+                                if (!res.ok)
+                                    return res.text().then(text => { throw new Error(text); });
+                                return res.text();
+                            })
+                            .then((data) => {
+                                console.log("Success:", data);
+                            })
+                            .catch((error) => {
+                                console.error("updatePurpose:", error);
+                
+                                toast.error("updatePurpose: " + error.toString().replaceAll("Error: ", ""), {
+                                    toastId: "updatePurpose",
+                                    containerId: "errorMessage"
+                                });
+                            });
+                        } else if (clusterData["actionType"].includes("comment")) {
+                            let index = clusterData["actionType"].split(" ")[2];
+                            let reply = clusterData.annotationsFound[index].explanation[clusterData.annotationsFound[index].explanation.length - 1];
+
+                            let annotatedSentence = clusterData.annotationsFound[index].spans;
+                            let annotatorComments = ["- " + clusterData.annotationsFound[index].explanation[0]];
+                            
+                            for (let j = i + 1; j < clustersData.length; j++) {
+                                let nextCluster = clustersData[j];
+
+                                if (nextCluster["actionType"].includes("comment")) {
+                                    let nextIndex = nextCluster["actionType"].split(" ")[2];
+                                    let nextAnnotatedSentence = nextCluster.annotationsFound[nextIndex].spans;
+
+                                    if (annotatedSentence === nextAnnotatedSentence) {
+                                        annotatorComments.push("- " + nextCluster.annotationsFound[nextIndex].explanation[0]);
+                                        i++;
+                                    } else {
+                                        break;
+                                    }
+                                } else {
+                                    break;
+                                }
+                            }
+                            
+                            fetch("/api/storeHistory", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json"
+                                },
+                                body: JSON.stringify({
+                                    reply: reply,
+                                    comment: annotatorComments.join("\n"),
+                                    action: "comment2"
+                                })
+                            })
+                            .then(res => {
+                                if (!res.ok)
+                                    return res.text().then(text => { throw new Error(text); });
+                                return res.text();
+                            })
+                            .then((data) => {
+                                console.log("Success:", data);
+                            })
+                            .catch((error) => {
+                                console.error("storeCommentHistory:", error);
+        
+                                toast.error("storeCommentHistory: " + error.toString().replaceAll("Error: ", ""), {
+                                    toastId: "storeCommentHistory",
+                                    containerId: "errorMessage"
+                                });
+                            });
+                        }
                     }
                 }
+
+                fetch("/api/storeHistory", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        action: "upload"
+                    })
+                })
+                .then(res => {
+                    if (!res.ok)
+                        return res.text().then(text => { throw new Error(text); });
+                    return res.text();
+                })
+                .then((data) => {
+                    console.log("Success:", data);
+                })
+                .catch((error) => {
+                    console.error("uploadHistory:", error);
+
+                    toast.error("uploadHistory: " + error.toString().replaceAll("Error: ", ""), {
+                        toastId: "uploadHistory",
+                        containerId: "errorMessage"
+                    });
+                });
 
                 for (let clusterData of newClusters.values()) {
                     let cluster = new Cluster([]);
@@ -712,7 +830,7 @@ export default function Home() {
                 } catch (error) {
                     console.error("Error signing in anonymously: ", error);
 
-                    toast.error("Error signing in anonymously: " + error.toString().replace("Error: ", ""), {
+                    toast.error("Error signing in anonymously: " + error.toString().replaceAll("Error: ", ""), {
                         toastId: "signInAnonym",
                         containerId: "errorMessage"
                     });

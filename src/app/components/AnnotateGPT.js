@@ -659,7 +659,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
 
                         if (done2 === executed2) {
-                            console.log("Annotating", lastToken.sentence.trim());
+                            // console.log("Annotating", lastToken.sentence.trim());
                             annotate(lastToken.sentence.trim(), callback);
                             worker.terminate();
                         }
@@ -1243,7 +1243,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                 if (done === executed) {
                     worker.terminate();
-                    console.log(text, minDistance, substring);
+                    // console.log(text, minDistance, substring);
 
                     if (minDistance > text.length / 2) {
                         let sentences = split(text).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
@@ -1266,7 +1266,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
                         } else {
                             if (callback instanceof Function) {
-                                console.log("Not found: " + text);
+                                // console.log("Not found: " + text);
                                 callback("Not found: " + text);
                             }
                         }
@@ -1968,7 +1968,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     .catch((error) => {
                         console.error("storeCommentHistory:", error);
 
-                        toast.error("storeCommentHistory: " + error.toString().replace("Error: ", ""), {
+                        toast.error("storeCommentHistory: " + error.toString().replaceAll("Error: ", ""), {
                             toastId: "storeCommentHistory",
                             containerId: "errorMessage"
                         });
@@ -2055,13 +2055,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             );
         }
         let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
-        let activeAnnotationsFound = cluster.annotationsFound ? [...cluster.annotationsFound] : [];
+        let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
         let onNavigateCallback = (annotation) => {
             if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
                 cluster.open = true;
                 annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
-                let activeAnnotationsFound = cluster.annotationsFound ? [...cluster.annotationsFound] : [];
+                let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
                 let content = <div className={"annotationMessageContainer " + googleSans.className}>
                     <NavigateCluster cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
@@ -2354,7 +2354,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             .catch((error) => {
                 console.error("documentUpload:", error);
 
-                toast.error("documentUpload: " + error.toString().replace("Error: ", ""), {
+                toast.error("documentUpload: " + error.toString().replaceAll("Error: ", ""), {
                     toastId: "fileUpload",
                     containerId: "errorMessage"
                 });
