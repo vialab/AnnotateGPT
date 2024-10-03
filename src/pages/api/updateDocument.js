@@ -4,6 +4,7 @@ import path from "path";
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
 const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
+let document1ID = process.env.NEXT_PUBLIC_DOCUMENT_ONE_ID, document2ID = process.env.NEXT_PUBLIC_DOCUMENT_TWO_ID;
 
 let loading = false;
 
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     } else if (req.method === "POST") {
         let processDocument;
         
-        let uploadFile = async (retry = 3) => {
+        let uploadFile = async (documentID = null, retry = 3) => {
             let waitInterval = 0;
 
             while (loading && waitInterval < 40) {
@@ -51,28 +52,40 @@ export default async function handler(req, res) {
                 const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
         
                 for (let file of vectorStoreFiles.data) {
-                    openai.files.del(file.id)
-                    .catch((error) => {
+                    if ((document1ID && file.id === document1ID) || (document2ID && file.id === document2ID)) {
                         openai.beta.vectorStores.files.del(vectorStoreID, file.id)
                         .catch((error) => {
                             console.error(error.error.message, "in vector store");
                         });
-    
-                        console.error(error.error.message, "in files");
-                    });
-                }
-                console.log("Creating document...");
-                
-                const file = await openai.files.create({
-                    file: processDocument,
-                    purpose: "assistants",
-                });
+                    } else {
+                        openai.files.del(file.id)
+                        .catch((error) => {
+                            openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                            .catch((error) => {
+                                console.error(error.error.message, "in vector store");
+                            });
         
-                console.log("Indexing document...");
+                            console.error(error.error.message, "in files");
+                        });
+                    }
+                }
+                let fileID;
+                
+                if (documentID) {
+                    console.log("Swapping document...");
+                    fileID = documentID;
+                } else {
+                    console.log("Indexing document...");
+                    const file = await openai.files.create({
+                        file: processDocument,
+                        purpose: "assistants",
+                    });
+                    fileID = file.id;
+                }
                 
                 const processedFile = await openai.beta.vectorStores.files.createAndPoll(
                     vectorStoreID, 
-                    { file_id: file.id },
+                    { file_id: fileID },
                     { pollIntervalMs: 500 }
                 );
                 console.log("Done creating document...");
@@ -83,13 +96,14 @@ export default async function handler(req, res) {
                 } else {
                     res.status(200).send("Updated document!");
                 }
+                return fileID;
             } catch (error) {
                 loading = false;
 
                 if (retry > 0) {
                     console.error("Retrying updateDocument...", retry);
                     console.error(error);
-                    return uploadFile(retry - 1);
+                    return uploadFile(documentID, retry - 1);
                 } else {
                     throw error;
                 }
@@ -105,21 +119,58 @@ export default async function handler(req, res) {
                 });
 
                 await new Promise((resolve, reject) => {
-                    req.on("end", () => {
+                    req.on("end", async () => {
                         try {
                             const jsonData = JSON.parse(data);
         
                             if (typeof jsonData["document"] === "string") {
                                 let filePath = jsonData["document"];
                                 filePath = filePath.startsWith("./public") ? "./" + filePath.slice(8) : filePath;
+                                let currentDocumentID = null;
 
-                                processDocument = createReadStream(path.resolve("./public", filePath));
+                                if (filePath.endsWith("Test 1.pdf") && document1ID) {
+                                    currentDocumentID = document1ID;
+                                } else if (filePath.endsWith("Test 2.pdf") && document2ID) {
+                                    currentDocumentID = document2ID;
+                                } else {
+                                    processDocument = createReadStream(path.resolve("./public", filePath));
+                                }
+
+                                let fileID = await uploadFile(currentDocumentID)
+                                .catch((error) => {
+                                    loading = false;
+
+                                    if (error.error?.message) {
+                                        throw new Error("OpenAI: " + error.error?.message);
+                                    } else {
+                                        throw new Error(error);
+                                    }
+                                });
+
+                                if (fileID && (!document1ID || !document2ID)) {
+                                    if (filePath.endsWith("Test 1.pdf")) {
+                                        document1ID = fileID;
+                                    } else if (filePath.endsWith("Test 2.pdf")) {
+                                        document2ID = fileID;
+                                    }
+                                }
                             } else {
                                 const fileName = jsonData.fileName;
                                 const uint8Array = new Uint8Array(jsonData.data);
                                 let file = new File([new Blob([uint8Array], { type: "application/pdf" })], fileName);
                                 
                                 processDocument = file;
+                                
+                                await uploadFile()
+                                .catch((error) => {
+                                    loading = false;
+
+                                    if (error.error?.message) {
+                                        throw new Error("OpenAI: " + error.error?.message);
+                                    } else {
+                                        throw new Error(error);
+                                    }
+                                });
                             }
                             resolve();
                         } catch (error) {
@@ -128,16 +179,6 @@ export default async function handler(req, res) {
                     });
                 });
 
-                await uploadFile()
-                .catch((error) => {
-                    loading = false;
-
-                    if (error.error?.message) {
-                        throw new Error("OpenAI: " + error.error?.message);
-                    } else {
-                        throw new Error(error);
-                    }
-                });
             } else {
                 throw new Error("Not JSON");
             }
