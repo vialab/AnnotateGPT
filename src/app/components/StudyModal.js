@@ -15,7 +15,7 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange }, ref) => {
+const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange }, ref) => {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     let [ ifFirst, setIfFirst ] = useState(true);
@@ -28,6 +28,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
     let postStudyContent = useRef([]);
 
     let onSettings = useRef(false);
+    let onConfirm = useRef(false);
 
     let [ modalContent, setModalContent ] = useReducer(modalReducer, { mainContent: null, bottomContent: null, modalIndex: 0, studyState: "preStudy", currentTask: 0 });
 
@@ -35,26 +36,41 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
         setModalContent({ type: "withdraw" });
     }, []);
 
-    let continueStudy = useCallback(() => {
-        setModalContent({ type: "show" });
-        setModalIsOpen(true);
-
+    let continueStudy = useCallback((_, force = false) => {
         // console.log(modalContent.studyState)
         // console.log(modalContent.currentTask)
+
+        let continueModal = () => {
+            setModalContent({ type: "show" });
+            setModalIsOpen(true);
+        };
 
         if (modalContent.currentTask <= 1 && (modalContent.studyState === "instructionTask" || modalContent.studyState === "postTask")) {
             let taskNum = modalContent.studyState === "postTask" ? modalContent.currentTask + 1 : modalContent.currentTask;
             let currentMode = (taskNum === 0 && llmFirst) || (taskNum === 1 && !llmFirst) ? "llm" : "base";
 
             if (modalContent.studyState === "postTask") {
-                setModalContent({ type: "nextTask" });
-
-                if (modalContent.currentTask < 1)
-                    onNextTask(-1, currentMode);
+                setModalIsOpen(true);
+                
+                if (force) {
+                    setModalContent({ type: "nextTask" });
+                    continueModal();
+                    
+                    if (onNextTask instanceof Function && modalContent.currentTask < 1) {
+                        onNextTask(-1, currentMode);
+                    }
+                } else {
+                    setModalContent({ type: "confirmContinue" });
+                }
             } else {
-                let documentIndex = (taskNum === 0 && ifFirst) || (taskNum === 1 && !ifFirst) ? 0 : 1;
-                onNextTask(documentIndex, currentMode);
+                if (onNextTask instanceof Function) {
+                    let documentIndex = (taskNum === 0 && ifFirst) || (taskNum === 1 && !ifFirst) ? 0 : 1;
+                    onNextTask(documentIndex, currentMode);
+                    continueModal();
+                }
             }
+        } else {
+            continueModal();
         }
     }, [modalContent.currentTask, modalContent.studyState, onNextTask, ifFirst, llmFirst]);
 
@@ -84,6 +100,8 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                 } else {
                     setModalContent({ type: "settings" });
                 }
+            } else if (e.key === "F5" || (e.key === "r" && e.ctrlKey)) {
+                e.preventDefault();
             }
         });
 
@@ -186,7 +204,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
         }
 
         function generateNextButton(content, index, callback) {
-            return <button className={"round modalButton nextButton" + (content?.disableNext ? " disabled" : "") + (content?.confirm ? " confirm" : "")} onClick={callback} key={state.studyState + "next" + index}>
+            return <button className={"round modalButton nextButton" + (content?.disableNext ? " disabled" : "") + (content?.confirm ? " confirm" : "") + (content?.class ? " " + content.class : "")} onClick={callback} key={state.studyState + "next" + index}>
                 <div id={"cta"}>
                     { content?.confirm ? 
                         <svg className="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
@@ -239,21 +257,25 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                     currentTask: 0,
                 };
             } case "show": {
-                let modalIndex = state.modalIndex;
-                let content = getContent();
+                if (!onConfirm.current) {
+                    let modalIndex = state.modalIndex;
+                    let content = getContent();
 
-                let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
+                    let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
 
-                if (content[modalIndex]?.prev) {
-                    bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
+                    if (content[modalIndex]?.prev) {
+                        bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
+                    }
+
+                    return {
+                        ...state,
+                        mainContent: content[modalIndex]?.content,
+                        bottomContent: bottomContent,
+                        callback: content[modalIndex]?.callback,
+                    };
+                } else {
+                    return modalReducer(state, { type: "confirmContinue" });
                 }
-
-                return {
-                    ...state,
-                    mainContent: content[modalIndex]?.content,
-                    bottomContent: bottomContent,
-                    callback: content[modalIndex]?.callback,
-                };
             } case "nextTask": {
                 return {
                     ...state,
@@ -327,12 +349,12 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                 let ifModalIsOpen = modalIsOpen;
 
                 let fileChangeHandler = (id) => {
-                    let file = d3.select(`#${id}file`).node().files[0];
+                    let file = d3.select(`#${id}File`).node().files[0];
 
                     if (file)
-                        d3.select(`#${id}fileName`).text(file.name);
+                        d3.select(`#${id}FileName`).text(file.name);
                     else
-                        d3.select(`#${id}fileName`).text("No file selected");
+                        d3.select(`#${id}FileName`).text("No file selected");
                 };
 
                 let settingsContent = <>
@@ -341,13 +363,13 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                         
                         { studyState === "study" ? 
                             <>
-                                <div className="field" style={{ width: "532px" }}>
+                                <div className="field">
                                     <input id="pid" name="pid" required defaultValue={pid}/>
                                     <label htmlFor="pid">Participant ID</label>
                                 </div>
                                 <div className="settingsContainer"> 
                                     <p>Document Order</p>
-                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                                    <div className="settings">
                                         <div>
                                             <input type="radio" id="firstDocument" name="documentOrder" value="firstDocument" defaultChecked={ifFirst}/>
                                             <label htmlFor="firstDocument">
@@ -369,7 +391,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                                 </div>
                                 <div className="settingsContainer"> 
                                     <p>LLM Order</p>
-                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                                    <div className="settings">
                                         <div>
                                             <input type="radio" id="llmFirst" name="llmOrder" value="llmFirst" defaultChecked={llmFirst}/>
                                             <label htmlFor="llmFirst">LLM First</label>
@@ -380,12 +402,27 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                                         </div>
                                     </div>
                                 </div>
+                                <div className="settingsContainer"> 
+                                    <p>Data Upload</p>
+                                    <div className="settings">
+                                        <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                            <input type="file" id="strokeDataFile" name="strokeDataFile" accept=".csv" style={{ display: "none" }} onChange={() => fileChangeHandler("strokeData")} required="required" />
+                                            <label htmlFor="strokeDataFile">Pen Stroke Upload File</label>
+                                            <p id="strokeDataFileName">No file selected</p>
+                                        </div>
+                                        <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                            <input type="file" id="clusterDataFile" name="clusterDataFile" accept=".json" style={{ display: "none" }} onChange={() => fileChangeHandler("clusterData")} required="required" />
+                                            <label htmlFor="clusterDataFile">Cluster Upload File</label>
+                                            <p id="clusterDataFileName">No file selected</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </>
                             :
                             <>
                                 <div className="settingsContainer"> 
                                     <p>LLM</p>
-                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                                    <div className="settings">
                                         <div>
                                             <input type="radio" id="llmFirst" name="llmOrder" value="llmFirst" defaultChecked={llmFirst}/>
                                             <label htmlFor="llmFirst">LLM</label>
@@ -398,20 +435,25 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                                 </div>
                                 <div className="settingsContainer"> 
                                     <p>Data Upload</p>
-                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
+                                    <div className="settings">
                                         <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
-                                            <input type="file" id="datafile" name="datafile" accept=".csv" style={{ display: "none" }} onChange={() => fileChangeHandler("data")} required="required" />
-                                            <label htmlFor="datafile">Upload File</label>
-                                            <p id="datafileName">No file selected</p>
+                                            <input type="file" id="strokeDataFile" name="strokeDataFile" accept=".csv" style={{ display: "none" }} onChange={() => fileChangeHandler("strokeData")} required="required" />
+                                            <label htmlFor="strokeDataFile">Pen Stroke Upload File</label>
+                                            <p id="strokeDataFileName">No file selected</p>
+                                        </div>
+                                        <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
+                                            <input type="file" id="clusterDataFile" name="clusterDataFile" accept=".json" style={{ display: "none" }} onChange={() => fileChangeHandler("clusterData")} required="required" />
+                                            <label htmlFor="clusterDataFile">Cluster Upload File</label>
+                                            <p id="clusterDataFileName">No file selected</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div className="settingsContainer"> 
                                     <p>Document Upload</p>
-                                    <div className="settings" style={{ display: "flex", width: "500px", justifyContent: "center", alignItems: "center" }}>
+                                    <div className="settings">
                                         <div style={{ gap: "10px", flexDirection: "column", marginTop: "10px" }}>
                                             
-                                            <div style={{ gap: "10px", flexDirection: "row", marginTop: "10px" }}>
+                                            <div style={{ gap: "20px", flexDirection: "row", marginTop: "10px" }}>
                                                 <div>
                                                     <input type="radio" id="firstDocument" name="documentOrder" value="firstDocument" defaultChecked={ifFirst}/>
                                                     <label htmlFor="firstDocument">First Document</label>
@@ -423,9 +465,9 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                                             </div>
                                             <hr style={{ width: "100%" }} />
                                             <i style={{ color: "#E58F65" }}>Make sure words are &quot;words&quot; <br/> Not images of words</i>
-                                            <input type="file" id="documentfile" name="documentfile" accept=".pdf" style={{ display: "none" }} onChange={() => fileChangeHandler("document")} required="required" />
-                                            <label htmlFor="documentfile">Upload File</label>
-                                            <p id="documentfileName">No file selected</p>
+                                            <input type="file" id="documentFile" name="documentFile" accept=".pdf" style={{ display: "none" }} onChange={() => fileChangeHandler("document")} required="required" />
+                                            <label htmlFor="documentFile">Upload File</label>
+                                            <p id="documentFileName">No file selected</p>
                                             
                                         </div>
                                     </div>
@@ -435,7 +477,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                     </div>
                 </>;
 
-                let exitTransitionStudy = (e) => {
+                let exitTransitionStudy = (e, callback) => {
                     if (!ifModalIsOpen) {
                         setModalIsOpen(ifModalIsOpen);
                     }
@@ -451,6 +493,10 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                     .on("end", () => {
                         setModalContent({ type: "show" });
                         setModalIsOpen(ifModalIsOpen);
+
+                        if (callback instanceof Function) {
+                            callback();
+                        }
                     });
                 };
 
@@ -489,6 +535,10 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                                     // console.log(currentMode)
                                     modeChange(currentMode);
                                 }
+
+                                if (fileHandler instanceof Function) {
+                                    fileHandler(d3.select("#strokeDataFile").node().files[0], d3.select("#clusterDataFile").node().files[0]);
+                                }
                             } else {
                                 if (modeChange instanceof Function) {
                                     let currentMode = (state.currentTask === 0 && currentLlmFirst) || (state.currentTask === 1 && !currentLlmFirst) ? "llm" : "base";
@@ -496,6 +546,15 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                                     modeChange("practice" + currentMode);
                                 }
                             }
+                        }),
+                        <hr key={"vr"} />,
+                        generateNextButton({class: "skip"}, "skip", (e) => {
+                            ifModalIsOpen = true;
+                            onSettings.current = false;
+
+                            exitTransitionStudy(e, () => {
+                                continueStudy(e, true);
+                            });
                         }),
                     ] :
                     [
@@ -510,6 +569,9 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                             let currentIfFirst = d3.select("input[name='documentOrder']:checked").node().value === "firstDocument";
                             let currentLlmFirst = d3.select("input[name='llmOrder']:checked").node().value === "llmFirst";
 
+                            setIfFirst(currentIfFirst);
+                            setLlmFirst(currentLlmFirst);
+
                             if (modeChange instanceof Function) {
                                 modeChange(currentLlmFirst ? "llm" : "base");
                             }
@@ -519,7 +581,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                             }
 
                             if (fileHandler instanceof Function) {
-                                fileHandler(d3.select("#datafile").node().files[0], d3.select("#documentfile").node().files[0]);
+                                fileHandler(d3.select("#strokeDataFile").node().files[0], d3.select("#clusterDataFile").node().files[0], d3.select("#documentFile").node().files[0]);
                             }
                         }),
                     ];
@@ -531,6 +593,113 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                     mainContent: settingsContent,
                     bottomContent: bottomContent,
                 };
+            } 
+            case "uncomplete": {
+                let ifModalIsOpen = modalIsOpen;
+                
+                let message = <>
+                    <div style={{ width: "100%", display: "flex", gap: "20px", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                        { action.message }
+                    </div>
+                </>;
+
+                let exitTransition = (e, callback) => {
+                    if (!ifModalIsOpen) {
+                        setModalIsOpen(ifModalIsOpen);
+                    }
+                    d3.select(e.target.closest(".bottom"))
+                    .selectAll(".modalButton")
+                    .style("pointer-events", "none");
+
+                    d3.select(".contentContainer")
+                    .interrupt("revealContent")
+                    .transition("hideContent")
+                    .duration(500)
+                    .style("opacity", "0")
+                    .on("end", () => {
+                        callback();
+                    });
+                };
+
+                let bottomContent = [
+                    generateNextButton({ confirm: true }, 0, (e) => {
+                        exitTransition(e, () => {
+                            setModalIsOpen(false);
+                            onConfirm.current = false;
+                        });
+                    }),
+                ];
+
+                setModalIsOpen(true);
+
+                return {
+                    ...state,
+                    mainContent: message,
+                    bottomContent: bottomContent,
+                };
+            } case "confirmContinue": {
+                onConfirm.current = true;
+                let taskNum = state.studyState === "postTask" ? state.currentTask + 1 : state.currentTask;
+                let currentMode = (taskNum === 0 && llmFirst) || (taskNum === 1 && !llmFirst) ? "llm" : "base";
+                setModalIsOpen(true);
+                
+                if (state.currentTask <= 1 && checkTask instanceof Function) {
+                    let ifContinue = checkTask();
+
+                    if (ifContinue === true) {
+                        let withdrawContent = <>
+                            <div style={{ width: "100%", display: "flex", gap: "20px", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                                <p>Are you ready to continue?</p>
+                            </div>
+                        </>;
+
+                        let exitTransition = (e, callback) => {
+                            d3.select(e.target.closest(".bottom"))
+                            .selectAll(".modalButton")
+                            .style("pointer-events", "none");
+
+                            d3.select(".contentContainer")
+                            .interrupt("revealContent")
+                            .transition("hideContent")
+                            .duration(500)
+                            .style("opacity", "0")
+                            .on("end", () => {
+                                callback();
+                            });
+                        };
+
+                        let bottomContent = [
+                            generatePrevButton({ confirm: true }, 0, (e) => {
+                                exitTransition(e, () => {
+                                    setModalIsOpen(false);
+                                    onConfirm.current = false;
+                                });
+                            }),
+                            generateNextButton({ confirm: true }, 0, (e) => {
+                                exitTransition(e, () => {
+                                    setModalIsOpen(true);
+                                    setModalContent({ type: "nextTask" });
+                                    setModalContent({ type: "show" });
+                                    
+                                    if (onNextTask instanceof Function) {
+                                        onNextTask(-1, currentMode);
+                                    }
+                                    onConfirm.current = false;
+                                });
+                            }),
+                        ];
+
+                        return {
+                            ...state,
+                            mainContent: withdrawContent,
+                            bottomContent: bottomContent,
+                        };
+                    } else {
+                        return modalReducer(state, { type: "uncomplete", message: ifContinue });
+                    }
+                } else {
+                    return modalReducer(state, { type: "nextTask" });
+                }
             } case "withdraw": {
                 let ifModalIsOpen = modalIsOpen;
                 
@@ -600,7 +769,12 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
             {
                 "content": <div style={{ textAlign: "center" }}>
                     Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
-                    (Not the button with double arrows)
+                    (Not this <button className={"round modalButton nextButton"}>
+                        <div id={"cta"}>
+                            <span className={"arrow next primera"} style={{ fontSize: "20px" }}>&nbsp;</span>
+                            <span className={"arrow next segunda"}></span>
+                        </div>
+                    </button> button)
                 </div>,
                 "prev": true,
                 "confirm": true,
@@ -617,7 +791,8 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                 <div>
                     <h3 style={{ width: "100%", textAlign: "center" }}>Welcome to the Study</h3>
                     <ul> 
-                        <li style={{ margin: "30px 0px" }}>Your task is to annotate...</li>
+                        <li style={{ margin: "30px 0px" }}>Your task is to evaluate our annotation tools.</li>
+                        <li style={{ margin: "30px 0px" }}>If you have any question at any point, please ask.</li>
                     </ul>
                 </div>,
                 "prev": true,
@@ -633,7 +808,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
         if (currentMode === "Baseline" && modeOrder === "Second") {
             instructionContent = <ul> 
                 <li style={{ margin: "30px 0px" }}>You will be annotating the document without assistance</li>
-                <li style={{ margin: "30px 0px" }}>You can practice the interface your self</li>
+                <li style={{ margin: "30px 0px" }}>You can practice the interface yourself</li>
             </ul>;
         } else {
             instructionContent = <Player src={`./tutorial/${currentMode}%20${modeOrder}.mp4`} track={`./tutorial/${currentMode}%20${modeOrder}.vtt`}/>;
@@ -649,7 +824,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
             },
             {
                 "content": <div style={{ textAlign: "center" }}>
-                    Are you ready?
+                    Are you ready to practice?
                 </div>,
                 "prev": true,
                 "confirm": true,
@@ -669,7 +844,19 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                 <div>
                     <h3 style={{width: "100%", textAlign: "center"}}>Instructions</h3>
                     <ul> 
-                        <li style={{ margin: "30px 0px" }}>Bla bla bla</li>
+                        <li style={{ margin: "30px 0px" }}>Your task is to grade an English test.</li>
+                        <li style={{ margin: "30px 0px" }}>Annotate any issues you see (e.g. grammar, sentence structure, clarity, etc.)</li>
+                        { currentMode === "LLM" ? 
+                            <>
+                                <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
+                                <li style={{ margin: "30px 0px" }}>You must use the assistance at least once.</li>
+                                <li style={{ margin: "30px 0px" }}>You must rate all annotations by accepting or rejecting the annotations.</li>
+                            </>
+                            :
+                            <>
+                                <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
+                            </>
+                        }
                     </ul>
                 </div>,
             },
@@ -679,15 +866,19 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
             {
                 "content": <>
                     <h3 style={{width: "100%", textAlign: "center"}}>Post-Task Questionnaire</h3>
-                    <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSdB6cL-3ku9O4mDSkaZPK_Sm_RLe0W1737jSVM0ac5QsYgGHA/viewform?usp=pp_url&entry.1937451035=" + pid} title="postTask" />
+                    <iframe src={`https://docs.google.com/forms/d/e/1FAIpQLSdB6cL-3ku9O4mDSkaZPK_Sm_RLe0W1737jSVM0ac5QsYgGHA/viewform?usp=pp_url&entry.1937451035=${pid}&entry.1042914034=${currentMode === "LLM" ? "With+Assistance" : "Without+Assistance"}`} title="postTask" />
                 </>,
                 "prev": false,
             },
             {
                 "content": <div style={{ textAlign: "center" }}>
-                    
                     Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
-                    (Not the button with double arrows)
+                    (Not this <button className={"round modalButton nextButton"}>
+                        <div id={"cta"}>
+                            <span className={"arrow next primera"} style={{ fontSize: "20px" }}>&nbsp;</span>
+                            <span className={"arrow next segunda"}></span>
+                        </div>
+                    </button> button)
                 </div>,
                 "prev": true,
                 "confirm": true,
@@ -713,7 +904,12 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, onNextTask, onFinish
                 "content": <div style={{ textAlign: "center" }}>
                     
                     Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
-                    (Not the button with double arrows)
+                    (Not this <button className={"round modalButton nextButton"}>
+                        <div id={"cta"}>
+                            <span className={"arrow next primera"} style={{ fontSize: "20px" }}>&nbsp;</span>
+                            <span className={"arrow next segunda"}></span>
+                        </div>
+                    </button> button)
                 </div>,
                 "prev": true,
                 "confirm": true,

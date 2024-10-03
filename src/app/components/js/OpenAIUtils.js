@@ -40,7 +40,7 @@ export async function findAnnotations(purpose, callback, endCallback) {
             if (callback instanceof Function) {
                 callback(token);
             }
-        }        
+        }
         await new Promise(r => setTimeout(r, 8000));
 
         if (endCallback instanceof Function)
@@ -77,7 +77,7 @@ Here is a step-by-step list for annotating a document:
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-            `Lets work this out in a step by step way to be sure we have the correctly mark all questions.`
+            `Walk me through one question at a time in manageable parts step by step, summarizing and analyzing as we go to make sure we have all the setences needed to be annotated`
         });
 
         let totalRuns = 0;
@@ -218,7 +218,7 @@ export async function makeInference(image1, image2, type, annotatedText) {
                 function dataURLtoFile(dataurl, filename) {
                     let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
                         bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-                    while(n--) {
+                    while (n--) {
                         u8arr[n] = bstr.charCodeAt(n);
                     }
                     return new File([u8arr], filename, {type:mime});
@@ -245,10 +245,6 @@ export async function makeInference(image1, image2, type, annotatedText) {
                         role: "user",
                         content: [
                             {
-                                type: "text",
-                                text: `A user has ${type}:\n"${annotatedText}. The user is marking an English test."`
-                            },
-                            {
                                 type: "image_file",
                                 image_file: {
                                     file_id: file1.id,
@@ -259,7 +255,11 @@ export async function makeInference(image1, image2, type, annotatedText) {
                                 image_file: {
                                     file_id: file2.id,
                                 }
-                            }
+                            },
+                            {
+                                type: "text",
+                                text: `The user is marking an English test and has ${type}:\n"${annotatedText}".`
+                            },
                         ],
                     },
                     {
