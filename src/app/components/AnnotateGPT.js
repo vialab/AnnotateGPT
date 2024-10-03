@@ -637,13 +637,35 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let executed2 = 0;
                     let worker = new Worker(URL.createObjectURL(new Blob([`(${workerLevenshteinDistance})()`])));
 
+                    const messageQueue = [];
+                    let activeMessages = 0;
+                    const maxConcurrentMessages = 4;
+
+                    function sendMessageToWorker(message) {
+                        messageQueue.push({ message });
+                        processQueue();
+                    }
+
+                    function processQueue() {
+                        if (activeMessages >= maxConcurrentMessages) {
+                            return;
+                        }
+
+                        if (messageQueue.length > 0) {
+                            const { message } = messageQueue.shift();
+                            activeMessages++;
+                            worker.postMessage(message);
+                        }
+                    }
+
                     worker.onmessage = (e) => {
                         const distance = e.data.distance;
                         const substring = e.data.a.length > e.data.b.length ? e.data.a : e.data.b;
                         const i = e.data.i;
                         const i2 = e.data.i2;
                         done2++;
-
+                        activeMessages--;
+                        processQueue();
                         // console.log("Distance", distance, e.data.a, e.data.b);
                         
                         if (distance < substring.length / 2) {
@@ -677,7 +699,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                 // console.log("Comparing", sentence, "||", sentence2);
 
                                 executed2++;
-                                worker.postMessage({ a: sentence, b: sentence2, i, i2: setUpAnnotatedTokens.length - 1 });
+                                sendMessageToWorker({ a: sentence, b: sentence2, i, i2: setUpAnnotatedTokens.length - 1 });
                             }
                         }
                     }
@@ -1011,8 +1033,31 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             let done = 0;
             let executed = 0;
             let worker = new Worker(URL.createObjectURL(new Blob([`(${workerLevenshteinDistance})()`])));
+
+            const messageQueue = [];
+            let activeMessages = 0;
+            const maxConcurrentMessages = 4;
+
+            function sendMessageToWorker(message) {
+                messageQueue.push({ message });
+                processQueue();
+            }
+
+            function processQueue() {
+                if (activeMessages >= maxConcurrentMessages) {
+                    return;
+                }
+
+                if (messageQueue.length > 0) {
+                    const { message } = messageQueue.shift();
+                    activeMessages++;
+                    worker.postMessage(message);
+                }
+            }
             
             worker.onmessage = (e) => {
+                activeMessages--;
+                processQueue();
                 const distance = e.data.distance;
                 const substring = e.data.a;
                 // const target = e.data.b;
@@ -1045,7 +1090,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         continue;
                     }
                     executed++;
-                    worker.postMessage({ a: substring, b: target });
+                    sendMessageToWorker({ a: substring, b: target });
                 }
             } else {
                 for (let length = target.length; length <= text.length; length++) {
@@ -1056,7 +1101,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             continue;
                         }
                         executed++;
-                        worker.postMessage({ a: substring, b: target });
+                        sendMessageToWorker({ a: substring, b: target });
                     }
                 }
             }
@@ -1197,6 +1242,27 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             let worker = new Worker(URL.createObjectURL(new Blob([`(${findMostSimilarSubstring})()`])));
 
+            const messageQueue = [];
+            let activeMessages = 0;
+            const maxConcurrentMessages = 4;
+
+            function sendMessageToWorker(message) {
+                messageQueue.push({ message });
+                processQueue();
+            }
+
+            function processQueue() {
+                if (activeMessages >= maxConcurrentMessages) {
+                    return;
+                }
+
+                if (messageQueue.length > 0) {
+                    const { message } = messageQueue.shift();
+                    activeMessages++;
+                    worker.postMessage(message);
+                }
+            }
+
             for (let i = 0; i < textContent.current.length - 1; i++) {
                 if (textContent.current[i].length === 0 || textContent.current[i + 1].length === 0) {
                     continue;
@@ -1210,7 +1276,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 fullPage = fullPage.replace(/[^a-zA-Z0-9\s]/g, "");
 
                 executed++;
-                worker.postMessage({ text: fullPage, target: text.toLowerCase(), sameLength: false, index: i });
+                sendMessageToWorker({ text: fullPage, target: text.toLowerCase(), sameLength: false, index: i });
             }
             
             for (let i = 0; i < textContent.current.length; i++) {
@@ -1222,10 +1288,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 pageText = pageText.replace(/\s+/g, " ");
 
                 executed++;
-                worker.postMessage({ text: pageText, target: text.toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""), sameLength: true, index: i });
+                sendMessageToWorker({ text: pageText, target: text.toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""), sameLength: true, index: i });
             }
 
             worker.onmessage = (e) => {
+                activeMessages--;
+                processQueue();
+
                 let result = e.data;
                 done++;
 
@@ -2213,8 +2282,14 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     const containerRef = useRef(null);
 
     useEffect(() => {
-        d3.select("body")
+        d3.select(".annotateContainer")
         .on("pointermove", (e) => {
+            if (e.buttons !== 0) {
+                clearTimeout(explainTooltipTimeout.current);
+                clearTimeout(highlightTimeout.current);
+                return;
+            }
+
             let [x, y] = [e.clientX, e.clientY];
             let annotations, annotation;
             let i, j;
@@ -2315,7 +2390,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         });
 
         return () => {
-            d3.select("body")
+            d3.select(".annotateContainer")
             .on("pointermove", null);
         };
     }, [onReplyCallback, generateContent, navigateCallback]);
