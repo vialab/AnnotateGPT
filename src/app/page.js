@@ -7,7 +7,7 @@ import { parse } from 'csv-parse';
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence, deleteUser  } from "firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "@firebase/auth";
 import { getFirestore, addDoc, collection } from "firebase/firestore";
 
 import { Cluster } from "./components/PenCluster.js";

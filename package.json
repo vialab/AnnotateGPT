@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@firebase/auth": "^1.7.7",
     "csv-parse": "^5.5.6",
     "d3": "^7.9.0",
     "express": "^4.21.0",
@@ -17,7 +18,7 @@
     "flubber": "^0.4.2",
     "kld-intersections": "^0.7.0",
     "modern-screenshot": "^4.4.39",
-    "next": "14.2.6",
+    "next": "14.2.14",
     "openai": "^4.67.1",
     "perfect-freehand": "^1.2.2",
     "polygon-clipping": "^0.15.7",
@@ -36,6 +37,6 @@
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
-    "eslint-config-next": "^14.2.6"
+    "eslint-config-next": "^14.2.14"
   }
 }
