@@ -21,8 +21,12 @@
     pointer-events: none;
 }
 
-.pen-annotation-layer:first-child, .pen-annotation-layer:last-child {
+.pen-annotation-layer:first-child {
     height: calc(var(--annotation-height));
+}
+
+.pen-annotation-layer:last-child {
+    height: calc(var(--annotation-height) - 2px);
 }
 
 .pen-annotation-layer canvas {

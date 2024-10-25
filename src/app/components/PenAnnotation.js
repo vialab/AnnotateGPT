@@ -117,7 +117,8 @@ function checkEnclosed(coords) {
         } else {
             lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
             gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
-            return -2 < lambda && lambda < 3 && -2 < gamma && gamma < 3;
+            // console.log(lambda, gamma);
+            return -2 <= lambda && lambda <= 2 && -2 <= gamma && gamma <= 2;
         }
     }
 
@@ -128,6 +129,13 @@ function checkEnclosed(coords) {
         return a * a + b * b;
     }
 
+    // let pt = d3.select(".pen-annotation-container svg").node().createSVGPoint();
+    // pt.x = 0;
+    // pt.y = 0;
+
+    // let transformedPt = pt.matrixTransform(d3.select(".pen-annotation-container svg").node().getScreenCTM().inverse());
+    // let offset = [transformedPt.x - pt.x, transformedPt.y - pt.y];
+
     loop1: for (let i1 = 0; i1 < coords.length / 3; i1++) {
         let samplePoint1 = 1;
 
@@ -136,15 +144,16 @@ function checkEnclosed(coords) {
         let x2 = coords[i1 + samplePoint1][0];
         let y2 = coords[i1 + samplePoint1][1];
 
-        while (dist(x1, y1, x2, y2) < 400) {
+        while (dist(x1, y1, x2, y2) < 900) {
             samplePoint1++;
-            i1++;
+            // i1++;
 
             if (i1 + samplePoint1 >= coords.length / 3)
                 break loop1;
             x2 = coords[i1 + samplePoint1][0];
             y2 = coords[i1 + samplePoint1][1];
         }
+        // i1 += samplePoint1 - 1;
 
         loop2: for (let i2 = coords.length - 1; i2 >= (coords.length / 3) * 2; i2--) {
             let samplePoint2 = 1;
@@ -154,15 +163,61 @@ function checkEnclosed(coords) {
             let x4 = coords[i2 - samplePoint2][0];
             let y4 = coords[i2 - samplePoint2][1];
 
-            while (dist(x3, y3, x4, y4) < 400) {
+            while (dist(x3, y3, x4, y4) < 900) {
                 samplePoint2++;
-                i2--;
+                // i2--;
 
                 if (i2 - samplePoint2 <= (coords.length / 3) * 2)
                     break loop2;
                 x4 = coords[i2 - samplePoint2][0];
                 y4 = coords[i2 - samplePoint2][1];
             }
+            // i2 -= samplePoint2 - 1;
+            // let intersect = intersects(x1, y1, x2, y2, x3, y3, x4, y4);
+
+            // d3.select("body")
+            // .append("div")
+            // .style("position", "absolute")
+            // .style("top", `${y1 - 5 - offset[1]}px`)
+            // .style("left", `${x1 - 5 - offset[0]}px`)
+            // .style("width", "10px")
+            // .style("height", "10px")
+            // .style("background-color", intersect ? "#A2FAA3" : "#E86A92")
+            // .style("border-radius", "50%")
+            // .style("z-index", "1000");
+            
+            // d3.select("body")
+            // .append("div")
+            // .style("position", "absolute")
+            // .style("top", `${y2 - 5 - offset[1]}px`)
+            // .style("left", `${x2 - 5 - offset[0]}px`)
+            // .style("width", "10px")
+            // .style("height", "10px")
+            // .style("background-color", intersect ? "#A2FAA3" : "#E86A92")
+            // .style("border-radius", "50%")
+            // .style("z-index", "1000");
+
+            // d3.select("body")
+            // .append("div")
+            // .style("position", "absolute")
+            // .style("top", `${y3 - 5 - offset[1]}px`)
+            // .style("left", `${x3 - 5 - offset[0]}px`)
+            // .style("width", "10px")
+            // .style("height", "10px")
+            // .style("background-color", intersect ? "#A2FAA3" : "#0075F2")
+            // .style("border-radius", "50%")
+            // .style("z-index", "1000");
+
+            // d3.select("body")
+            // .append("div")
+            // .style("position", "absolute")
+            // .style("top", `${y4 - 5 - offset[1]}px`)
+            // .style("left", `${x4 - 5 - offset[0]}px`)
+            // .style("width", "10px")
+            // .style("height", "10px")
+            // .style("background-color", intersect ? "#A2FAA3" : "#0075F2")
+            // .style("border-radius", "50%")
+            // .style("z-index", "1000");
 
             if (intersects(x1, y1, x2, y2, x3, y3, x4, y4)) {
                 return true;
@@ -211,7 +266,7 @@ function nearPath(point, path) {
     return false;
 }
 
-const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipRef, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
+const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipRef, handiness, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
@@ -919,7 +974,6 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                         onmessage = (e) => {
                             let lines = e.data.lines;
                             let coords = e.data.coords;
-                            // eslint-disable-next-line no-new-func
                             let findClosestLine = new Function(`return ${e.data.findClosestLine}`)();
 
                             let closestLine = findClosestLine(lines, { x: coords[0], y: coords[1] });
@@ -943,6 +997,16 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                         worker.onmessage = (e) => {
                             if (e.data !== undefined && e.data.x1 !== undefined) {
                                 let line = rectLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2);
+
+                                // d3.select("body")
+                                // .append("div")
+                                // .style("position", "absolute")
+                                // .style("top", `${e.data.coord[1] + window.scrollY}px`)
+                                // .style("left", `${e.data.coord[0]}px`)
+                                // .style("width", "5px")
+                                // .style("height", "5px")
+                                // .style("background-color", line.type === "underlined" ? "#89043D" : "#0075F2")
+                                // .style("border-radius", "50%");
 
                                 if (line !== undefined) {
                                     wordsOfInterest.push({ ...line, coord: e.data.coord, type: line.type });
@@ -1046,7 +1110,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                 let distance = (coords[0][0] - coords[coords.length - 1][0]) ** 2 + (coords[0][1] - coords[coords.length - 1][1]) ** 2;
                 let type = "circled_words";
 
-                if (distance < 10000 || checkEnclosed(coords)) {
+                if (distance < 900 || checkEnclosed(coords)) {
                     let shape = ShapeInfo.path(d3.select(path).attr("d"));
                     let words = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.word").nodes();
                     let pathBoundingBox = path.getBoundingClientRect();
@@ -1253,7 +1317,20 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
 
             <span className={"pageNumber " + googleSans.className}>{index}</span>
             
-            <Tooltip penAnnnotationRef={ref} index={index} mode={mode} onClick={onClick} onNewActiveCluster={onNewActiveCluster} onClusterChange={onClusterChange} onInference={onInference} onEndAnnotate={onEndAnnotate} setUpAnnotations={setUpAnnotations} clusters={[...clustersState, ...lockCluster]} toolTipRef={toolTipRef} />
+            <Tooltip 
+                penAnnnotationRef={ref}
+                index={index}
+                mode={mode}
+                handinessRef={handiness}
+                onClick={onClick}
+                onNewActiveCluster={onNewActiveCluster}
+                onClusterChange={onClusterChange}
+                onInference={onInference}
+                onEndAnnotate={onEndAnnotate}
+                setUpAnnotations={setUpAnnotations}
+                clusters={[...clustersState, ...lockCluster]}
+                toolTipRef={toolTipRef}
+            />
         </div>
     );
 });

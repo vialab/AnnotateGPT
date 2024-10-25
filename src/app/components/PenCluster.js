@@ -103,14 +103,16 @@ class Stroke {
     }
 
     static normalizeBoundingBox(bbox) {
+        let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
+
         return {
             x: bbox.x / window.innerWidth,
-            y: bbox.y / window.innerHeight,
+            y: bbox.y / height,
             width: bbox.width / window.innerWidth,
-            height: bbox.height / window.innerHeight,
-            top: bbox.y / window.innerHeight,
+            height: bbox.height / height,
+            top: bbox.y / height,
             right: (bbox.x + bbox.width) / window.innerWidth,
-            bottom: (bbox.y + bbox.height) / window.innerHeight,
+            bottom: (bbox.y + bbox.height) / height,
             left: bbox.x / window.innerWidth
         };
     }
@@ -118,7 +120,9 @@ class Stroke {
 
 export default class PenCluster {
     constructor() {
-        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 0, height: 0}, "intital", 0)];
+        let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
+
+        this.strokes = [new Stroke("initial", {x: window.innerWidth / 2, y: height / 2, width: 1, height: 1}, "intital", 0)];
         this.stopIteration = [];
         this.history = [];
     }

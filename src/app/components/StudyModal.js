@@ -15,11 +15,12 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange }, ref) => {
+const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange, handinessChange }, ref) => {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     let [ ifFirst, setIfFirst ] = useState(true);
     let [ llmFirst, setLlmFirst ] = useState(true);
+    let [ handiness, setHandiness ] = useState("right");
     
     let preStudyContent = useRef([]);
     let preTaskContent = useRef([]);
@@ -417,6 +418,22 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                                         </div>
                                     </div>
                                 </div>
+                                <div className="settingsContainer"> 
+                                    <p>Handiness</p>
+                                    <div className="settings">
+                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                            <p style={{ display: "inline", margin: 0 }}>Left</p>
+                                            <label className="switch" style={{ border: "none", padding: 0 }}>
+                                                <input type="checkbox" defaultChecked={handiness === "right"} onChange={e => {
+                                                    handinessChange(e.target.checked ? "right" : "left");
+                                                    setHandiness(e.target.checked ? "right" : "left");
+                                                }} />
+                                                <span className="slider round"></span>
+                                            </label>
+                                            <p style={{ display: "inline", margin: 0 }}>Right</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </>
                             :
                             <>
@@ -468,7 +485,22 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                                             <input type="file" id="documentFile" name="documentFile" accept=".pdf" style={{ display: "none" }} onChange={() => fileChangeHandler("document")} required="required" />
                                             <label htmlFor="documentFile">Upload File</label>
                                             <p id="documentFileName">No file selected</p>
-                                            
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="settingsContainer"> 
+                                    <p>Handiness</p>
+                                    <div className="settings">
+                                        <div style={{ display: "flex", alignItems: "center" }}>
+                                            <p style={{ display: "inline", margin: 0 }}>Left</p>
+                                            <label className="switch" style={{ border: "none", padding: 0 }}>
+                                                <input type="checkbox" defaultChecked={handiness === "right"} onChange={e => {
+                                                    handinessChange(e.target.checked ? "right" : "left");
+                                                    setHandiness(e.target.checked ? "right" : "left");
+                                                }} />
+                                                <span className="slider round"></span>
+                                            </label>
+                                            <p style={{ display: "inline", margin: 0 }}>Right</p>
                                         </div>
                                     </div>
                                 </div>
@@ -551,6 +583,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                         generateNextButton({class: "skip"}, "skip", (e) => {
                             ifModalIsOpen = true;
                             onSettings.current = false;
+                            onConfirm.current = false;
 
                             exitTransitionStudy(e, () => {
                                 continueStudy(e, true);
@@ -576,9 +609,9 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                                 modeChange(currentLlmFirst ? "llm" : "base");
                             }
 
-                            if (documentChange instanceof Function) {
-                                documentChange(currentIfFirst ? 0 : 1);
-                            }
+                            // if (documentChange instanceof Function) {
+                            //     documentChange(currentIfFirst ? 0 : 1);
+                            // }
 
                             if (fileHandler instanceof Function) {
                                 fileHandler(d3.select("#strokeDataFile").node().files[0], d3.select("#clusterDataFile").node().files[0], d3.select("#documentFile").node().files[0]);
@@ -844,12 +877,12 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                 <div>
                     <h3 style={{width: "100%", textAlign: "center"}}>Instructions</h3>
                     <ul> 
-                        <li style={{ margin: "30px 0px" }}>Your task is to grade an English test.</li>
+                        <li style={{ margin: "30px 0px" }}>Your task is to give feedback on an English test.</li>
                         <li style={{ margin: "30px 0px" }}>Annotate any issues you see (e.g. grammar, sentence structure, clarity, etc.)</li>
                         { currentMode === "LLM" ? 
                             <>
                                 <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
-                                <li style={{ margin: "30px 0px" }}>You must use the assistance at least once.</li>
+                                <li style={{ margin: "30px 0px" }}>You must use the assistance at least once. (activating and annotating with tooltip)</li>
                                 <li style={{ margin: "30px 0px" }}>You must rate all annotations by accepting or rejecting the annotations.</li>
                             </>
                             :
@@ -893,25 +926,18 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
         ];
 
         postStudyContent.current = [
-            {
-                "content": <>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Post-Study Questionnaire</h3>
-                    <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSfQ3H4nwXmNOBFue5Uu_nY_h_5ANmwGq9sGLvLuwo0O_aiGVA/viewform?usp=pp_url&entry.879680390=" + pid} title="postStudy" />
-                </>,
-                "prev": false,
-            },
+            // {
+            //     "content": <>
+            //         <h3 style={{width: "100%", textAlign: "center"}}>Post-Study Questionnaire</h3>
+            //         <iframe src={"https://docs.google.com/forms/d/e/1FAIpQLSfQ3H4nwXmNOBFue5Uu_nY_h_5ANmwGq9sGLvLuwo0O_aiGVA/viewform?usp=pp_url&entry.879680390=" + pid} title="postStudy" />
+            //     </>,
+            //     "prev": false,
+            // },
             {
                 "content": <div style={{ textAlign: "center" }}>
-                    
-                    Have you click this <div className={"googleSubmit " + googleSans.className}><div className="buttonOverlay"></div><span>Submit</span></div> button on the Google Form? <br />
-                    (Not this <button className={"round modalButton nextButton"}>
-                        <div id={"cta"}>
-                            <span className={"arrow next primera"} style={{ fontSize: "20px" }}>&nbsp;</span>
-                            <span className={"arrow next segunda"}></span>
-                        </div>
-                    </button> button)
+                    This is the end of the study. We will ask you some questions now...
                 </div>,
-                "prev": true,
+                "prev": false,
                 "confirm": true,
                 "disableNext": true,
                 "callback": () => {
@@ -1152,7 +1178,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
         <>
             {
                 studyState === "study" ? 
-                    <div className="studyMenu">
+                    <div className={"studyMenu " + handiness}>
                         <div className="withdraw" onClick={withdraw}>
                             <ImExit />
                         </div>

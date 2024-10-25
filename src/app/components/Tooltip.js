@@ -55,7 +55,7 @@ function wrap(text, width = -1) {
     });
 }
 
-export default function Tooltip({ mode, clusters, index, onClick, onInference, onNewActiveCluster, onClusterChange, toolTipRef, setUpAnnotations, penAnnnotationRef, onEndAnnotate }) {
+export default function Tooltip({ mode, clusters, index, handinessRef, onClick, onInference, onNewActiveCluster, onClusterChange, toolTipRef, setUpAnnotations, penAnnnotationRef, onEndAnnotate }) {
     let ref = useRef(null);
     let openTimeout = useRef(null);
     let closeTimeout = useRef(null);
@@ -475,6 +475,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
         // console.log(clusterRef.current);
         
         let width = d3.select(".react-pdf__Page__canvas").node()?.getBoundingClientRect().right;
+        let left = d3.select(".react-pdf__Page__canvas").node()?.getBoundingClientRect().left;
 
         function processStrokeList(d) {
             if (clusterRef.current.length === 0) 
@@ -523,10 +524,11 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 continue;
 
             let lastStrokeBbox = cluster.strokes[cluster.strokes.length - 1].bbox;
-            let y = (lastStrokeBbox.y + lastStrokeBbox.height / 2) * window.innerHeight - toolTipSize / 2;
+            let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
+            let y = (lastStrokeBbox.y + lastStrokeBbox.height / 2) * height - toolTipSize / 2;
             
             cluster["y"] = Math.min(y, ref.current.getBoundingClientRect().height - 200);
-            cluster["x"] = width + 12;
+            cluster["x"] = handinessRef?.current === "right" ? left - 12 - (window.innerWidth - width - 36) :  width + 12;
         }
         
         for (let i = 0; i < clusterRef.current.length; i++) {
@@ -563,7 +565,6 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
         .attr("opacity", 0.1);
 
         let open = false;
-        
 
         for (let cluster of clusterRef.current) {
             if (cluster.open) {
@@ -836,13 +837,18 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .classed("annotating", (d, i) => clusterRef.current[i].annotating)
                 .classed("done", (d, i) => clusterRef.current[i].annotating === false)
                 .classed("havePurpose", (d, i) => clusterRef.current[i].purpose)
+                .classed("inferring", (d, i) => clusterRef.current[i].purpose === false)
                 .attr("id", (d, i) => "toolTip" + clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id)
                 .attr("opacity", 0);
 
                 tooltip
                 .append("rect")
                 .attr("x", (d, i) => {
-                    return clusterRef.current[i].x;
+                    if (handinessRef?.current === "right") {
+                        return clusterRef.current[i].open ? clusterRef.current[i].x : clusterRef.current[i].x + (window.innerWidth - width - 48 - toolTipSize / 2);
+                    } else {
+                        return clusterRef.current[i].x;
+                    }
                 })
                 .attr("y", (d, i) => {
                     return clusterRef.current[i].y;
@@ -915,10 +921,17 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         const cluster = clusterRef.current[i];
                         const startTimetamp = Date.now();
 
+                        tooltip
+                        .classed("inferring", true);
+
                         inferPurpose(clusterRef.current[i])
                         .then((response) => {
                             cluster.purpose = response.result;
                             // updateTooltips(clusters);
+
+                            tooltip
+                            .classed("havePurpose", true)
+                            .classed("inferring", false);
                             
                             if (onInference instanceof Function) {
                                 onInference(startTimetamp, cluster, response.rawText, response.images);
@@ -1028,8 +1041,14 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
 
                 tooltip
                 .append("circle")
-                .attr("cx", (d, i) => !clusterRef.current[i].open ? clusterRef.current[i].x + toolTipSize / 2 : window.innerWidth - 40)
-                .attr("cy", (d, i) => clusterRef.current[i].y + 16)
+                .attr("cx", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + (window.innerWidth - width - 48) : clusterRef.current[i].x + (window.innerWidth - width - 40 - padding);
+                    } else {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + toolTipSize / 2 : window.innerWidth - 40;
+                    }
+                })
+                .attr("cy", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].y + toolTipSize / 2 + 4 : clusterRef.current[i].y + toolTipSize / 2)
                 .attr("r", 12)
                 .attr("fill", "#b8405e")
                 .attr("opacity", (d, i) => clusterRef.current[i].open ? 1 : 0)
@@ -1057,8 +1076,14 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
 
                 tooltip
                 .append("text")
-                .attr("x", (d, i) => !clusterRef.current[i].open ? clusterRef.current[i].x + toolTipSize / 2 : window.innerWidth - 40)
-                .attr("y", (d, i) => clusterRef.current[i].y + 16)
+                .attr("x", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + (window.innerWidth - width - 48) : clusterRef.current[i].x + (window.innerWidth - width - 40 - padding);
+                    } else {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + toolTipSize / 2 : window.innerWidth - 40;
+                    }
+                })
+                .attr("y", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].y + toolTipSize / 2 + 4 : clusterRef.current[i].y + toolTipSize / 2)
                 .attr("text-anchor", "middle")
                 .attr("dominant-baseline", "middle")
                 .attr("font-size", "14px")
@@ -1109,7 +1134,11 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                         .attr("id", i * 2 + j)
                         .attr("x", (d, k) => {
                             if (!clusterRef.current[k].open) {
-                                return clusterRef.current[k].x;
+                                if (handinessRef?.current === "right") {
+                                    return clusterRef.current[k].x + (window.innerWidth - width - 48 - toolTipSize / 2);
+                                } else {
+                                    return clusterRef.current[k].x;
+                                }
                             }
                             let w = window.innerWidth - width - padding - 36;
                             return clusterRef.current[k].x + padding + (w / 2) * j;
@@ -1260,7 +1289,13 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 tooltip
                 .append("foreignObject")
                 .attr("class", "input-wrapper")
-                .attr("x", (d, i) => clusterRef.current[i].x + toolTipSize / 2)
+                .attr("x", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return clusterRef.current[i].open ? clusterRef.current[i].x + padding : clusterRef.current[i].x + (window.innerWidth - width - 48 - toolTipSize / 2);
+                    } else {
+                        return clusterRef.current[i].x + toolTipSize / 2;
+                    }
+                })
                 .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2)
                 .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - padding * 3 - 52 : toolTipSize)
                 .attr("height", topPadding - padding + 2)
@@ -1342,7 +1377,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .attr("x", (d, i) => {
                     return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
                 })
-                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 120) - glassBBox.height / 2 - padding)
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 110) - glassBBox.height / 2 - padding)
                 .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
                 .style("display", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? "unset" : "none")
                 .selectAll("*")
@@ -1407,7 +1442,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
                 .attr("dy", "8em")
                 .style("font-style", "italic")
-                .text("Use the arrows on the left to navigate annotations")
+                .text(`Use the arrows on the ${handinessRef.current === "right" ? "right" : "left"} to navigate annotations`)
                 .style("pointer-events", "none")
                 .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0)
                 .call(wrap, window.innerWidth - width - 36);
@@ -1426,155 +1461,389 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 .style("font-family", "cursive")
                 .style("pointer-events", "none")
                 .text((d, i) => clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length);
+
+                tooltip
+                .append("text")
+                .classed("busyText1", true)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 20))
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("font-size", "14px")
+                .style("font-family", "cursive")
+                .style("pointer-events", "none")
+                .text("I am working...")
+                .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                .style("display", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? "unset" : "none");
+
+                let busyText2 = tooltip
+                .append("text")
+                .classed("busyText2", true)
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("font-size", "14px")
+                .style("font-family", "cursive")
+                .style("pointer-events", "none")
+                .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                .style("display", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? "unset" : "none");
+
+                busyText2
+                .append("tspan")
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140))
+                .attr("dy", "0em")
+                .text("You can continue annotating");
+
+                busyText2
+                .append("tspan")
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140))
+                .attr("dy", "1.4em")
+                .text("I will turn red in the scrollbar when I am done");
+
+                tooltip
+                .append("text")
+                .classed("busyText3", true)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 160))
+                .attr("text-anchor", "middle")
+                .attr("dominant-baseline", "middle")
+                .attr("font-size", "14px")
+                .style("font-family", "cursive")
+                .style("pointer-events", "none")
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
+                .style("display", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? "unset" : "none")
+                .text("I will turn green in the scrollbar when I am done");
             },
 
             update => {
+                // update
+                // .transition()
+                // .duration(1)
+                // .on("end", () => {
+                let padding = 12;
+                let topPadding = 40;
+
                 update
+                .select("text.busyText3")
+                .style("display", "unset")
                 .transition()
-                .duration(1)
-                .on("end", () => {
-                    let padding = 12;
-                    let topPadding = 40;
+                .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
+                .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 160))
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
+                .on("end", function(d, i) {
+                    if (!(clusterRef.current[i]?.open && clusterRef.current[i]?.annotating)) {
+                        d3.select(this).style("display", "none");
+                    }
+                });
 
-                    update
-                    .select(".annotationCount")
-                    .transition()
-                    .duration(1000)
-                    .attr("x", (d, i) => {
+                update
+                .select("text.busyText2")
+                .style("display", "unset")
+                .transition()
+                .duration((d, i) => clusterRef.current[i].open ? 1000 : 500)
+                .delay((d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating === undefined && !clusterRef.current[i].purpose ? 500 : 0)
+                .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                .on("end", function(d, i) {
+                    if (!(clusterRef.current[i]?.open && !clusterRef.current[i]?.purpose)) {
+                        d3.select(this).style("display", "none");
+                    }
+                })
+                .each(function(d, i) {
+                    index.set(this, i);
+                });
+
+                update
+                .select("text.busyText2")
+                .selectAll("tspan")
+                .transition()
+                .duration(1000)
+                .attr("x", function() {
+                    let i = index.get(this);
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", function() {
+                    let i = index.get(this);
+                    return clusterRef.current[i].y + 16 + 140;
+                });
+                // .attr("dy", (d, i) => i === 0 ? "0em" : "1.4em");
+
+                update
+                .select("text.busyText1")
+                .style("display", "unset")
+                .transition()
+                .duration((d, i) => clusterRef.current[i].open ? 1000 : 500)
+                .delay((d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating === undefined && !clusterRef.current[i].purpose ? 500 : 0)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 20))
+                .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                .on("end", function(d, i) {
+                    if (!(clusterRef.current[i]?.open && !clusterRef.current[i]?.purpose)) {
+                        d3.select(this).style("display", "none");
+                    }
+                });
+
+                update
+                .select(".annotationCount")
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return clusterRef.current[i].x + (window.innerWidth - width - 48);
+                    } else {
                         return clusterRef.current[i].x + toolTipSize / 2;
-                    })
-                    .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2 + 1)
-                    .style("opacity", (d, i) => ((clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) && !clusterRef.current[i].open) ? 1 : 0)
-                    .text((d, i) => clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length);
+                    }
+                })
+                .attr("y", (d, i) => clusterRef.current[i].y + toolTipSize / 2 + 1)
+                .style("opacity", (d, i) => ((clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) && !clusterRef.current[i].open) ? 1 : 0)
+                .text((d, i) => clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length);
 
-                    let annotationStatus = update
-                    .select("text.annotateStatus");
+                let annotationStatus = update
+                .select("text.annotateStatus");
 
-                    annotationStatus
-                    .transition()
-                    .duration((d, i) => clusterRef.current[i].open ? 1000 : 500)
-                    .delay((d, i) => clusterRef.current[i].open ? 500 : 0)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && (clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) ? 1 : 0)
-                    .each(function(d, i) {
-                        index.set(this, i);
-                    });
+                annotationStatus
+                .transition()
+                .duration((d, i) => clusterRef.current[i].open ? 1000 : 500)
+                .delay((d, i) => clusterRef.current[i].open ? 500 : 0)
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && (clusterRef.current[i].annotating || clusterRef.current[i].annotating === false) ? 1 : 0)
+                .each(function(d, i) {
+                    index.set(this, i);
+                });
 
-                    annotationStatus
-                    .selectAll("tspan")
-                    .attr("x", function() {
+                annotationStatus
+                .selectAll("tspan")
+                .attr("x", function() {
+                    let i = index.get(this);
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", function() {
+                    let i = index.get(this);
+                    return (clusterRef.current[i].y + 16 + 10);
+                });
+
+                annotationStatus
+                .select("tspan.lookingFor1")
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .text((d, i) => (clusterRef.current[i].annotating === false) ? `Done annotating for` : `Annotating for`);
+
+                annotationStatus
+                .select("tspan.lookingFor2")
+                .text((d, i) => `"${clusterRef.current[i].searching?.purposeTitle}"`)
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10));
+
+                annotationStatus
+                .select("tspan.annotationFound")
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length} annotations`);
+
+                annotationStatus
+                .select("tspan.navagation")
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
+                .transition()
+                .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
+                .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0)
+                .text(`Use the arrows on the ${handinessRef.current === "right" ? "right" : "left"} to navigate annotations`);
+
+                // let glass = d3.select(".glass-wrapper")
+                // .node();
+
+                // let glassBBox = glass.getBBox();
+                let glassBBox = { width: 60, height: 60 };
+
+                update
+                .select("g.glass")
+                .select("svg")
+                .style("display", "unset")
+                .transition()
+                .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
+                .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 110) - glassBBox.height / 2 - padding)
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
+                .on("end", function(d, i) {
+                    if (!(clusterRef.current[i]?.open && clusterRef.current[i]?.annotating)) {
+                        d3.select(this).style("display", "none");
+                    }
+                });
+
+                update
+                .select("foreignObject.input-wrapper")
+                .style("pointer-events", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined ? "all" : "none")
+                .transition()
+                .duration(1000)
+                .attr("x", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return clusterRef.current[i].open ? clusterRef.current[i].x + padding : clusterRef.current[i].x + (window.innerWidth - width - 48 - toolTipSize / 2);
+                    } else {
+                        return clusterRef.current[i].open ? clusterRef.current[i].x + padding : clusterRef.current[i].x;
+                    }
+                })
+                .attr("y", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].y + padding : clusterRef.current[i].y)
+                .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - padding * 3 - 52 : toolTipSize)
+                .attr("height", topPadding - padding + 2)
+                .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined ? 1 : 0)
+                .each(function(d, i) {
+                    index.set(this, i);
+                })
+                .selectAll("*")
+                .style("pointer-events", function() {
+                    let i = index.get(this);
+
+                    return clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined ? "all" : "none";
+                });
+
+                update
+                .select("foreignObject.input-wrapper")
+                .select("input")
+                .on("keyup", function(e) {
+                    if (e.key === "Enter" && this.value !== "") {
                         let i = index.get(this);
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
-                    })
-                    .attr("y", function() {
-                        let i = index.get(this);
-                        return (clusterRef.current[i].y + 16 + 10);
-                    });
+                        clusterRef.current[i].annotating = true;
+                        clusterRef.current[i].searching = {
+                            annotationDescription: clusterRef.current[i].purpose?.annotationDescription,
+                            purposeTitle: this.value,
+                            purpose: ""
+                        };
+                        clusterRef.current[i].annotationsFound = [];
+                        const cluster = clusterRef.current[i];
+                        const startTimetamp = Date.now();
 
-                    annotationStatus
-                    .select("tspan.lookingFor1")
-                    .transition()
-                    .duration(1000)
-                    .attr("x", (d, i) => {
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
-                    })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
-                    .text((d, i) => (clusterRef.current[i].annotating === false) ? `Done annotating for` : `Annotating for`);
+                        let onDetect = (result) => {
+                            cluster.annotationsFound = result;
+                            updateTextTooltips(clusterRef.current);
+                            
+                            // console.log(cluster.annotationsFound);
 
-                    annotationStatus
-                    .select("tspan.lookingFor2")
-                    .text((d, i) => `"${clusterRef.current[i].searching?.purposeTitle}"`)
-                    .transition()
-                    .duration(1000)
-                    .attr("x", (d, i) => {
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
-                    })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10));
+                            if (onClusterChange instanceof Function) {
+                                onClusterChange(cluster);
+                            }
+                        };
 
-                    annotationStatus
-                    .select("tspan.annotationFound")
-                    .transition()
-                    .duration(1000)
-                    .attr("x", (d, i) => {
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
-                    })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
-                    .text((d, i) => `Found ${clusterRef.current[i].annotationsFound?.filter(annotation => annotation.accepted !== false).length} annotations`);
+                        let onEnd = (rawText) => {
+                            cluster.annotating = false;
+                            updateTooltips(clusterRef.current);
 
-                    annotationStatus
-                    .select("tspan.navagation")
-                    .attr("x", (d, i) => {
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2;
-                    })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 10))
-                    .transition()
-                    .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
-                    .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === false ? 1 : 0);
+                            if (onEndAnnotate instanceof Function) {
+                                onEndAnnotate(startTimetamp, cluster, rawText);
+                            }
+                        };
 
-                    // let glass = d3.select(".glass-wrapper")
-                    // .node();
-
-                    // let glassBBox = glass.getBBox();
-                    let glassBBox = { width: 60, height: 60 };
-
-                    update
-                    .select("g.glass")
-                    .select("svg")
-                    .style("display", "unset")
-                    .transition()
-                    .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
-                    .delay((d, k) => clusterRef.current[k].open ? 500 : 0)
-                    .attr("x", (d, i) => {
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - glassBBox.width / 2;
-                    })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 120) - glassBBox.height / 2 - padding)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].annotating ? 1 : 0)
-                    .on("end", function(d, i) {
-                        if (!(clusterRef.current[i]?.open && clusterRef.current[i]?.annotating)) {
-                            d3.select(this).style("display", "none");
+                        if (setUpAnnotations instanceof Function) {
+                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
                         }
-                    });
 
-                    update
-                    .select("foreignObject.input-wrapper")
-                    .style("pointer-events", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined ? "all" : "none")
-                    .transition()
-                    .duration(1000)
-                    .attr("x", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].x + padding : clusterRef.current[i].x)
-                    .attr("y", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].y + padding : clusterRef.current[i].y)
-                    .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - padding * 3 - 52 : toolTipSize)
-                    .attr("height", topPadding - padding + 2)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined ? 1 : 0)
-                    .each(function(d, i) {
-                        index.set(this, i);
-                    })
-                    .selectAll("*")
-                    .style("pointer-events", function() {
-                        let i = index.get(this);
+                        sendHistory({
+                            purpose: "",
+                            purposeTitle: this.value,
+                            annotationDescription: cluster.purpose?.annotationDescription,
+                            action: "update"
+                        });
 
-                        return clusterRef.current[i].open && clusterRef.current[i].purpose && clusterRef.current[i].annotating === undefined ? "all" : "none";
-                    });
+                        updateTooltips(clusterRef.current);
+                    }
+                });
 
-                    update
-                    .select("foreignObject.input-wrapper")
-                    .select("input")
-                    .on("keyup", function(e) {
-                        if (e.key === "Enter" && this.value !== "") {
-                            let i = index.get(this);
-                            clusterRef.current[i].annotating = true;
-                            clusterRef.current[i].searching = {
-                                annotationDescription: clusterRef.current[i].purpose?.annotationDescription,
-                                purposeTitle: this.value,
-                                purpose: ""
-                            };
-                            clusterRef.current[i].annotationsFound = [];
-                            const cluster = clusterRef.current[i];
+                // let spinner = d3.select(".comment-wrapper")
+                // .node();
+
+                let spinnerBBox = {width: 80, height: 66.60443115234375};
+                
+                for (let i = 0; i < 2; i++) {
+                    for (let j = 0; j < 2; j++) {
+                        update
+                        .select(`rect[id="${i * 2 + j}"]`)
+                        .style("cursor", (d, k) => clusterRef.current[k].open ? "pointer" : "default")
+                        .style("pointer-events", "none")
+                        .each(function(d, k) {
+                            index.set(this, k);
+                        })
+                        .on("pointerover", function() {
+                            let k = index.get(this);
+                            let cluster = clusterRef.current[k];
+
+                            if (cluster?.purpose) {
+                                let content = <div className={googleSans.className} style={{ maxWidth: "300px", userSelect: "none", fontSize: "15px", letterSpacing: "0.2px", lineHeight: "22px", fontWeight: "400", color: "#E8EDED" }}>
+                                    {cluster.purpose.purpose[i * 2 + j]?.purpose}
+                                </div>;
+                                
+                                clearTimeout(openTimeout.current);
+                                
+                                if (toolTipRef.current?.isOpen) {
+                                    clearTimeout(closeTimeout.current);
+
+                                    toolTipRef.current?.open({
+                                        anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
+                                        content: content
+                                    });
+                                } else {
+                                    openTimeout.current = setTimeout(() => {
+                                        toolTipRef.current?.open({
+                                            anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
+                                            content: content
+                                        });
+                                    }, 1000);
+                                }
+                            }
+                        })
+                        .on("pointerout", function() {
+                            clearTimeout(closeTimeout.current);
+
+                            if (toolTipRef.current?.isOpen) {
+                                closeTimeout.current = setTimeout(() => {
+                                    toolTipRef.current?.close();
+                                }, 500);
+                            } else {
+                                clearTimeout(openTimeout.current);
+                            }
+                        })
+                        .on("click", function() {
+                            let k = index.get(this);
+                            clusterRef.current[k].annotating = true;
+                            clusterRef.current[k].searching = clusterRef.current[k].purpose?.purpose[i * 2 + j];
+                            clusterRef.current[k].annotationsFound = [];
+                            const cluster = clusterRef.current[k];
                             const startTimetamp = Date.now();
 
                             let onDetect = (result) => {
                                 cluster.annotationsFound = result;
                                 updateTextTooltips(clusterRef.current);
-                                
+
+                                // console.log(result);
                                 // console.log(cluster.annotationsFound);
 
                                 if (onClusterChange instanceof Function) {
@@ -1592,463 +1861,389 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                             };
 
                             if (setUpAnnotations instanceof Function) {
-                                setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
+                                setUpAnnotations(clusterRef.current[k].purpose.annotationDescription, clusterRef.current[k].searching.purposeTitle, clusterRef.current[k].searching.purpose, onDetect, onEnd, penAnnnotationRef);
                             }
 
                             sendHistory({
-                                purpose: "",
-                                purposeTitle: this.value,
-                                annotationDescription: cluster.purpose?.annotationDescription,
+                                purpose: cluster.searching.purpose,
+                                purposeTitle: cluster.searching.purposeTitle,
+                                annotationDescription: cluster.purpose.annotationDescription,
                                 action: "update"
                             });
 
                             updateTooltips(clusterRef.current);
+                            toolTipRef.current?.close();
+                        })
+                        .transition()
+                        .duration(1000)
+                        .attr("x", (d, k) => {
+                            if (!clusterRef.current[k].open) {
+                                if (handinessRef?.current === "right") {
+                                    return clusterRef.current[k].x + (window.innerWidth - width - 48 - toolTipSize / 2);
+                                } else {
+                                    return clusterRef.current[k].x;
+                                }
+                            }
+                            let w = window.innerWidth - width - padding - 36;
+                            return clusterRef.current[k].x + padding + (w / 2) * j;
+                        })
+                        .attr("y", (d, k) => {
+                            if (!clusterRef.current[k].open) {
+                                return clusterRef.current[k].y;
+                            }
+                            let height = 200 - padding - topPadding;
+                            return clusterRef.current[k].y + padding + topPadding + (height / 2) * i;
+                        })
+                        .attr("width", (d, k) => {
+                            if (!clusterRef.current[k].open) {
+                                return toolTipSize;
+                            }
+                            let w = window.innerWidth - width - padding - 36;
+                            return w / 2 - padding;
+                        })
+                        .attr("height", (d, k) => {
+                            if (!clusterRef.current[k].open) {
+                                return toolTipSize;
+                            }
+                            let height = 200 - padding - topPadding;
+                            return height / 2 - padding;
+                        })
+                        .attr("opacity", (d, k) => clusterRef.current[k].open && clusterRef.current[k].purpose && clusterRef.current[k].annotating === undefined ? 1 : 0)
+                        .each(function(d, k) {
+                            index.set(this, k);
+                        })
+                        .on("end", function() {
+                            let k = index.get(this);
+
+                            if (clusterRef.current[k])
+                                d3.select(this)
+                                .style("pointer-events", clusterRef.current[k].open && clusterRef.current[k].purpose && clusterRef.current[k].annotating === undefined ? "all" : "none");
+                        });
+
+                        update
+                        .select(`text[id="${i * 2 + j}"]`)
+                        .text((d, k) =>{
+                            if (!clusterRef.current[k].purpose) {
+                                return "";
+                            }
+                            return clusterRef.current[k].purpose.purpose[i * 2 + j]?.purposeTitle;
+                        })
+                        .attr("x", (d, k) => {
+                            let w = window.innerWidth - width - padding - 36;
+                            return clusterRef.current[k].x + padding + (w / 2) * j + (w / 2 - padding) / 2;
+                        })
+                        .attr("y", (d, k) => {
+                            let height = 200 - padding - topPadding;
+                            return clusterRef.current[k].y + padding + topPadding + (height / 2) * i + (height / 2 - padding) / 2;
+                        })
+                        .call(wrap)
+                        .transition()
+                        .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
+                        .delay((d, k) => clusterRef.current[k].open && clusterRef.current[k].annotating === undefined ? 500 : 0)
+                        .attr("opacity", (d, k) => clusterRef.current[k].open && clusterRef.current[k].purpose && clusterRef.current[k].annotating === undefined ? 1 : 0);
+                    }
+                }
+
+                update
+                .select("g.spinner")
+                .select("svg")
+                .style("display", "unset")
+                .transition()
+                .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
+                .delay((d, k) => clusterRef.current[k].open && clusterRef.current[k].annotating === undefined && !clusterRef.current[k].purpose ? 500 : 0)
+                .attr("x", (d, i) => {
+                    return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - spinnerBBox.width / 2;
+                })
+                .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 90) - spinnerBBox.height / 2 - padding)
+                .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
+                .on("end", function(d, i) {
+                    if (!(clusterRef.current[i]?.open && !clusterRef.current[i]?.purpose)) {
+                        d3.select(this).style("display", "none");
+                    }
+                });
+
+                update
+                .select("circle")
+                .style("pointer-events", (d, i) => clusterRef.current[i].open ? "all" : "none")
+                .each(function(d, i) {
+                    index.set(this, i);
+                })
+                .on("click", function(e) {
+                    let i = index.get(this);
+                    clusterRef.current[i].open = false;
+                    updateTooltips(clusterRef.current);
+
+                    d3.selectAll("path.lineDraw")
+                    .transition()
+                    .duration(1000)
+                    .attr("opacity", 1);
+
+                    if (onNewActiveCluster instanceof Function) {
+                        onNewActiveCluster(null);
+                    }
+                    clearTimeout(openTimeout.current);
+                    toolTipRef.current?.close();
+                })
+                .transition()
+                .duration((d, i) => 1000)
+                .attr("cx", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + (window.innerWidth - width - 48) : clusterRef.current[i].x + (window.innerWidth - width - 40 - padding);
+                    } else {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + padding : window.innerWidth - 40;
+                    }
+                })
+                .attr("cy", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].y + toolTipSize / 2 + 4 : clusterRef.current[i].y + toolTipSize / 2)
+                .attr("opacity", (d, i) => clusterRef.current[i].open ? 1 : 0);
+
+                update
+                .select("text")
+                .each(function(d, i) {
+                    index.set(this, i);
+                })
+                .transition()
+                .duration((d, i) => 1000)
+                .attr("x", (d, i) => {
+                    if (handinessRef?.current === "right") {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + (window.innerWidth - width - 48) : clusterRef.current[i].x + (window.innerWidth - width - 40 - padding);
+                    } else {
+                        return !clusterRef.current[i].open ? clusterRef.current[i].x + padding : window.innerWidth - 40;
+                    }
+                })
+                .attr("y", (d, i) => clusterRef.current[i].open ? clusterRef.current[i].y + toolTipSize / 2 + 4 : clusterRef.current[i].y + toolTipSize / 2)
+                .attr("opacity", (d, i) => clusterRef.current[i].open ? 1 : 0);
+
+                update
+                .select("rect")
+                .each(function(d, i) {
+                    index.set(this, i);
+                })
+                .style("cursor", (d, i) => clusterRef.current[i].open ? "default" : "pointer")
+                .call(update => 
+                    update
+                    .transition()
+                    .duration(1000)
+                    .attr("x", (d, i) => {
+                        if (handinessRef?.current === "right") {
+                            return clusterRef.current[i].open ? clusterRef.current[i].x : clusterRef.current[i].x + (window.innerWidth - width - 36 - toolTipSize / 2 - 12);
+                        } else {
+                            return clusterRef.current[i].x;
                         }
-                    });
+                    })
+                    .attr("y", (d, i) => clusterRef.current[i].y)
+                    .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - 36 : toolTipSize)
+                    .attr("height", (d, i) => clusterRef.current[i].open ? 200 : toolTipSize)
+                    .attr("fill-opacity", 0.5)
+                    .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 0)
+                    .attr("opacity", 1)
+                    // .style("pointer-events", "none")
+                    .on("end", function(d, i) {
+                        if (!clusterRef.current[i] || !clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1])
+                            return;
 
-                    // let spinner = d3.select(".comment-wrapper")
-                    // .node();
+                        if (clusterRef.current[i].open) {
+                            d3.select(this)
+                            .on("click", null)
+                            .on("pointerover", null)
+                            .on("pointerout", null);
+                        } else {
+                            clearTimeout(openTimeout.current);
+                            toolTipRef.current?.close();
 
-                    let spinnerBBox = {width: 80, height: 66.60443115234375};
-                    
-                    for (let i = 0; i < 2; i++) {
-                        for (let j = 0; j < 2; j++) {
-                            update
-                            .select(`rect[id="${i * 2 + j}"]`)
-                            .style("cursor", (d, k) => clusterRef.current[k].open ? "pointer" : "default")
-                            .style("pointer-events", "none")
-                            .each(function(d, k) {
-                                index.set(this, k);
-                            })
-                            .on("pointerover", function() {
-                                let k = index.get(this);
-                                let cluster = clusterRef.current[k];
+                            d3.select(this)
+                            .on("pointerover", function(d) {
+                                let cluster = clusterRef.current[index.get(this)];
 
-                                if (cluster?.purpose) {
-                                    let content = <div className={googleSans.className} style={{ maxWidth: "300px", userSelect: "none", fontSize: "15px", letterSpacing: "0.2px", lineHeight: "22px", fontWeight: "400", color: "#E8EDED" }}>
-                                        {cluster.purpose.purpose[i * 2 + j]?.purpose}
-                                    </div>;
-                                    
-                                    clearTimeout(openTimeout.current);
-                                    
-                                    if (toolTipRef.current?.isOpen) {
-                                        clearTimeout(closeTimeout.current);
-
-                                        toolTipRef.current?.open({
-                                            anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
-                                            content: content
-                                        });
-                                    } else {
-                                        openTimeout.current = setTimeout(() => {
-                                            toolTipRef.current?.open({
-                                                anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
-                                                content: content
-                                            });
-                                        }, 1000);
+                                d3.selectAll("path.lineDraw")
+                                .transition()
+                                .duration(1000)
+                                .attr("opacity", 0.1);
+                                
+                                if (cluster.strokes) {
+                                    for (let stroke of cluster.strokes) {
+                                        let path = d3.select(`path[id="${stroke.id}"]`);
+    
+                                        if (!path.empty()) {
+                                            path
+                                            .interrupt()
+                                            .transition()
+                                            .duration(1000)
+                                            .attr("opacity", 1);
+                                            // .attr("filter", `url(#strokeHighlight${stroke.id})`);
+    
+                                            let colour = d3.select(`path[id="${stroke.id}"]`).style("stroke");
+                                            let regex = /rgb\((\d+), (\d+), (\d+)\)/;
+                                            let match = regex.exec(colour);
+                                            let r = parseInt(match[1]);
+                                            let g = parseInt(match[2]);
+                                            let b = parseInt(match[3]);
+                                            
+                                            d3.select("filter#strokeHighlight" + stroke.id)
+                                            .select("feColorMatrix")
+                                            .transition()
+                                            .duration(1000)
+                                            .attr("values", `0 0 0 0 ${r / 255}
+                                                            0 0 0 0 ${g / 255}
+                                                            0 0 0 0 ${b / 255}
+                                                            0 0 0 5 0`);
+                                        }
                                     }
                                 }
                             })
-                            .on("pointerout", function() {
-                                clearTimeout(closeTimeout.current);
+                            .on("pointerout", function(d) {
+                                for (let cluster of clusterRef.current) {
+                                    if (cluster.open) {
+                                        d3.selectAll("path.lineDraw")
+                                        .transition()
+                                        .duration(1000)
+                                        .attr("opacity", 0.1);
 
-                                if (toolTipRef.current?.isOpen) {
-                                    closeTimeout.current = setTimeout(() => {
-                                        toolTipRef.current?.close();
-                                    }, 500);
-                                } else {
-                                    clearTimeout(openTimeout.current);
+                                        for (let stroke of cluster.strokes) {
+                                            d3.select(`path[id="${stroke.id}"]`)
+                                            .interrupt()
+                                            .transition()
+                                            .duration(1000)
+                                            .attr("opacity", 1);
+                                        }
+            
+                                        return;
+                                    }
+                                }
+                                let cluster = clusterRef.current[index.get(this)];
+
+                                d3.selectAll("path.lineDraw")
+                                .transition()
+                                .duration(1000)
+                                .attr("opacity", 1);
+                                
+                                if (cluster.strokes) {
+                                    for (let stroke of cluster.strokes) {
+                                        let path = d3.select(`path[id="${stroke.id}"]`);
+
+                                        if (!path.empty()) {
+                                            // path
+                                            // .attr("filter", `url(#strokeHighlight${stroke.id})`);
+
+                                            let colour = d3.select(`path[id="${stroke.id}"]`).style("stroke");
+                                            let regex = /rgb\((\d+), (\d+), (\d+)\)/;
+                                            let match = regex.exec(colour);
+                                            let r = parseInt(match[1]);
+                                            let g = parseInt(match[2]);
+                                            let b = parseInt(match[3]);
+                                            
+                                            d3.select("filter#strokeHighlight" + stroke.id)
+                                            .select("feColorMatrix")
+                                            .transition()
+                                            .duration(1000)
+                                            .attr("values", `0 0 0 0 ${r / 255}
+                                                            0 0 0 0 ${g / 255}
+                                                            0 0 0 0 ${b / 255}
+                                                            0 0 0 0 0`);
+                                        }
+                                    }
                                 }
                             })
                             .on("click", function() {
-                                let k = index.get(this);
-                                clusterRef.current[k].annotating = true;
-                                clusterRef.current[k].searching = clusterRef.current[k].purpose?.purpose[i * 2 + j];
-                                clusterRef.current[k].annotationsFound = [];
-                                const cluster = clusterRef.current[k];
-                                const startTimetamp = Date.now();
-
-                                let onDetect = (result) => {
-                                    cluster.annotationsFound = result;
-                                    updateTextTooltips(clusterRef.current);
-
-                                    // console.log(result);
-                                    // console.log(cluster.annotationsFound);
-
-                                    if (onClusterChange instanceof Function) {
-                                        onClusterChange(cluster);
-                                    }
-                                };
-
-                                let onEnd = (rawText) => {
-                                    cluster.annotating = false;
-                                    updateTooltips(clusterRef.current);
-
-                                    if (onEndAnnotate instanceof Function) {
-                                        onEndAnnotate(startTimetamp, cluster, rawText);
-                                    }
-                                };
-
-                                if (setUpAnnotations instanceof Function) {
-                                    setUpAnnotations(clusterRef.current[k].purpose.annotationDescription, clusterRef.current[k].searching.purposeTitle, clusterRef.current[k].searching.purpose, onDetect, onEnd, penAnnnotationRef);
+                                let i = index.get(this);
+            
+                                if (clusterRef.current[i].open) {
+                                    return;
                                 }
-
-                                sendHistory({
-                                    purpose: cluster.searching.purpose,
-                                    purposeTitle: cluster.searching.purposeTitle,
-                                    annotationDescription: cluster.purpose.annotationDescription,
-                                    action: "update"
-                                });
-
-                                updateTooltips(clusterRef.current);
-                                toolTipRef.current?.close();
-                            })
-                            .transition()
-                            .duration(1000)
-                            .attr("x", (d, k) => {
-                                if (!clusterRef.current[k].open) {
-                                    return clusterRef.current[k].x;
-                                }
-                                let w = window.innerWidth - width - padding - 36;
-                                return clusterRef.current[k].x + padding + (w / 2) * j;
-                            })
-                            .attr("y", (d, k) => {
-                                if (!clusterRef.current[k].open) {
-                                    return clusterRef.current[k].y;
-                                }
-                                let height = 200 - padding - topPadding;
-                                return clusterRef.current[k].y + padding + topPadding + (height / 2) * i;
-                            })
-                            .attr("width", (d, k) => {
-                                if (!clusterRef.current[k].open) {
-                                    return toolTipSize;
-                                }
-                                let w = window.innerWidth - width - padding - 36;
-                                return w / 2 - padding;
-                            })
-                            .attr("height", (d, k) => {
-                                if (!clusterRef.current[k].open) {
-                                    return toolTipSize;
-                                }
-                                let height = 200 - padding - topPadding;
-                                return height / 2 - padding;
-                            })
-                            .attr("opacity", (d, k) => clusterRef.current[k].open && clusterRef.current[k].purpose && clusterRef.current[k].annotating === undefined ? 1 : 0)
-                            .each(function(d, k) {
-                                index.set(this, k);
-                            })
-                            .on("end", function() {
-                                let k = index.get(this);
-
-                                if (clusterRef.current[k])
-                                    d3.select(this)
-                                    .style("pointer-events", clusterRef.current[k].open && clusterRef.current[k].purpose && clusterRef.current[k].annotating === undefined ? "all" : "none");
-                            });
-
-                            update
-                            .select(`text[id="${i * 2 + j}"]`)
-                            .text((d, k) =>{
-                                if (!clusterRef.current[k].purpose) {
-                                    return "";
-                                }
-                                return clusterRef.current[k].purpose.purpose[i * 2 + j]?.purposeTitle;
-                            })
-                            .attr("x", (d, k) => {
-                                let w = window.innerWidth - width - padding - 36;
-                                return clusterRef.current[k].x + padding + (w / 2) * j + (w / 2 - padding) / 2;
-                            })
-                            .attr("y", (d, k) => {
-                                let height = 200 - padding - topPadding;
-                                return clusterRef.current[k].y + padding + topPadding + (height / 2) * i + (height / 2 - padding) / 2;
-                            })
-                            .call(wrap)
-                            .transition()
-                            .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
-                            .delay((d, k) => clusterRef.current[k].open && clusterRef.current[k].annotating === undefined ? 500 : 0)
-                            .attr("opacity", (d, k) => clusterRef.current[k].open && clusterRef.current[k].purpose && clusterRef.current[k].annotating === undefined ? 1 : 0);
-                        }
-                    }
-
-                    update
-                    .select("g.spinner")
-                    .select("svg")
-                    .style("display", "unset")
-                    .transition()
-                    .duration((d, k) => clusterRef.current[k].open ? 1000 : 500)
-                    .delay((d, k) => clusterRef.current[k].open && clusterRef.current[k].annotating === undefined && !clusterRef.current[k].purpose ? 500 : 0)
-                    .attr("x", (d, i) => {
-                        return clusterRef.current[i].x + (window.innerWidth - width - 36) / 2 - spinnerBBox.width / 2;
-                    })
-                    .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 90) - spinnerBBox.height / 2 - padding)
-                    .style("opacity", (d, i) => clusterRef.current[i].open && !clusterRef.current[i].purpose ? 1 : 0)
-                    .on("end", function(d, i) {
-                        if (!(clusterRef.current[i]?.open && !clusterRef.current[i]?.purpose)) {
-                            d3.select(this).style("display", "none");
-                        }
-                    });
-
-                    update
-                    .select("circle")
-                    .style("pointer-events", (d, i) => clusterRef.current[i].open ? "all" : "none")
-                    .each(function(d, i) {
-                        index.set(this, i);
-                    })
-                    .on("click", function(e) {
-                        let i = index.get(this);
-                        clusterRef.current[i].open = false;
-                        updateTooltips(clusterRef.current);
-
-                        d3.selectAll("path.lineDraw")
-                        .transition()
-                        .duration(1000)
-                        .attr("opacity", 1);
-
-                        if (onNewActiveCluster instanceof Function) {
-                            onNewActiveCluster(null);
-                        }
-                        clearTimeout(openTimeout.current);
-                        toolTipRef.current?.close();
-                    })
-                    .transition()
-                    .duration((d, i) => 1000)
-                    .attr("cx", (d, i) => !clusterRef.current[i].open ? clusterRef.current[i].x + padding : window.innerWidth - 40)
-                    .attr("cy", (d, i) => clusterRef.current[i].y + 16)
-                    .attr("opacity", (d, i) => clusterRef.current[i].open ? 1 : 0);
-
-                    update
-                    .select("text")
-                    .each(function(d, i) {
-                        index.set(this, i);
-                    })
-                    .transition()
-                    .duration((d, i) => 1000)
-                    .attr("x", (d, i) => !clusterRef.current[i].open ? clusterRef.current[i].x + padding : window.innerWidth - 40)
-                    .attr("y", (d, i) => clusterRef.current[i].y + 16)
-                    .attr("opacity", (d, i) => clusterRef.current[i].open ? 1 : 0);
-
-                    update
-                    .select("rect")
-                    .each(function(d, i) {
-                        index.set(this, i);
-                    })
-                    .style("cursor", (d, i) => clusterRef.current[i].open ? "default" : "pointer")
-                    .call(update => 
-                        update
-                        .transition()
-                        .duration(1000)
-                        .attr("x", (d, i) => clusterRef.current[i].x)
-                        .attr("y", (d, i) => clusterRef.current[i].y)
-                        .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - 36 : toolTipSize)
-                        .attr("height", (d, i) => clusterRef.current[i].open ? 200 : toolTipSize)
-                        .attr("fill-opacity", 0.5)
-                        .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 0)
-                        .attr("opacity", 1)
-                        // .style("pointer-events", "none")
-                        .on("end", function(d, i) {
-                            if (!clusterRef.current[i] || !clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1])
-                                return;
-
-                            if (clusterRef.current[i].open) {
-                                d3.select(this)
-                                .on("click", null)
-                                .on("pointerover", null)
-                                .on("pointerout", null);
-                            } else {
-                                clearTimeout(openTimeout.current);
-                                toolTipRef.current?.close();
-
-                                d3.select(this)
-                                .on("pointerover", function(d) {
-                                    let cluster = clusterRef.current[index.get(this)];
-
-                                    d3.selectAll("path.lineDraw")
-                                    .transition()
-                                    .duration(1000)
-                                    .attr("opacity", 0.1);
-                                    
-                                    if (cluster.strokes) {
-                                        for (let stroke of cluster.strokes) {
-                                            let path = d3.select(`path[id="${stroke.id}"]`);
-        
-                                            if (!path.empty()) {
-                                                path
-                                                .interrupt()
-                                                .transition()
-                                                .duration(1000)
-                                                .attr("opacity", 1);
-                                                // .attr("filter", `url(#strokeHighlight${stroke.id})`);
-        
-                                                let colour = d3.select(`path[id="${stroke.id}"]`).style("stroke");
-                                                let regex = /rgb\((\d+), (\d+), (\d+)\)/;
-                                                let match = regex.exec(colour);
-                                                let r = parseInt(match[1]);
-                                                let g = parseInt(match[2]);
-                                                let b = parseInt(match[3]);
-                                                
-                                                d3.select("filter#strokeHighlight" + stroke.id)
-                                                .select("feColorMatrix")
-                                                .transition()
-                                                .duration(1000)
-                                                .attr("values", `0 0 0 0 ${r / 255}
-                                                                0 0 0 0 ${g / 255}
-                                                                0 0 0 0 ${b / 255}
-                                                                0 0 0 5 0`);
-                                            }
-                                        }
-                                    }
-                                })
-                                .on("pointerout", function(d) {
-                                    for (let cluster of clusterRef.current) {
-                                        if (cluster.open) {
-                                            d3.selectAll("path.lineDraw")
-                                            .transition()
-                                            .duration(1000)
-                                            .attr("opacity", 0.1);
-
-                                            for (let stroke of cluster.strokes) {
-                                                d3.select(`path[id="${stroke.id}"]`)
-                                                .interrupt()
-                                                .transition()
-                                                .duration(1000)
-                                                .attr("opacity", 1);
-                                            }
-                
-                                            return;
-                                        }
-                                    }
-                                    let cluster = clusterRef.current[index.get(this)];
-
+                                clusterRef.current[i].open = !clusterRef.current[i].open;
+            
+                                if (!clusterRef.current[i].open) {
+                                    let cluster = clusterRef.current[i];
+            
                                     d3.selectAll("path.lineDraw")
                                     .transition()
                                     .duration(1000)
                                     .attr("opacity", 1);
-                                    
-                                    if (cluster.strokes) {
-                                        for (let stroke of cluster.strokes) {
-                                            let path = d3.select(`path[id="${stroke.id}"]`);
-
-                                            if (!path.empty()) {
-                                                // path
-                                                // .attr("filter", `url(#strokeHighlight${stroke.id})`);
-
-                                                let colour = d3.select(`path[id="${stroke.id}"]`).style("stroke");
-                                                let regex = /rgb\((\d+), (\d+), (\d+)\)/;
-                                                let match = regex.exec(colour);
-                                                let r = parseInt(match[1]);
-                                                let g = parseInt(match[2]);
-                                                let b = parseInt(match[3]);
-                                                
-                                                d3.select("filter#strokeHighlight" + stroke.id)
-                                                .select("feColorMatrix")
-                                                .transition()
-                                                .duration(1000)
-                                                .attr("values", `0 0 0 0 ${r / 255}
+                            
+                                    for (let stroke of cluster.strokes) {
+                                        let path = d3.select(`path[id="${stroke.id}"]`);
+            
+                                        if (!path.empty()) {
+                                            // path
+                                            // .attr("filter", `url(#strokeHighlight${stroke.id})`);
+            
+                                            let colour = d3.select(`path[id="${stroke.id}"]`).style("stroke");
+                                            let regex = /rgb\((\d+), (\d+), (\d+)\)/;
+                                            let match = regex.exec(colour);
+                                            let r = parseInt(match[1]);
+                                            let g = parseInt(match[2]);
+                                            let b = parseInt(match[3]);
+                                            
+                                            d3.select("filter#strokeHighlight" + stroke.id)
+                                            .select("feColorMatrix")
+                                            .transition()
+                                            .duration(1000)
+                                            .attr("values", `0 0 0 0 ${r / 255}
                                                                 0 0 0 0 ${g / 255}
                                                                 0 0 0 0 ${b / 255}
                                                                 0 0 0 0 0`);
-                                            }
                                         }
                                     }
-                                })
-                                .on("click", function() {
-                                    let i = index.get(this);
-                
-                                    if (clusterRef.current[i].open) {
-                                        return;
-                                    }
-                                    clusterRef.current[i].open = !clusterRef.current[i].open;
-                
-                                    if (!clusterRef.current[i].open) {
-                                        let cluster = clusterRef.current[i];
-                
-                                        d3.selectAll("path.lineDraw")
-                                        .transition()
-                                        .duration(1000)
-                                        .attr("opacity", 1);
-                                
-                                        for (let stroke of cluster.strokes) {
-                                            let path = d3.select(`path[id="${stroke.id}"]`);
-                
-                                            if (!path.empty()) {
-                                                // path
-                                                // .attr("filter", `url(#strokeHighlight${stroke.id})`);
-                
-                                                let colour = d3.select(`path[id="${stroke.id}"]`).style("stroke");
-                                                let regex = /rgb\((\d+), (\d+), (\d+)\)/;
-                                                let match = regex.exec(colour);
-                                                let r = parseInt(match[1]);
-                                                let g = parseInt(match[2]);
-                                                let b = parseInt(match[3]);
-                                                
-                                                d3.select("filter#strokeHighlight" + stroke.id)
-                                                .select("feColorMatrix")
-                                                .transition()
-                                                .duration(1000)
-                                                .attr("values", `0 0 0 0 ${r / 255}
-                                                                    0 0 0 0 ${g / 255}
-                                                                    0 0 0 0 ${b / 255}
-                                                                    0 0 0 0 0`);
-                                            }
-                                        }
-                                    } else {
-                                        for (let idx = 0; idx < clusterRef.current.length; idx++) {
-                                            if (idx !== i) {
-                                                clusterRef.current[idx].open = false;
-                                            }
+                                } else {
+                                    for (let idx = 0; idx < clusterRef.current.length; idx++) {
+                                        if (idx !== i) {
+                                            clusterRef.current[idx].open = false;
                                         }
                                     }
-                                    updateTooltips(clusterRef.current);
-                
-                                    let rect = d3.select(this)
-                                    .on("pointerover", null)
-                                    .on("pointerout", null)
-                                    .node();
-                
-                                    d3.select(rect.closest("g")).raise();
+                                }
+                                updateTooltips(clusterRef.current);
+            
+                                let rect = d3.select(this)
+                                .on("pointerover", null)
+                                .on("pointerout", null)
+                                .node();
+            
+                                d3.select(rect.closest("g")).raise();
 
-                                    console.log(clusterRef.current[i]);
-                
-                                    if (clusterRef.current[i].open && !clusterRef.current[i].purpose && clusterRef.current[i].purpose !== false) {
-                                        clusterRef.current[i].purpose = false;
-                                        const cluster = clusterRef.current[i];
-                                        const startTimetamp = Date.now();
+                                console.log(clusterRef.current[i]);
+            
+                                if (clusterRef.current[i].open && !clusterRef.current[i].purpose && clusterRef.current[i].purpose !== false) {
+                                    clusterRef.current[i].purpose = false;
+                                    const cluster = clusterRef.current[i];
+                                    const startTimetamp = Date.now();
+                                    
+                                    inferPurpose(clusterRef.current[i])
+                                    .then((response) => {
+                                        cluster.purpose = response.result;
+                                        // updateTooltips(clusters);
                                         
-                                        inferPurpose(clusterRef.current[i])
-                                        .then((response) => {
-                                            cluster.purpose = response.result;
-                                            // updateTooltips(clusters);
-                                            
-                                            if (onInference instanceof Function) {
-                                                onInference(startTimetamp, cluster, response.rawText, response.images);
-                                            }
-                                        });
-                                    }
-                                    if (onClick instanceof Function) {
-                                        onClick(clusterRef.current[i]);
-                                    }
-                                });
-                            }
+                                        if (onInference instanceof Function) {
+                                            onInference(startTimetamp, cluster, response.rawText, response.images);
+                                        }
+                                    });
+                                }
+                                if (onClick instanceof Function) {
+                                    onClick(clusterRef.current[i]);
+                                }
+                            });
+                        }
 
-                            d3.select(this)
-                            .style("pointer-events", "all")
-                            .attr("fill", (d) => `url(#markerFillGradient${clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id})`)
-                            .attr("stroke", (d) => `url(#markerBorderGradient${clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id})`)
-                            .attr("rx", toolTipSize / 2)
-                            .transition()
-                            .duration(1000)
-                            .attr("opacity", 1);
-                        })
-                    );
+                        d3.select(this)
+                        .style("pointer-events", "all")
+                        .attr("fill", (d) => `url(#markerFillGradient${clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id})`)
+                        .attr("stroke", (d) => `url(#markerBorderGradient${clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id})`)
+                        .attr("rx", toolTipSize / 2)
+                        .transition()
+                        .duration(1000)
+                        .attr("opacity", 1);
+                    })
+                );
 
-                    update
-                    .classed("found", (d, i) => clusterRef.current[i].annotationsFound)
-                    .classed("open", (d, i) => clusterRef.current[i].open)
-                    .classed("annotating", (d, i) => clusterRef.current[i].annotating)
-                    .classed("done", (d, i) => clusterRef.current[i].annotating === false)
-                    .classed("havePurpose", (d, i) => clusterRef.current[i].purpose)
-                    .transition()
-                    .duration(1000)
-                    .attr("opacity", 1);
-                });
+                update
+                .classed("found", (d, i) => clusterRef.current[i].annotationsFound)
+                .classed("open", (d, i) => clusterRef.current[i].open)
+                .classed("annotating", (d, i) => clusterRef.current[i].annotating)
+                .classed("done", (d, i) => clusterRef.current[i].annotating === false)
+                .classed("havePurpose", (d, i) => clusterRef.current[i].purpose)
+                .classed("inferring", (d, i) => clusterRef.current[i].purpose === false)
+                .transition()
+                .duration(1000)
+                .attr("opacity", 1);
+                // });
             },
 
             exit => exit
@@ -2056,6 +2251,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 exit
                 .on("click", null)
                 .style("cursor", "default")
+                .classed("exit", true)
                 .transition()
                 .duration(1000)
                 .attr("opacity", 0)
@@ -2292,7 +2488,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
         //         .remove()
         //     ),
         // );
-    }, [onClick, inferPurpose, onInference, onNewActiveCluster, toolTipRef, setUpAnnotations, sendHistory, updateTextTooltips, onClusterChange, onEndAnnotate, penAnnnotationRef]);
+    }, [onClick, inferPurpose, onInference, onNewActiveCluster, toolTipRef, setUpAnnotations, sendHistory, updateTextTooltips, onClusterChange, onEndAnnotate, penAnnnotationRef, handinessRef]);
 
     useEffect(() => {
         if (clusters) {
@@ -2300,7 +2496,7 @@ export default function Tooltip({ mode, clusters, index, onClick, onInference, o
                 if (cluster["open"] === undefined)
                     cluster["open"] = false;
             }
-            clusterRef.current = [...clusters].filter(cluster => !cluster.disabled || cluster.annotationsFound);
+            clusterRef.current = [...clusters].filter(cluster => !cluster.disabled || cluster.annotationsFound || cluster.purpose);
 
             // console.log(clusterRef.current);
 

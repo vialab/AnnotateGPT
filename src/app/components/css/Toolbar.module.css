@@ -12,6 +12,15 @@
     pointer-events: none;
 }
 
+.toolbar.right {
+    left: -10px;
+}
+
+.toolbar.left {
+    right: -10px;
+    transform: scaleX(-1);
+}
+
 .toolbar.disabled, .toolbar.disabled * {
     pointer-events: none !important;
 }
@@ -28,6 +37,11 @@
     display: flex;
     align-items: center;
     width: auto;
+}
+
+.toolbar.left .palette-container {
+    transform: scaleX(-1) translateX(-5px);
+    flex-direction: row-reverse;
 }
 
 .svg-container svg *, .palette-container svg * {

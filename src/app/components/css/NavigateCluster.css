@@ -12,6 +12,14 @@
     flex-direction: column;
 }
 
+.navigateContainer.left {
+    right: -72px;
+}
+
+.navigateContainer.right {
+    left: -72px;
+}
+
 .navigateContainer .button-55 path {
     transform: translate(-10px, -20px);
 }

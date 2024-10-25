@@ -139,9 +139,12 @@ Here is a step-by-step list for annotating a document:
                         if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`) || totalRuns >= maxRuns) {
                             console.log("Stream ended");
                             console.log(textDeltaArray);
-    
-                            if (endCallback instanceof Function)
+
+                            if (textDeltaArray.length === 0) {
+                                findAnnotations(purpose, callback, endCallback);
+                            } else if (endCallback instanceof Function) {
                                 endCallback(textDeltaArray);
+                            }
                             return;
                         }
                     }

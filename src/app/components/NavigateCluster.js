@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import * as d3 from "d3";
 import "./css/NavigateCluster.css";
 
-export default function NavigateCluster({ cluster, annotations, currentAnnotation, onPrevCallback, onNextCallback, removed }) {
+export default function NavigateCluster({ handiness, cluster, annotations, currentAnnotation, onPrevCallback, onNextCallback, removed }) {
     let annotationsRef = useRef(annotations);
     let index = useRef(0);
     let isScroll = useRef(false);
@@ -31,6 +31,51 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
         .on("end", () => {
             isScroll.current = false;
         });
+    }
+
+    function checkDisable(animate = true) {
+        let firstIndex = 0;
+        let lastIndex = annotationsRef.current.length - 1;
+
+        for (let i = 0; i < annotationsRef.current.length; i++) {
+            if (annotationsRef.current[i]?.accepted === false) {
+                firstIndex = i;
+            } else {
+                break;
+            }
+        }
+
+        for (let i = lastIndex; i >= 0; i--) {
+            if (annotationsRef.current[i]?.accepted === false) {
+                lastIndex = i;
+            } else {
+                break;
+            }
+        }
+        let topDisabled = index.current === 0 || (annotationsRef.current[firstIndex]?.accepted === false && index.current === firstIndex + 1);
+        let bottomDisabled = index.current === annotationsRef.current.length - 1 || (annotationsRef.current[lastIndex]?.accepted === false && index.current === lastIndex - 1);
+
+        if (animate) {
+            d3.select("#bottomButton")
+            .transition()
+            .duration(1000)
+            .on("end", () => {
+                d3.select("#bottomButton").classed("disabled", bottomDisabled);
+            });
+
+            d3.select("#topButton")
+            .transition()
+            .duration(1000)
+            .on("end", () => {
+                d3.select("#topButton").classed("disabled", topDisabled);
+            });
+        } else {
+            d3.select("#bottomButton")
+            .classed("disabled", bottomDisabled);
+
+            d3.select("#topButton")
+            .classed("disabled", topDisabled);
+        }
     }
 
     let onPrev = () => {
@@ -93,21 +138,9 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
             scrollTo(yCoord - window.innerHeight / 2 + d3.select("#root").node().scrollTop);
         }
         // }
-        d3.select("#bottomButton")
-        .transition()
-        .duration(1000)
-        .on("end", () => {
-            d3.select("#bottomButton").classed("disabled", index.current === annotationsRef.current.length - 1);
-        });
-
-        d3.select("#topButton")
-        .transition()
-        .duration(1000)
-        .on("end", () => {
-            d3.select("#topButton").classed("disabled", index.current === 0);
-        });
 
         // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+        checkDisable();
 
         if (onPrevCallback instanceof Function) {
             onPrevCallback(annotationsRef.current[index.current]);
@@ -172,32 +205,20 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
         }
         // }
 
-        let topDisabled = removedRef.current ? index.current - 1 === 0 : index.current === 0;
-        let bottomDisabled = index.current === annotationsRef.current.length - 1;
+        // let topDisabled = removedRef.current ? index.current - 1 === 0 : index.current === 0;
         
         // console.log(annotationsRef.current);
         // console.log(currentAnnotation);
         // console.log(index.current, removedRef.current);
         // console.log(index.current === annotationsRef.current.length - 1);
 
-        d3.select("#bottomButton")
-        .transition()
-        .duration(1000)
-        .on("end", () => {
-            d3.select("#bottomButton").classed("disabled", bottomDisabled);
-        });
-
-        d3.select("#topButton")
-        .transition()
-        .duration(1000)
-        .on("end", () => {
-            d3.select("#topButton").classed("disabled", topDisabled);
-        });
-
         // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
 
+        checkDisable();
+
         if (onNextCallback instanceof Function) {
-            onNextCallback(annotationsRef.current[removedRef.current ? index.current - 1 : index.current]);
+            // onNextCallback(annotationsRef.current[removedRef.current ? index.current - 1 : index.current]);
+            onNextCallback(annotationsRef.current[index.current]);
         }
         removedRef.current = false;
     };
@@ -331,12 +352,9 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
                 index.current = annotationsRef.current.indexOf(toolTipSpans);
             }
         }
+        checkDisable(false);
 
-        d3.select("#bottomButton")
-        .classed("disabled", index.current === annotationsRef.current.length - 1);
-
-        d3.select("#topButton")
-        .classed("disabled", index.current === 0);
+        // console.log(index.current, annotationsRef.current.length, firstIndex, lastIndex, topDisabled, bottomDisabled);
 
         // console.log(annotationsRef.current);
         // console.log(currentAnnotation);
@@ -345,7 +363,7 @@ export default function NavigateCluster({ cluster, annotations, currentAnnotatio
     }, [annotations, cluster, currentAnnotation]);
 
     return (
-        <div className="navigateContainer">
+        <div className={"navigateContainer " + (handiness === "right" ? "right" : "left")}>
             <div className="navigationContainer disabled" id="topButton" style={{ opacity: annotations?.length === 0 ? 0 : 1, pointerEvents: annotations?.length === 0 ? "none" : "all" }}>
                 <svg className="button-55" style={{ pointerEvents: annotations?.length === 0 ? "none" : "all" }} onClick={onPrev} height="40px" width="40px" version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="10 10 600 600">
                     <g id="SVGRepo_iconCarrier"> 

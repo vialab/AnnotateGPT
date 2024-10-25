@@ -102,7 +102,7 @@ export default async function handler(req, res) {
 
                 if (retry > 0) {
                     console.error("Retrying updateDocument...", retry);
-                    console.error(error);
+                    console.error(error.toString());
                     return uploadFile(documentID, retry - 1);
                 } else {
                     throw error;

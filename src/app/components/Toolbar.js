@@ -8,7 +8,7 @@ import Palette from "./Palette";
 import toolbarStyles from "./css/Toolbar.module.css";
 import paletteStyles from "./css/Palette.module.css";
 
-export default function Toolbar({ tool, onToolChange, defaultColour, onColourChange }) {
+export default function Toolbar({ tool, onToolChange, defaultColour, onColourChange, handiness }) {
     let [ colour, setColour ] = useState(defaultColour);
 
     useEffect(() => {
@@ -64,7 +64,7 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
     }
 
     return (
-        <div className={toolbarStyles.toolbar}>
+        <div className={toolbarStyles.toolbar + " toolbar-container " + (handiness === "left" ? toolbarStyles.left : toolbarStyles.right)}>
             <div className={toolbarStyles["svg-container"]}>
                 {/* <Image src={PenIcon} id="pen" className={tool === "pen" ? "active" : null} /> */}
                 <PenIcon id={toolbarStyles.pen} className={tool === "pen" ? toolbarStyles.active : null} />

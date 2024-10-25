@@ -58,7 +58,7 @@ export default function Player({ src, track }) {
                     label: "English",
                     default: true
                 }],
-                inactivityTimeout: 2000,
+                inactivityTimeout: 3000,
             });
 
             playerRef.current.addClass("vjs-theme-fantasy");
@@ -70,13 +70,13 @@ export default function Player({ src, track }) {
             player.addRemoteTextTrack({ src: track, kind: "subtitles", srclang: "en", label: "English", default: true }, false);
         }
     
-        d3.select(".video-js.vjs-theme-fantasy")
-        .on("pointerenter", () => {
-            d3.select(".video-js.vjs-theme-fantasy").classed("vjs-user-inactive", false);
-        })
-        .on("pointerleave", () => {
-            d3.select(".video-js.vjs-theme-fantasy").classed("vjs-user-inactive", true);
-        });
+        // d3.select(".video-js.vjs-theme-fantasy")
+        // .on("pointerenter", () => {
+        //     d3.select(".video-js.vjs-theme-fantasy").classed("vjs-user-inactive", false);
+        // })
+        // .on("pointerleave", () => {
+        //     d3.select(".video-js.vjs-theme-fantasy").classed("vjs-user-inactive", true);
+        // });
 
         playerRef.current?.getChild("ControlBar").addChild("Gradient", {}, 0);
 
@@ -87,9 +87,9 @@ export default function Player({ src, track }) {
                 player.dispose();
                 playerRef.current = null;
             }
-            d3.select(".video-js.vjs-theme-fantasy")
-            .on("pointerenter", null)
-            .on("pointerleave", null);
+            // d3.select(".video-js.vjs-theme-fantasy")
+            // .on("pointerenter", null)
+            // .on("pointerleave", null);
         };
     }, [src, track, videoRef]);
 

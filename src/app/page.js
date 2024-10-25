@@ -7,7 +7,7 @@ import { parse } from 'csv-parse';
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "@firebase/auth";
+import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore, addDoc, collection } from "firebase/firestore";
 
 import { Cluster } from "./components/PenCluster.js";
@@ -62,6 +62,7 @@ export default function Home() {
     const [mode, setMode] = useState("llm");
     const [disableNext, setDisableNext] = useState(true);
     const [toastMessage, setToastMessage] = useState("");
+    const [handiness, setHandiness] = useState("right");
 
     const studyModalRef = useRef(null);
     const success = useRef(false);
@@ -307,6 +308,8 @@ export default function Home() {
     };
 
     let onNextTask = (taskNum, nextMode) => {
+        moveHistory();
+        
         if (taskNum >= 0 && taskNum < documents.length) {
             setDocument(documents[taskNum]);
             setMode(nextMode);
@@ -334,7 +337,6 @@ export default function Home() {
                 setDisableNext(true);
             }
         }
-        moveHistory();
     };
 
     let documentChange = (taskNum) => {
@@ -358,6 +360,10 @@ export default function Home() {
             setDisableNext(true);
         }
         modeRef.current = mode;
+    };
+
+    let handinessChange = (handiness) => {
+        setHandiness(handiness);
     };
 
     let sendData = (body) => {
@@ -874,6 +880,7 @@ export default function Home() {
                         onReplyCallback={onReplyCallback}
                         mode={mode}
                         annotateRef={annotationeRef}
+                        handiness={handiness}
                     />
                 </> :
                 <>
@@ -894,10 +901,23 @@ export default function Home() {
                         screen={screen}
                         mode={mode}
                         annotateRef={annotationeRef}
+                        handiness={handiness}
                     />
                 </>
             }
-            <StudyModal toastMessage={toastMessage} disableNext={disableNext} checkTask={checkTask} onNextTask={onNextTask} onFinish={onFinish} modeChange={modeChange} documentChange={documentChange} ref={studyModalRef} studyState={state} fileHandler={fileHandler} />
+            <StudyModal
+                toastMessage={toastMessage}
+                disableNext={disableNext}
+                checkTask={checkTask}
+                onNextTask={onNextTask}
+                onFinish={onFinish}
+                modeChange={modeChange}
+                documentChange={documentChange}
+                handinessChange={handinessChange}
+                ref={studyModalRef}
+                studyState={state}
+                fileHandler={fileHandler}
+            />
             
             <ToastContainer
                 containerId="studyMessage"
