@@ -330,7 +330,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
                 }
             }
-            console.log(newStrokes);
+            // console.log(newStrokes);
 
             for (let [page, svgContent] of newStrokes) {
                 let penAnnnotationRef = penAnnotationRef.current[page - 1];
@@ -438,6 +438,39 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         // .select(".textLayer")
         // .selectAll("span[role='presentation']")
         // .nodes();
+
+        if (d3.select(".screenshot-container1").empty()) {
+            let container = document.createElement("div");
+
+            d3.select(container)
+            .attr("class", "screenshot-container1")
+            .style("position", "absolute")
+            .style("top", "0")
+            .style("left", "0")
+            .style("width", "var(--annotation-width)")
+            .style("display", "flex")
+            .style("justify-content", "center")
+            .style("z-index", "-1000");
+
+            document.body.appendChild(container);
+        }
+
+        if (d3.select(".screenshot-container2").empty()) {
+            let container = document.createElement("div");
+
+            d3.select(container)
+            .attr("class", "screenshot-container2")
+            .style("position", "absolute")
+            .style("top", "0")
+            .style("left", "0")
+            .style("width", "var(--annotation-width)")
+            .style("height", "var(--annotation-height)")
+            .style("display", "flex")
+            .style("justify-content", "center")
+            .style("z-index", "-1000");
+
+            document.body.appendChild(container);
+        }
 
         let text = d3.select(".react-pdf__Page.page-" + index)
         .selectAll("span[role='presentation']")

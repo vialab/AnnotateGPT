@@ -517,7 +517,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             }
             return strokeList;
         }
-        clusterRef.current.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp);
+        // clusterRef.current.sort((a, b) => a.lastestTimestamp - b.lastestTimestamp);
         
         for (let cluster of clusterRef.current) {
             if (!cluster.strokes[cluster.strokes.length - 1])
@@ -530,10 +530,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             cluster["y"] = Math.min(y, ref.current.getBoundingClientRect().height - 200);
             cluster["x"] = handinessRef?.current === "right" ? left - 12 - (window.innerWidth - width - 36) :  width + 12;
         }
+        clusterRef.current.sort((a, b) => a.y - b.y);
         
         for (let i = 0; i < clusterRef.current.length; i++) {
-            for (let j = i + 1; j < clusterRef.current.length; j++) {
-                if (clusterRef.current[i].y + toolTipSize > clusterRef.current[j].y && clusterRef.current[i].y < clusterRef.current[j].y + toolTipSize) {
+            for (let j = 0; j < clusterRef.current.length; j++) {
+                if (clusterRef.current[i].y + toolTipSize > clusterRef.current[j].y && clusterRef.current[i].y < clusterRef.current[j].y + toolTipSize && i !== j) {
                     clusterRef.current[j].y = clusterRef.current[i].y + toolTipSize + 2;
                 }
             }
@@ -829,6 +830,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         })
         .join(
             enter => {
+                let padding = 12;
+                let topPadding = 40;
+
                 let tooltip = enter
                 .append("g")
                 .attr("class", "toolTip")
@@ -1098,9 +1102,6 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
 
                 // let spinnerBBox = spinner.getBBox();
                 let spinnerBBox = {width: 80, height: 66.60443115234375};
-
-                let padding = 12;
-                let topPadding = 40;
                 
                 tooltip
                 .append("g")

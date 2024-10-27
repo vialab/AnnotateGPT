@@ -118,7 +118,7 @@ function checkEnclosed(coords) {
             lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
             gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
             // console.log(lambda, gamma);
-            return -2 <= lambda && lambda <= 2 && -2 <= gamma && gamma <= 2;
+            return -1 <= lambda && lambda <= 2 && -1 <= gamma && gamma <= 2;
         }
     }
 
@@ -434,39 +434,6 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             {},
             { eraserMode: "object", eraserSize: "25" }
         );
-
-        if (d3.select(".screenshot-container1").empty()) {
-            let container = document.createElement("div");
-
-            d3.select(container)
-            .attr("class", "screenshot-container1")
-            .style("position", "absolute")
-            .style("top", "0")
-            .style("left", "0")
-            .style("width", "var(--annotation-width)")
-            .style("display", "flex")
-            .style("justify-content", "center")
-            .style("z-index", "-1000");
-
-            document.body.appendChild(container);
-        }
-
-        if (d3.select(".screenshot-container2").empty()) {
-            let container = document.createElement("div");
-
-            d3.select(container)
-            .attr("class", "screenshot-container2")
-            .style("position", "absolute")
-            .style("top", "0")
-            .style("left", "0")
-            .style("width", "var(--annotation-width)")
-            .style("height", "var(--annotation-height)")
-            .style("display", "flex")
-            .style("justify-content", "center")
-            .style("z-index", "-1000");
-
-            document.body.appendChild(container);
-        }
     }, []);
     
     useEffect(() => {
