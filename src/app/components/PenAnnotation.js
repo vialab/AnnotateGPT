@@ -99,7 +99,7 @@ function findClosestLine(lines, point) {
     for (let line of lines) {
         let dist = distance(line.x1, line.y1, line.x2, line.y2, point.x, point.y);
 
-        if (dist < minDistance && dist < 30) {
+        if (dist < minDistance && dist < 10) {
             minDistance = dist;
             closestLine = line;
         }

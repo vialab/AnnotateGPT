@@ -375,10 +375,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     let img = new Image();
                     img.src = dataUrl;
 
+                    let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
                     let startX = bbox.x1 * window.innerWidth - 10;
-                    let startY = (bbox.y1 + pageTop) * window.innerHeight - 10;
+                    let startY = (bbox.y1 + pageTop) * height - 10;
                     let cropWidth = (bbox.x2 - bbox.x1) * window.innerWidth + 20;
-                    let cropHeight = (bbox.y2 - bbox.y1 - pageTop) * window.innerHeight + 20;
+                    let cropHeight = (bbox.y2 - bbox.y1 - pageTop) * height + 20;
 
                     img.onload = function () {
                         let canvas = document.createElement('canvas');
@@ -407,10 +408,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     let img = new Image();
                     img.src = dataUrl;
 
+                    let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
                     let startX = bbox.x1 * window.innerWidth - 10;
-                    let startY = (bbox.y1 + pageTop) * window.innerHeight - 10;
+                    let startY = (bbox.y1 + pageTop) * height - 10;
                     let cropWidth = (bbox.x2 - bbox.x1) * window.innerWidth + 20;
-                    let cropHeight = (bbox.y2 - bbox.y1 - pageTop) * window.innerHeight + 20;
+                    let cropHeight = (bbox.y2 - bbox.y1 - pageTop) * height + 20;
 
                     img.onload = function () {
                         let canvas = document.createElement('canvas');
