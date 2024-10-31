@@ -792,7 +792,7 @@ export default function Home() {
                                             .classed("highlighted", currentAnnotation.accepted)
                                             .classed("accept", currentAnnotation.accepted);
                                 
-                                            let space = d3.select(span).node().nextSibling;
+                                            let space = d3.select(span).node()?.nextSibling;
                                 
                                             if (!space) {
                                                 space = span.parentNode.nextSibling?.firstChild;

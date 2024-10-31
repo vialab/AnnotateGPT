@@ -9,7 +9,7 @@ import { pdfjs } from "react-pdf";
 import { Tooltip } from "react-tooltip";
 import {autoPlacement} from "@floating-ui/dom";
 // import { RxCheck, RxCross2 } from "react-icons/rx";
-import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
+import { FaThumbsUp, FaThumbsDown, FaExclamation  } from "react-icons/fa";
 import { split } from "sentence-splitter";
 import { toast } from "react-toastify";
 
@@ -424,13 +424,17 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     });
 
     useEffect(() => {
-        // if (screen?.width && screen?.height) {
-        //     for (let penAnnnotationRef of penAnnotationRef.current) {
-        //         d3.select(penAnnnotationRef.current.svgRef)
-        //         .attr("viewBox", `${0} ${0} ${screen.width} ${screen.height}`);
-        //     }
-        //     initCanvas.current(screen.width);
-        // }
+        if (screen?.width && screen?.height) {
+            let widthOffset = (window.innerWidth - screen.width) / 2;
+
+            for (let penAnnnotationRef of penAnnotationRef.current) {
+                d3.select(penAnnnotationRef.current.svgRef)
+                .attr("width", screen.width)
+                .attr("height", screen.height - 11)
+                .attr("viewBox", `${-widthOffset} ${0} ${screen.width} ${screen.height}`);
+            }
+            initCanvas.current(screen.width);
+        }
     }, [screen]);
 
     function onLoad(index) {
@@ -660,7 +664,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                     const messageQueue = [];
                     let activeMessages = 0;
-                    const maxConcurrentMessages = 4;
+                    const maxConcurrentMessages = 2;
 
                     function sendMessageToWorker(message) {
                         messageQueue.push({ message });
@@ -1057,7 +1061,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             const messageQueue = [];
             let activeMessages = 0;
-            const maxConcurrentMessages = 4;
+            const maxConcurrentMessages = 2;
 
             function sendMessageToWorker(message) {
                 messageQueue.push({ message });
@@ -1265,7 +1269,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             const messageQueue = [];
             let activeMessages = 0;
-            const maxConcurrentMessages = 4;
+            const maxConcurrentMessages = 2;
 
             function sendMessageToWorker(message) {
                 messageQueue.push({ message });
@@ -1899,6 +1903,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
         }
+
+        function eitherAnnotation(e, a, j) {
+            a.either = true;
+            acceptAnnotation(e, a, j);
+        }
     
         function rejectAnnotation(e, a, j, overlappingAnnotations) {
             a.accepted = false;
@@ -2123,6 +2132,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                         <div className="rateContainer">
                                             <div className="rateButton" >
                                                 <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1", marginBottom: "5px" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, annotation, annotations) } />
+                                            </div>
+                                            <div className="rateButton" >
+                                                <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, annotation, annotations)} />
                                             </div>
                                             <div className="rateButton" >
                                                 <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1", marginTop: "5px" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, annotation, annotations)} />
@@ -2656,9 +2668,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 <Tooltip 
                     // id="annotationDescription"
                     style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "#22262b" }}
-                    place={handiness === "right" ? "left" : "right"}
+                    place={"top"}
                     ref={annotationToolTipRef}
                     imperativeModeOnly={true}
+                    closeEvents={{
+                        "mouseout": false,
+                    }}
                 />
 
                 <Tooltip 

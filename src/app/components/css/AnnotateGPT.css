@@ -140,8 +140,7 @@ input {
 
 .rateContainer {
     display: flex;
-    gap: 10px;
-    min-width: 80px;
+    gap: 5px;
     height: 40px;
     justify-content: space-around;
     align-items: center;

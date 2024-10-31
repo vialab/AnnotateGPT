@@ -1082,12 +1082,21 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                     let words = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.word").nodes();
                     let pathBoundingBox = path.getBoundingClientRect();
                     let svgBoundingBox = svgRef.current.getBoundingClientRect();
+                                
+                    // d3.select("body")
+                    // .append("div")
+                    // .style("position", "absolute")
+                    // .style("top", `${pathBoundingBox.y + window.scrollY}px`)
+                    // .style("left", `${pathBoundingBox.x}px`)
+                    // .style("width", `${pathBoundingBox.width}px`)
+                    // .style("height", `${pathBoundingBox.height}px`)
+                    // .style("border", "2px solid blue");
 
                     let checkContainWords = (words) => {
                         for (let word of words) {
                             let rect = word.getBoundingClientRect();
 
-                            if (rect.left < pathBoundingBox.x || rect.right > pathBoundingBox.x + pathBoundingBox.width || rect.top < pathBoundingBox.y || rect.bottom > pathBoundingBox.y + pathBoundingBox.height) {
+                            if (rect.left > pathBoundingBox.x + pathBoundingBox.width || rect.right < pathBoundingBox.x || rect.top > pathBoundingBox.y + pathBoundingBox.height || rect.bottom < pathBoundingBox.y) {
                                 continue;
                             } else if (rect.left > pathBoundingBox.x && rect.right < pathBoundingBox.x + pathBoundingBox.width && rect.top > pathBoundingBox.y && rect.bottom < pathBoundingBox.y + pathBoundingBox.height) {
                                 wordsOfInterest.push({ element: word });
@@ -1123,24 +1132,24 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
                                     // .append("circle")
                                     // .attr("cx", center[0])
                                     // .attr("cy", center[1])
-                                    // .attr("r", 5)
+                                    // .attr("r", 2)
                                     // .attr("fill", "black");
     
                                     // d3.select(svgRef.current)
                                     // .append("circle")
                                     // .attr("cx", rightCenter[0])
                                     // .attr("cy", rightCenter[1])
-                                    // .attr("r", 5)
+                                    // .attr("r", 2)
                                     // .attr("fill", "black");
     
                                     // d3.select(svgRef.current)
                                     // .append("circle")
                                     // .attr("cx", leftCenter[0])
                                     // .attr("cy", leftCenter[1])
-                                    // .attr("r", 5)
+                                    // .attr("r", 2)
                                     // .attr("fill", "black");
     
-                                    if (d3.polygonContains(coords, center) && d3.polygonContains(coords, rightCenter) && d3.polygonContains(coords, leftCenter)) {
+                                    if (d3.polygonContains(coords, center) && (d3.polygonContains(coords, rightCenter) || d3.polygonContains(coords, leftCenter))) {
                                         wordsOfInterest.push({ element: word });
                                     }
                                 }
