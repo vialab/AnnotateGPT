@@ -511,6 +511,10 @@
     border: 1px solid #E58F65;
 }
 
+.contentContainer img {
+    border-radius: 10px;
+}
+
 .switch {
 	position: relative;
 	display: inline-block;

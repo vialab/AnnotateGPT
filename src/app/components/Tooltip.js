@@ -189,7 +189,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             filter: (node) => {
                 if (node.tagName === "path") {
                     let id = node.id;
-                    d3.select(node).attr("id", null);
+                    d3.select(node)
+                    .attr("id", null)
+                    .style("fill", "red");
 
                     return ids.includes(id);
                 }
@@ -203,7 +205,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             filter: (node) => {
                 if (node.tagName === "path") {
                     let id = node.id;
-                    d3.select(node).attr("id", null);
+                    d3.select(node)
+                    .attr("id", null)
+                    .style("fill", "red");
 
                     return ids.includes(id);
                 }
@@ -239,7 +243,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         
         annotatedText = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
 
-        let type = "annotated (not circled, underlined, highlighted or crossed out)";
+        let type = "annotated";
 
         if (circle) {
             type = "circled";
@@ -250,7 +254,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         } else if (highlighted) {
             type = "highlighted";
         } else {
-            type = "annotated (not circled, underlined, highlighted or crossed out)";
+            type = "annotated";
         }
 
         // d3.selectAll("#hightlighed_word").remove();
@@ -330,7 +334,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             }).flat());
             annotatedText = [...annotatedTextNodes].map(node => node.textContent).join(" ").trim();
             
-            type = "annotated (not circled, underlined or highlighted)";
+            type = "annotated";
 
             for (let stroke of lastCluster.strokes) {
                 if (stroke.id !== "initial") {
@@ -1187,33 +1191,33 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
 
                                 clearTimeout(openTimeout.current);
 
-                                if (toolTipRef.current?.isOpen) {
-                                    clearTimeout(closeTimeout.current);
+                                // if (toolTipRef.current?.isOpen) {
+                                //     clearTimeout(closeTimeout.current);
 
+                                //     toolTipRef.current?.open({
+                                //         anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
+                                //         content: content
+                                //     });
+                                // } else {
+                                openTimeout.current = setTimeout(() => {
                                     toolTipRef.current?.open({
                                         anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
                                         content: content
                                     });
-                                } else {
-                                    openTimeout.current = setTimeout(() => {
-                                        toolTipRef.current?.open({
-                                            anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
-                                            content: content
-                                        });
-                                    }, 1000);
-                                }
+                                }, 1000);
+                                // }
                             }
                         })
                         .on("pointerout", function() {
-                            clearTimeout(closeTimeout.current);
+                            // clearTimeout(closeTimeout.current);
 
-                            if (toolTipRef.current?.isOpen) {
-                                closeTimeout.current = setTimeout(() => {
-                                    toolTipRef.current?.close();
-                                }, 500);
-                            } else {
-                                clearTimeout(openTimeout.current);
-                            }
+                            // if (toolTipRef.current?.isOpen) {
+                            //     closeTimeout.current = setTimeout(() => {
+                            //         toolTipRef.current?.close();
+                            //     }, 500);
+                            // } else {
+                            clearTimeout(openTimeout.current);
+                            // }
                         })
                         .on("click", function() {
                             let k = index.get(this);
@@ -1806,33 +1810,33 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 
                                 clearTimeout(openTimeout.current);
                                 
-                                if (toolTipRef.current?.isOpen) {
-                                    clearTimeout(closeTimeout.current);
+                                // if (toolTipRef.current?.isOpen) {
+                                //     clearTimeout(closeTimeout.current);
 
+                                //     toolTipRef.current?.open({
+                                //         anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
+                                //         content: content
+                                //     });
+                                // } else {
+                                openTimeout.current = setTimeout(() => {
                                     toolTipRef.current?.open({
                                         anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
                                         content: content
                                     });
-                                } else {
-                                    openTimeout.current = setTimeout(() => {
-                                        toolTipRef.current?.open({
-                                            anchorSelect : "#toolTip" + cluster.strokes[cluster.strokes.length - 1].id,
-                                            content: content
-                                        });
-                                    }, 1000);
-                                }
+                                }, 1000);
+                                // }
                             }
                         })
                         .on("pointerout", function() {
-                            clearTimeout(closeTimeout.current);
+                            // clearTimeout(closeTimeout.current);
 
-                            if (toolTipRef.current?.isOpen) {
-                                closeTimeout.current = setTimeout(() => {
-                                    toolTipRef.current?.close();
-                                }, 500);
-                            } else {
-                                clearTimeout(openTimeout.current);
-                            }
+                            // if (toolTipRef.current?.isOpen) {
+                            //     closeTimeout.current = setTimeout(() => {
+                            //         toolTipRef.current?.close();
+                            //     }, 500);
+                            // } else {
+                            clearTimeout(openTimeout.current);
+                            // }
                         })
                         .on("click", function() {
                             let k = index.get(this);
@@ -2040,6 +2044,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 0)
                     .attr("opacity", 1)
                     // .style("pointer-events", "none")
+                    .on("start", () => {
+                        toolTipRef.current?.close();
+                    })
                     .on("end", function(d, i) {
                         if (!clusterRef.current[i] || !clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1])
                             return;
@@ -2051,7 +2058,6 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                             .on("pointerout", null);
                         } else {
                             clearTimeout(openTimeout.current);
-                            toolTipRef.current?.close();
 
                             d3.select(this)
                             .on("pointerover", function(d) {

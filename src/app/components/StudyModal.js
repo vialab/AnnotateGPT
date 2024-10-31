@@ -1,10 +1,12 @@
 // "use client";
 
 import { useState, useRef, useReducer, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import Image from "next/image";
 
 import Modal from "react-modal";
 import Player from "./Player";
 import { ImMail4, ImInfo, ImExit } from "react-icons/im";
+import { FaThumbsUp, FaThumbsDown, FaExclamation } from "react-icons/fa";
 import { HiOutlineChevronDoubleRight } from "react-icons/hi";
 import { Tooltip } from "react-tooltip";
 import { toast, cssTransition } from "react-toastify";
@@ -609,9 +611,9 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                                 modeChange(currentLlmFirst ? "llm" : "base");
                             }
 
-                            // if (documentChange instanceof Function) {
-                            //     documentChange(currentIfFirst ? 0 : 1);
-                            // }
+                            if (documentChange instanceof Function) {
+                                documentChange(currentIfFirst ? 0 : 1);
+                            }
 
                             if (fileHandler instanceof Function) {
                                 fileHandler(d3.select("#strokeDataFile").node().files[0], d3.select("#clusterDataFile").node().files[0], d3.select("#documentFile").node().files[0]);
@@ -855,41 +857,87 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                     { instructionContent }
                 </div>,
             },
-            {
+        ];
+
+        if (currentMode === "LLM") {
+            preTaskContent.current.push({
                 "content": <div style={{ textAlign: "center" }}>
-                    Are you ready to practice?
+                    <h3>Scrollbar Info</h3>
+
+                    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "20px" }}>
+                        <Image src="/tutorial/Scrollbar.png" alt="logo" width={468 * 0.7} height={904 * 0.7} />
+                        <div style={{ textAlign: "left", width: "50%" }}>
+                            A specialized scrollbar with three columns to help you navigate the annotations:
+                            <br /><br />
+                            <b>Left Column</b>: Position of your annotations.
+                            <br /><br />
+                            <b>Center Column</b>: Position and state of the tooltips. 
+                            <br /><span style={{ color: "#06D6A0" }} >Green</span>: Done
+                            <br /><span style={{ color: "#B8405E" }} >Red</span>: Needs Attention
+                            <br /><span style={{ color: "#FFFD82" }} >Yellow</span>: Busy
+                            <br /><br />
+                            <b>Right Column</b>: Position of the assistant&apos;s annotations.
+                        </div>
+                    </div>
                 </div>,
                 "prev": true,
-                "confirm": true,
-                "disableNext": true,
-                "callback": () => {
-                    setTimeout(() => {
-                        d3.select(".modalButton.disabled")
-                        .classed("enable", true);
-                    }, 1000);
-                },
+            });
+        }
+
+        preTaskContent.current.push({
+            "content": <div style={{ textAlign: "center" }}>
+                Are you ready to practice?
+            </div>,
+            "prev": true,
+            "confirm": true,
+            "disableNext": true,
+            "callback": () => {
+                setTimeout(() => {
+                    d3.select(".modalButton.disabled")
+                    .classed("enable", true);
+                }, 1000);
             },
-        ];
+        });
         
         instructionTaskContent.current = [
             {
                 "content": 
                 <div>
-                    <h3 style={{width: "100%", textAlign: "center"}}>Instructions</h3>
-                    <ul> 
+                    <h3 style={{ width: "100%", textAlign: "center" }}>Instructions</h3>
+                    <ul style={{ width: "80%", margin: "auto" }}> 
                         <li style={{ margin: "30px 0px" }}>Your task is to give feedback on an English test.</li>
                         <li style={{ margin: "30px 0px" }}>Annotate any issues you see (e.g. grammar, sentence structure, clarity, etc.)</li>
+                        <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
                         { currentMode === "LLM" ? 
                             <>
-                                <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
                                 <li style={{ margin: "30px 0px" }}>You must use the assistance at least once. (activating and annotating with tooltip)</li>
-                                <li style={{ margin: "30px 0px" }}>You must rate all annotations by accepting or rejecting the annotations.</li>
+                                <li style={{ margin: "30px 0px" }}>You must rate all annotations by accepting (
+                                    <div className="rateContainer" style={{ display: "inline-flex" }}>
+                                        <div className="rateButton">
+                                            <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1" }} />
+                                        </div>
+                                    </div>
+                                    ) or rejecting (
+                                    <div className="rateContainer" style={{ display: "inline-flex" }} >
+                                        <div className="rateButton" >
+                                            <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1" }} />
+                                        </div>
+                                    </div>
+                                    ) the annotations. Alternatively, you can rate it neither (
+                                    <div className="rateContainer" style={{ display: "inline-flex" }} >
+                                        <div className="rateButton">
+                                            <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} />
+                                        </div>
+                                    </div>
+                                    ) if the annotation does not match your annotation, but provided good feedback.
+                                    
+                                </li>
                             </>
                             :
                             <>
-                                <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
                             </>
                         }
+                        <li style={{ margin: "30px 0px" }}>You have 30 minutes to complete the tasks</li>
                     </ul>
                 </div>,
             },
@@ -1219,7 +1267,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                         <span style={{ paddingTop: "10px" }}>
                             <b>REB File #:</b>
                         </span>
-                        <span style={{ paddingLeft: "10px" }}> TBD </span>
+                        <span style={{ paddingLeft: "10px" }}> #25364 </span>
                         <span style={{ paddingTop: "10px" }}>
                             <b>Supervisors:</b>
                         </span>

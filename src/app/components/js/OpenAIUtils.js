@@ -261,7 +261,7 @@ export async function makeInference(image1, image2, type, annotatedText) {
                             },
                             {
                                 type: "text",
-                                text: `The user is marking an English test and has ${type}:\n"${annotatedText}".`
+                                text: `The user is marking an English test in red pen strokes and has ${type}:\n"${annotatedText}".`
                             },
                         ],
                     },
