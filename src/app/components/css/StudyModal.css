@@ -118,9 +118,10 @@
 }
 
 .contentContainer .modalButton.disabled {
-    opacity: 0.5;
+    opacity: 0.1;
     pointer-events: none;
-    border-color: rgb(184, 64, 94);
+    cursor: not-allowed;
+    /* border-color: rgb(184, 64, 94); */
     transition: border-color 1s ease-in-out, opacity 1s ease-in-out;
 }
 
@@ -128,9 +129,10 @@
     border-color: white;
     opacity: 1;
     pointer-events: all !important;
+    cursor: pointer;
 }
 
-.contentContainer .modalButton.disabled::before, .continue.disabled::before {
+/* .contentContainer .modalButton.disabled::before, .continue.disabled::before {
     width: 100%;
     top: 50%;
     left: 0em;
@@ -152,7 +154,7 @@
     background: rgb(184, 64, 94);
     position: absolute;
     transform: rotate(45deg);
-}
+} */
 
 .contentContainer .modalButton.disabled.enable::before,
 .contentContainer .modalButton.disabled.enable::after,
@@ -168,8 +170,8 @@
 }
 
 .checkmark__check {
-    stroke-dasharray: 34;
-    stroke-dashoffset: 34;
+    stroke-dasharray: 0;
+    stroke-dashoffset: 0;
     transform: translateX(-1px) translateY(-1px);
     stroke-linejoin: round;
     stroke-linecap: round;
@@ -183,7 +185,7 @@
     stroke-linejoin: round;
     stroke-linecap: round;
     
-    animation: strokeCircleReverse 0s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    /* animation: strokeCircleReverse 0s cubic-bezier(0.65, 0, 0.45, 1) forwards; */
 }
 
 .modalButton.animated .checkmark .checkmark__circle {

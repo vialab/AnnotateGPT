@@ -47,8 +47,11 @@ async function traverseCollectionsAndDocuments(db, parentObj, ref = null, parent
 }
 
 // (async () => {
+//     console.log("Fetching all collections and documents...");
 //     const data = await getAllCollectionsAndDocuments(db);
 //     // Write the data to a file, if file already exists create a new filename with numbers appended
+//     console.log("Writing data to file...");
+    
 //     if (!fs.existsSync("data.json")) {
 //         fs.writeFileSync("data.json", JSON.stringify(data, null, 2));
 //     } else {

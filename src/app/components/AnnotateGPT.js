@@ -430,7 +430,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             for (let penAnnnotationRef of penAnnotationRef.current) {
                 d3.select(penAnnnotationRef.current.svgRef)
                 .attr("width", screen.width)
-                .attr("height", screen.height - 11)
+                .attr("height", screen.height)
                 .attr("viewBox", `${-widthOffset} ${0} ${screen.width} ${screen.height}`);
             }
             initCanvas.current(screen.width);
@@ -874,25 +874,25 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
             await new Promise(r => setTimeout(r, 2000));
             let message = "";
-            let testData = `*** Suspendisse quis lorem sed est blandit sodales. ***
-            {{ Test Explanation }}
+            let testData = `*** Then you show your little light, ***
+            {{ Test Explanation (Results Faked) }}
             
-            *** Sed sit amet rutrum metus. Integer in erat tellus. ***
-            {{ Test Explanation }}
+            *** Then the traveler in the dark ***
+            {{ Test Explanation (Results Faked) }}
 
-            *** Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. ***
-            {{ Test Explanation }}
+            *** Often through my curtains peep ***
+            {{ Test Explanation (Results Faked) }}
 
-            *** Cras auctor faucibus lectus, a semper enim. Phasellus pellentesque tellus ut neque maximus dictum. ***
-            {{ Test Explanation }}
+            *** For you never shut your eye ***
+            {{ Test Explanation (Results Faked) }}
 
-            *** Duis molestie velit in auctor interdum. ***
-            {{ Test Explanation }}
+            *** Like a diamond in the sky ***
+            {{ Test Explanation (Results Faked) }}
             `;
 
             for (let token of testData.split(" ")) {
                 // console.log(token);
-                // await new Promise(r => setTimeout(r, 30));
+                await new Promise(r => setTimeout(r, 10));
                 token = " " + token;
                 message += token;
 
@@ -1548,7 +1548,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         setTool(tool);
     }
 
-    function onNewActiveCluster(cluster) {
+    function onNewActiveCluster(cluster, filter = true) {
         miniMapRef.current?.synchronize();
 
         if (cluster) {
@@ -1564,7 +1564,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
     
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
                     // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
@@ -1587,7 +1587,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             if (cluster.open) {
                 if (cluster.annotationsFound?.length > 0) {
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={filter} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
                     // // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, {spans: [ clusterToolTip ]}, false);
@@ -1682,7 +1682,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
 
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
                     // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
@@ -1703,7 +1703,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             let showTooltipContent = () => {
                 if (clusterToolTip){
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
 
                     let closestTextLayer = d3.select(".textLayer").node();
@@ -1969,7 +1969,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
             
                 let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{ height: height + "px", pointerEvents: "none" }}>
-                    <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
+                    <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
                 </div>;
 
                 d3.selectAll(".react-tooltip#annotationExplanation .annotationMessageContainer")
@@ -2179,7 +2179,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
                 let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                    <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
+                    <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
                 </div>;
                 // explanationToolTipRef.current?.close();
                 fadeDisplayExplanation(content, annotation, false);
@@ -2202,8 +2202,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         <div className={"annotationMessageContainer " + googleSans.className}>
             { annotationMessages }
             { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Reply" /> : null }
+            <i style={{ fontSize: "small", marginTop: "-10px" }} >Purpose: { cluster.searching.purposeTitle }</i>
             
-            <NavigateCluster handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
+            <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
         </div>;
 
         return content;
@@ -2598,13 +2599,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
 
             if (node.parentNode.classList.contains("inferring") || node.parentNode.classList.contains("annotating")) {
-                background = "#FFFD82";
+                background = "#F96900";
                 className = "busy";
             } else if (node.parentNode.classList.contains("done")) {
                 background = "#06D6A0";
                 className = "done";
             } else if (node.parentNode.classList.contains("havePurpose")) {
-                background = "#B8405E";
+                background = "#FFFD82";
                 className = "attention";
             }
 

@@ -1,12 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import * as d3 from "d3";
 import "./css/NavigateCluster.css";
 
-export default function NavigateCluster({ handiness, cluster, annotations, currentAnnotation, onPrevCallback, onNextCallback, removed }) {
+export default function NavigateCluster({ handiness, cluster, annotations, currentAnnotation, onPrevCallback, onNextCallback, removed, filter }) {
     let annotationsRef = useRef(annotations);
     let index = useRef(0);
     let isScroll = useRef(false);
     let removedRef = useRef(removed);
+    let filterRef = useRef(filter);
     // let resetIndex = useRef(true);
 
     function scrollTween(offset) {
@@ -33,12 +34,19 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         });
     }
 
-    function checkDisable(animate = true) {
+    const checkDisable = useCallback((animate = true) => {
         let firstIndex = 0;
         let lastIndex = annotationsRef.current.length - 1;
 
-        for (let i = 0; i < annotationsRef.current.length; i++) {
-            if (annotationsRef.current[i]?.accepted === false) {
+        let filteredAnnotations = filterRef.current ? annotationsRef.current.filter(annotation => !annotation.spans[0].classList?.contains("toolTip")) : annotationsRef.current;
+        let indexFilter = filterRef.current ? filteredAnnotations.indexOf(currentAnnotation) : index.current;
+        
+        if (indexFilter === -1) {
+            return;
+        }
+
+        for (let i = 0; i < filteredAnnotations.length; i++) {
+            if (filteredAnnotations[i]?.accepted === false) {
                 firstIndex = i;
             } else {
                 break;
@@ -46,14 +54,14 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         }
 
         for (let i = lastIndex; i >= 0; i--) {
-            if (annotationsRef.current[i]?.accepted === false) {
+            if (filteredAnnotations[i]?.accepted === false) {
                 lastIndex = i;
             } else {
                 break;
             }
         }
-        let topDisabled = index.current === 0 || (annotationsRef.current[firstIndex]?.accepted === false && index.current === firstIndex + 1);
-        let bottomDisabled = index.current === annotationsRef.current.length - 1 || (annotationsRef.current[lastIndex]?.accepted === false && index.current === lastIndex - 1);
+        let topDisabled = indexFilter === 0 || (filteredAnnotations[firstIndex]?.accepted === false && indexFilter === firstIndex + 1);
+        let bottomDisabled = indexFilter === filteredAnnotations.length - 1 || (filteredAnnotations[lastIndex]?.accepted === false && indexFilter === lastIndex - 1);
 
         if (animate) {
             d3.select("#bottomButton")
@@ -70,13 +78,10 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
                 d3.select("#topButton").classed("disabled", topDisabled);
             });
         } else {
-            d3.select("#bottomButton")
-            .classed("disabled", bottomDisabled);
-
-            d3.select("#topButton")
-            .classed("disabled", topDisabled);
+            d3.select("#topButton").classed("disabled", topDisabled);
+            d3.select("#bottomButton").classed("disabled", bottomDisabled);
         }
-    }
+    }, [currentAnnotation]);
 
     let onPrev = () => {
         // if (resetIndex.current) {
@@ -124,6 +129,11 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
             return;
         }
 
+        if (annotation[0].classList?.contains("toolTip") && index.current > 0) {
+            onPrev();
+            return;
+        }
+
         if (annotation) {
             let yCoord = d3.mean(annotation.map(span => {
                 if (span.classList?.contains("toolTip")) {
@@ -140,6 +150,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         // }
 
         // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
+        filterRef.current = true;
         checkDisable();
 
         if (onPrevCallback instanceof Function) {
@@ -194,6 +205,11 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
 
         let annotation = annotationsRef.current[index.current]?.spans;
 
+        if (annotation[0].classList?.contains("toolTip") && index.current < annotationsRef.current.length - 1) {
+            onNext();
+            return;
+        }
+
         if (annotation) {
             let yCoord = d3.mean(annotation.map(span => {
                 if (span.classList?.contains("toolTip")) {
@@ -214,6 +230,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
 
         // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
 
+        filterRef.current = true;
         checkDisable();
 
         if (onNextCallback instanceof Function) {
@@ -309,6 +326,10 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
     useEffect(() => {
         removedRef.current = removed;
     }, [removed]);
+    
+    useEffect(() => {
+        filterRef.current = filter;
+    }, [filter]);
 
     useEffect(() => {
         let tAnnotations = [...annotations];
@@ -360,7 +381,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         // console.log(currentAnnotation);
         // console.log(index.current, removedRef.current);
         // console.log(index.current === annotationsRef.current.length - 1);
-    }, [annotations, cluster, currentAnnotation]);
+    }, [annotations, cluster, currentAnnotation, checkDisable]);
 
     return (
         <div className={"navigateContainer " + (handiness === "right" ? "right" : "left")}>

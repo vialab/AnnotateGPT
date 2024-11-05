@@ -871,12 +871,14 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                             <br /><br />
                             <b>Left Column</b>: Position of your annotations.
                             <br /><br />
-                            <b>Center Column</b>: Position and state of the tooltips. 
-                            <br /><span style={{ color: "#06D6A0" }} >Green</span>: Done
-                            <br /><span style={{ color: "#B8405E" }} >Red</span>: Needs Attention
-                            <br /><span style={{ color: "#FFFD82" }} >Yellow</span>: Busy
+                            <b>Center Column</b>: Position and state of the assistant markers. 
+                            <br /><span style={{ color: "#06D6A0" }} >Green</span>: Assistant is done annotating.
+                            <br /><span style={{ color: "#FFFD82" }} >Yellow</span>: Assistant is waiting for you pick a purpose.
+                            <br /><span style={{ color: "#F96900" }} >Orange</span>: Assistant is processing.
                             <br /><br />
                             <b>Right Column</b>: Position of the assistant&apos;s annotations.
+                            <br /><span style={{ color: "#06D6A0" }} >Green</span>: Accepted sentence.
+                            <br /><span style={{ color: "#FFFD82" }} >Yellow</span>: Unrated sentence.
                         </div>
                     </div>
                 </div>,
@@ -910,7 +912,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                         <li style={{ margin: "30px 0px" }}>You must make at least one annotation.</li>
                         { currentMode === "LLM" ? 
                             <>
-                                <li style={{ margin: "30px 0px" }}>You must use the assistance at least once. (activating and annotating with tooltip)</li>
+                                <li style={{ margin: "30px 0px" }}>You must use the assistance at least once (activating and annotating with marker).</li>
                                 <li style={{ margin: "30px 0px" }}>You must rate all annotations by accepting (
                                     <div className="rateContainer" style={{ display: "inline-flex" }}>
                                         <div className="rateButton">
@@ -937,7 +939,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                             <>
                             </>
                         }
-                        <li style={{ margin: "30px 0px" }}>You have 30 minutes to complete the tasks</li>
+                        <li style={{ margin: "30px 0px" }}>You have 30 minutes to complete the tasks.</li>
                     </ul>
                 </div>,
             },
@@ -1067,65 +1069,65 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
             }
         });
 
-        d3.selectAll(".modalButton .checkmark .checkmark__check")
-        .on("animationstart", (e) => {
-            animationendReverse.set(e.srcElement.closest(".modalButton"), false);
-        })
-        .on("animationend", (e) => {
-            if (leave.get(e.srcElement.closest(".modalButton"))) {
-                d3.select(e.srcElement.closest(".modalButton"))
-                .classed("animated", false);
+        // d3.selectAll(".modalButton .checkmark .checkmark__check")
+        // .on("animationstart", (e) => {
+        //     animationendReverse.set(e.srcElement.closest(".modalButton"), false);
+        // })
+        // .on("animationend", (e) => {
+        //     if (leave.get(e.srcElement.closest(".modalButton"))) {
+        //         d3.select(e.srcElement.closest(".modalButton"))
+        //         .classed("animated", false);
 
-                d3.select(e.srcElement.closest(".modalButton"))
-                .classed("reverse", true);
-            }
-            animationendForward.set(e.srcElement.closest(".modalButton"), true);
-        });
+        //         d3.select(e.srcElement.closest(".modalButton"))
+        //         .classed("reverse", true);
+        //     }
+        //     animationendForward.set(e.srcElement.closest(".modalButton"), true);
+        // });
 
-        d3.selectAll(".modalButton .checkmark .checkmark__circle")
-        .on("animationstart", (e) => {
-            animationendForward.set(e.srcElement.closest(".modalButton"), false);
-        })
-        .on("animationend", (e) => {
-            animationendReverse.set(e.srcElement.closest(".modalButton"), true);
+        // d3.selectAll(".modalButton .checkmark .checkmark__circle")
+        // .on("animationstart", (e) => {
+        //     animationendForward.set(e.srcElement.closest(".modalButton"), false);
+        // })
+        // .on("animationend", (e) => {
+        //     animationendReverse.set(e.srcElement.closest(".modalButton"), true);
 
-            if (!leave.get(e.srcElement.closest(".modalButton"))) {
-                d3.select(e.srcElement.closest(".modalButton"))
-                .classed("animated", true);
+        //     if (!leave.get(e.srcElement.closest(".modalButton"))) {
+        //         d3.select(e.srcElement.closest(".modalButton"))
+        //         .classed("animated", true);
                 
-                d3.select(e.srcElement.closest(".modalButton"))
-                .classed("reverse", false);
-            }
-        });
+        //         d3.select(e.srcElement.closest(".modalButton"))
+        //         .classed("reverse", false);
+        //     }
+        // });
 
-        d3.selectAll(".modalButton .leftright")
-        .on("animationstart", (e) => {
-            if (e.srcElement.closest(".modalButton").classList.contains("reverse")) {
-                animationendReverse.set(e.srcElement.closest(".modalButton"), false);
-                animationendForward.set(e.srcElement.closest(".modalButton"), true);
-            } else {
-                animationendReverse.set(e.srcElement.closest(".modalButton"), true);
-                animationendForward.set(e.srcElement.closest(".modalButton"), false);
-            }
-        })
-        .on("animationend", (e) => {
-            if (e.srcElement.closest(".modalButton").classList.contains("reverse"))
-                animationendReverse.set(e.srcElement.closest(".modalButton"), true);
-            else
-                animationendForward.set(e.srcElement.closest(".modalButton"), true);
+        // d3.selectAll(".modalButton .leftright")
+        // .on("animationstart", (e) => {
+        //     if (e.srcElement.closest(".modalButton").classList.contains("reverse")) {
+        //         animationendReverse.set(e.srcElement.closest(".modalButton"), false);
+        //         animationendForward.set(e.srcElement.closest(".modalButton"), true);
+        //     } else {
+        //         animationendReverse.set(e.srcElement.closest(".modalButton"), true);
+        //         animationendForward.set(e.srcElement.closest(".modalButton"), false);
+        //     }
+        // })
+        // .on("animationend", (e) => {
+        //     if (e.srcElement.closest(".modalButton").classList.contains("reverse"))
+        //         animationendReverse.set(e.srcElement.closest(".modalButton"), true);
+        //     else
+        //         animationendForward.set(e.srcElement.closest(".modalButton"), true);
 
-            if (leave.get(e.srcElement.closest(".modalButton"))) {
-                d3.select(e.srcElement.closest(".modalButton"))
-                .classed("animated", false)
-                .classed("reverse", true);
-            } else {
-                d3.select(e.srcElement.closest(".modalButton"))
-                .classed("animated", true)
-                .classed("reverse", false);
-            }
-        });
+        //     if (leave.get(e.srcElement.closest(".modalButton"))) {
+        //         d3.select(e.srcElement.closest(".modalButton"))
+        //         .classed("animated", false)
+        //         .classed("reverse", true);
+        //     } else {
+        //         d3.select(e.srcElement.closest(".modalButton"))
+        //         .classed("animated", true)
+        //         .classed("reverse", false);
+        //     }
+        // });
         
-        d3.selectAll(".modalButton")
+        d3.selectAll(".modalButton.nextButton:not(.confirm), .modalButton.prevButton:not(.cancel)")
         .each((d, i, n) => {
             leave.set(n[i], true);
             animationendForward.set(n[i], true);

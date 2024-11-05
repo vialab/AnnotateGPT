@@ -1223,7 +1223,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             activeCluster.current = newCluster;
 
             if (onNewActiveCluster instanceof Function)
-                onNewActiveCluster(newCluster);
+                onNewActiveCluster(newCluster, false);
         } else {
             for (let c of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 c.open = false;
@@ -1232,7 +1232,7 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             activeCluster.current = cluster;
 
             if (onNewActiveCluster instanceof Function)
-                onNewActiveCluster(cluster);
+                onNewActiveCluster(cluster, false);
         }
     }
 

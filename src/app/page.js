@@ -71,10 +71,10 @@ export default function Home() {
     const practiceMessage = useRef([
         [
             "Make an annotation",
-            "Activate tooltip",
-            "Make annotations using the tooltip",
+            "Activate assistant by hovering over the annotation and tapping on the marker",
+            "Generate annotations using your assistant (You can hover the options for an explanation)",
             "Navigate annotations by hovering or with the arrows",
-            "Like or dislike an annotation",
+            "Accept or reject an annotation",
         ],
         [
             "Make an annotation",

@@ -171,6 +171,9 @@ export default class PenCluster {
             return [history, stopIteration];
         } else {
             for (let i = 1; i < d.length - 1; i++) {
+                if (d[i] === d[i - 1])
+                    continue;
+
                 let ratio = (d[i + 1] - d[i]) * (d[i + 1] - d[i]) / (d[i] - d[i - 1]);
                 
                 if (ratio > maxRatio) {

@@ -60,7 +60,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
     let openTimeout = useRef(null);
     let closeTimeout = useRef(null);
     let clusterRef = useRef(clusters);
-    const toolTipSize = 25;
+    const toolTipSize = 27;
 
     const sendHistory = useCallback((data) => {
         if (typeof mode === "string" && !mode.toLowerCase().includes("practice")) {
@@ -100,28 +100,28 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                         resolve({
                             rawText: "Bla bla bla...",
                             result: JSON.parse(`{
-                                "annotationDescription": "Test",
-                                "pastAnnotationHistory": "Test",
+                                "annotationDescription": "test",
+                                "pastAnnotationHistory": "test.",
                                 "purpose": [
                                     {
-                                        "persona": "Persona 1",
-                                        "purpose": "Purpose 1",
-                                        "purposeTitle": "Purpose 1"
+                                        "persona": "Literary Critic",
+                                        "purpose": "You may underline this line to mark a transition point or symbolic imagery pivotal to the poem’s theme. (Results Faked)",
+                                        "purposeTitle": "Marking Symbolic Imagery (Results Faked)"
                                     },
                                     {
-                                        "persona": "Persona 2",
-                                        "purpose": "Purpose 2",
-                                        "purposeTitle": "Purpose 2"
+                                        "persona": "Student",
+                                        "purpose": "You could underline this line to prepare for an exam where understanding key literary elements or transitions is crucial. (Results Faked)",
+                                        "purposeTitle": "Highlighting Key Literary Element (Results Faked)"
                                     },
                                     {
-                                        "persona": "Persona 3",
-                                        "purpose": "Purpose 3",
-                                        "purposeTitle": "Purpose 3"
+                                        "persona": "Poetry Enthusiast",
+                                        "purpose": "You underline this line to revisit an emotionally impactful moment that resonates personally within the poem. (Results Faked)",
+                                        "purposeTitle": "Emphasizing Emotional Impact (Results Faked)"
                                     },
                                     {
-                                        "persona": "Persona 4",
-                                        "purpose": "Purpose 4",
-                                        "purposeTitle": "Purpose 4"
+                                        "persona": "Teacher",
+                                        "purpose": "You underline this line to indicate it should be discussed in class for its metaphorical value and connection. (Results Faked)",
+                                        "purposeTitle": "Indicating Discussion Point (Results Faked)"
                                     }
                                 ]
                             }`),
@@ -483,7 +483,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         let width = d3.select(".react-pdf__Page__canvas").node()?.getBoundingClientRect().right;
         let left = d3.select(".react-pdf__Page__canvas").node()?.getBoundingClientRect().left;
 
-        function processStrokeList(d) {
+        function processStrokeList(d, index, type="fill") {
             if (clusterRef.current.length === 0) 
                 return [];
 
@@ -504,6 +504,19 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
     
                 if (strokeID !== "initial" && !d3.select(`path[id="${strokeID}"]`).empty()) {
                     let strokeColour = d3.select(`path[id="${strokeID}"]`).style("stroke");
+
+                    if (!clusterRef.current[index].open && type === "border") {
+                        if (clusterRef.current[index].annotating || clusterRef.current[index].purpose === false) {
+                            strokeColour = "#F96900";
+                        } else if (clusterRef.current[index].annotating === false) {
+                            strokeColour = "#06D6A0";
+                        } else if (clusterRef.current[index].purpose) {
+                            strokeColour = "#FFFD82";
+                        } else {
+                            strokeColour = "rgba(0, 0, 0, 0)";
+                        }
+                    }
+
                     strokeList.push({bbox: stroke.bbox, colour: strokeColour});
                 } else if (strokeID !== "initial") {
                     strokeList.push({bbox: stroke.bbox, colour: "black"});
@@ -779,7 +792,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             .attr("x2", "0%")
             .attr("y2", "100%")
             .selectAll("stop")
-            .data(processStrokeList)
+            .data((d, i) => processStrokeList(d, i, "border"))
             .join(
                 enter => enter.append("stop")
                 .attr("offset", (d) => d.offset + "%")
@@ -797,13 +810,13 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
 
             update => {
                 update
-                .transition()
-                .delay(1000)
                 .attr("id", (d, i) => "markerBorderGradient" + clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id)
-                .on("end", () =>
+                .transition()
+                .delay(1)
+                .on("end", () => {
                     update
                     .selectAll("stop")
-                    .data(processStrokeList)
+                    .data((d, i) => processStrokeList(d, i, "border"))
                     .join(
                         enter => enter.append("stop")
                         .attr("offset", (d) => d.offset + "%")
@@ -811,14 +824,16 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                         
                         update => update
                         .attr("offset", (d) => d.offset + "%")
+                        .transition()
+                        .duration(999)
                         .attr("stop-color", (d) => d.colour),
 
                         exit => exit
                         .transition()
                         .delay(1000)
                         .remove(),
-                    )
-                );
+                    );
+                });
             },
 
             exit => exit
@@ -869,8 +884,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 .attr("fill", (d, i) => `url(#markerFillGradient${clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id})`)
                 .attr("fill-opacity", 0.5)
                 .attr("stroke", (d, i) => `url(#markerBorderGradient${clusterRef.current[i].strokes[clusterRef.current[i].strokes.length - 1].id})`)
-                .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 0)
-                .attr("stroke-width", 2)
+                .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 1)
+                .attr("stroke-width", 3)
                 .attr("opacity", 1)
                 .style("will-change", "width, height")
                 .style("cursor", (d, i) => clusterRef.current[i].open ? "default" : "pointer")
@@ -1512,7 +1527,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 })
                 .attr("y", (d, i) => (clusterRef.current[i].y + 16 + 140))
                 .attr("dy", "1.4em")
-                .text("I will turn red in the scrollbar when I am done");
+                .text("I will turn yellow in the scrollbar when I am done");
 
                 tooltip
                 .append("text")
@@ -2041,7 +2056,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - 36 : toolTipSize)
                     .attr("height", (d, i) => clusterRef.current[i].open ? 200 : toolTipSize)
                     .attr("fill-opacity", 0.5)
-                    .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 0)
+                    .attr("stroke-opacity", (d, i) => clusterRef.current[i].open ? 0.5 : 1)
                     .attr("opacity", 1)
                     // .style("pointer-events", "none")
                     .on("start", () => {
@@ -2505,7 +2520,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 if (cluster["open"] === undefined)
                     cluster["open"] = false;
             }
-            clusterRef.current = [...clusters].filter(cluster => !cluster.disabled || cluster.annotationsFound || cluster.purpose);
+            clusterRef.current = [...clusters].filter(cluster => !cluster.disabled || cluster.annotationsFound || cluster.purpose || cluster.purpose === false);
 
             // console.log(clusterRef.current);
 

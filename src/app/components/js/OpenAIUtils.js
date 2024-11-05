@@ -32,7 +32,7 @@ export async function findAnnotations(purpose, callback, endCallback) {
         let message = "";
         // await new Promise(r => setTimeout(r, 3000));
 
-        for (let token of data.test19) {
+        for (let token of data.test20) {
             // console.log(token);
             // await new Promise(r => setTimeout(r, 0.1));
             message += token;
@@ -136,7 +136,7 @@ Here is a step-by-step list for annotating a document:
                     console.log(newTextDeltaArray.join(""));
     
                     if (checkFinish || totalRuns >= maxRuns) {
-                        if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`) || totalRuns >= maxRuns) {
+                        if (newTextDeltaArray.join("").toLowerCase().includes(`yes`) || totalRuns >= maxRuns) {
                             console.log("Stream ended");
                             console.log(textDeltaArray);
 
@@ -146,11 +146,18 @@ Here is a step-by-step list for annotating a document:
                                 endCallback(textDeltaArray);
                             }
                             return;
+                        } else if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`)) {
+                            await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
+                                `Please proceed marking all eight questions without mentioning previous sentences.`
+                            });
+    
+                            executeRun(true);
+                            return;
                         }
                     }
     
                     await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Have you finished marking all eight questions? Respond with "yes" if so, otherwise continue marking without mentioning previous sentences.`
+                        `Have you finished marking all eight questions? Respond with only "yes" if you are done. Otherwise continue marking until all eight questions are marked without mentioning previous sentences.`
                     });
     
                     executeRun(true);
