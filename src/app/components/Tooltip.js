@@ -96,7 +96,37 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 resolve => {
                     setTimeout(() => {
                         console.log("Resolving promise...");
-        
+                        
+                        // resolve({
+                        //     rawText: "Bla bla bla...",
+                        //     result: JSON.parse(`{
+                        //         "annotationDescription": "Test",
+                        //         "pastAnnotationHistory": "Test",
+                        //         "purpose": [
+                        //             {
+                        //                 "persona": "Persona 1",
+                        //                 "purpose": "Purpose 1",
+                        //                 "purposeTitle": "Purpose 1"
+                        //             },
+                        //             {
+                        //                 "persona": "Persona 2",
+                        //                 "purpose": "Purpose 2",
+                        //                 "purposeTitle": "Purpose 2"
+                        //             },
+                        //             {
+                        //                 "persona": "Persona 3",
+                        //                 "purpose": "Purpose 3",
+                        //                 "purposeTitle": "Purpose 3"
+                        //             },
+                        //             {
+                        //                 "persona": "Persona 4",
+                        //                 "purpose": "Purpose 4",
+                        //                 "purposeTitle": "Purpose 4"
+                        //             }
+                        //         ]
+                        //     }`),
+                        //     images: ["test image 1", "test image 2"]
+                        // });
                         resolve({
                             rawText: "Bla bla bla...",
                             result: JSON.parse(`{
@@ -228,33 +258,74 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             return a.bbox.y - b.bbox.y;
         });
         // let annotatedText = sortedStrokes.map(stroke => stroke.annotatedText).join("");
-        let annotatedText = "";
+        let annotatedText = [];
 
-        let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
-            if (word) {
-                if (stroke.type.endsWith("words")) {
-                    return stroke.annotatedText;
-                } else {
-                    return "";
+        let extractText = (type) => {
+            return new Set(sortedStrokes.map(stroke => {
+                if (word) {
+                    if (stroke.type.startsWith(type) && stroke.type.endsWith("words")) {
+                        return stroke.annotatedText;
+                    } else {
+                        return "";
+                    }
                 }
-            }
-            return stroke.annotatedText;
-        }).flat());
-        
-        annotatedText = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                return stroke.annotatedText;
+            }).flat());
+        };
 
-        let type = "annotated";
+        // let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
+        //     if (word) {
+        //         if (stroke.type.endsWith("words")) {
+        //             return stroke.annotatedText;
+        //         } else {
+        //             return "";
+        //         }
+        //     }
+        //     return stroke.annotatedText;
+        // }).flat());
+        
+        // annotatedText = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+        // console.log(annotatedText);
+        let type = [];
 
         if (circle) {
-            type = "circled";
-        } else if (underline) {
-            type = "underlined";
-        } else if (crossed) {
-            type = "crossed out";
-        } else if (highlighted) {
-            type = "highlighted";
-        } else {
-            type = "annotated";
+            let annotatedTextNodes = extractText("circled");
+            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            
+            if (annotatedTextContent.trim() !== "") {
+                type.push("circled");
+                annotatedText.push(annotatedTextContent.trim());
+            }
+        } 
+        
+        if (underline) {
+            let annotatedTextNodes = extractText("underlined");
+            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            
+            if (annotatedTextContent.trim() !== "") {
+                type.push("underlined");
+                annotatedText.push(annotatedTextContent.trim());
+            }
+        } 
+        
+        if (crossed) {
+            let annotatedTextNodes = extractText("crossed");
+            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            
+            if (annotatedTextContent.trim() !== "") {
+                type.push("crossed out");
+                annotatedText.push(annotatedTextContent.trim());
+            }
+        } 
+        
+        if (highlighted) {
+            let annotatedTextNodes = extractText("highlighted");
+            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            
+            if (annotatedTextContent.trim() !== "") {
+                type.push("highlighted");
+                annotatedText.push(annotatedTextContent.trim());
+            }
         }
 
         // d3.selectAll("#hightlighed_word").remove();
@@ -326,7 +397,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             }
         }
 
-        if (annotatedText.trim() === "") {
+        if (annotatedText.length === 0) {
             // annotatedText = lastCluster.strokes.map(stroke => stroke.marginalText).join(" ");
 
             let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
@@ -436,8 +507,21 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         console.log(lastCluster);
         
         let [annotationWithText, annotationWithoutText] = await Promise.all([cropAnnotation, pageImage]);
-        let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText.trim());
-        return { rawText, result, images: [annotationWithText, annotationWithoutText] };
+        let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText);
+        let typeAnnotatedText = "";
+
+        if (annotatedText instanceof Array) {
+            for (let i = 0; i < annotatedText.length; i++) {
+                typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
+
+                if (i < annotatedText.length - 1) {
+                    typeAnnotatedText += " and ";
+                }
+            }
+        } else {
+            typeAnnotatedText = `${type} "${annotatedText}"`;
+        }
+        return { rawText: typeAnnotatedText + "\n" + rawText, result, images: [annotationWithText, annotationWithoutText] };
     }, [index, mode]);
     
     const updateTextTooltips = useCallback(() => {
@@ -483,7 +567,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         let width = d3.select(".react-pdf__Page__canvas").node()?.getBoundingClientRect().right;
         let left = d3.select(".react-pdf__Page__canvas").node()?.getBoundingClientRect().left;
 
-        function processStrokeList(d, index, type="fill") {
+        function processStrokeList(d, _, type="fill") {
             if (clusterRef.current.length === 0) 
                 return [];
 
@@ -505,18 +589,17 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 if (strokeID !== "initial" && !d3.select(`path[id="${strokeID}"]`).empty()) {
                     let strokeColour = d3.select(`path[id="${strokeID}"]`).style("stroke");
 
-                    if (!clusterRef.current[index].open && type === "border") {
-                        if (clusterRef.current[index].annotating || clusterRef.current[index].purpose === false) {
+                    if (!clusterRef.current[idx].open && type === "border") {
+                        if (clusterRef.current[idx].annotating || clusterRef.current[idx].purpose === false) {
                             strokeColour = "#F96900";
-                        } else if (clusterRef.current[index].annotating === false) {
+                        } else if (clusterRef.current[idx].annotating === false) {
                             strokeColour = "#06D6A0";
-                        } else if (clusterRef.current[index].purpose) {
+                        } else if (clusterRef.current[idx].purpose) {
                             strokeColour = "#FFFD82";
                         } else {
                             strokeColour = "rgba(0, 0, 0, 0)";
                         }
                     }
-
                     strokeList.push({bbox: stroke.bbox, colour: strokeColour});
                 } else if (strokeID !== "initial") {
                     strokeList.push({bbox: stroke.bbox, colour: "black"});
@@ -1009,7 +1092,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                         }
                     }
                 })
-                .on("pointerout", function(d) {
+                .on("pointerout pointerleave", function(d) {
                     for (let cluster of clusterRef.current) {
                         if (cluster.open) {
                             d3.selectAll("path.lineDraw")
@@ -2114,7 +2197,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                     }
                                 }
                             })
-                            .on("pointerout", function(d) {
+                            .on("pointerout pointerleave", function(d) {
                                 for (let cluster of clusterRef.current) {
                                     if (cluster.open) {
                                         d3.selectAll("path.lineDraw")

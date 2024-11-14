@@ -62,7 +62,7 @@ ${purpose}
 Here is a step-by-step list for annotating a document:
 
 1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way.
-2. Explain why you annnotated the sentence.
+2. Explain why you annotated the sentence.
 3. Suggest fixes for the sentence by describing the fix without giving the answer.
 4. Combine the explanation and suggestion without quoting the sentence using less than 20 words.
 5. Do not include any sentences that need no modification.
@@ -77,7 +77,7 @@ Here is a step-by-step list for annotating a document:
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-            `Walk me through one question at a time in manageable parts step by step, summarizing and analyzing as we go to make sure we have all the setences needed to be annotated`
+            `Walk me through one question at a time in manageable parts step by step, summarizing and analyzing as we go to make sure we have all the sentences needed to be annotated`
         });
 
         let totalRuns = 0;
@@ -157,7 +157,7 @@ Here is a step-by-step list for annotating a document:
                     }
     
                     await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Have you finished marking all eight questions? Respond with only "yes" if you are done. Otherwise continue marking until all eight questions are marked without mentioning previous sentences.`
+                        `Have you finished marking all eight questions? Respond with "yes" if you are done. Otherwise continue marking until all eight questions are marked without mentioning previous sentences.`
                     });
     
                     executeRun(true);
@@ -180,6 +180,20 @@ export async function makeInference(image1, image2, type, annotatedText) {
     let file1, file2;
     console.log(image1, image2);
     console.log(type, annotatedText);
+    let typeAnnotatedText = "";
+
+    if (annotatedText instanceof Array) {
+        for (let i = 0; i < annotatedText.length; i++) {
+            typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
+
+            if (i < annotatedText.length - 1) {
+                typeAnnotatedText += " and ";
+            }
+        }
+    } else {
+        typeAnnotatedText = `${type} "${annotatedText}"`;
+    }
+    console.log(typeAnnotatedText);
     
     if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
         return new Promise(
@@ -268,7 +282,7 @@ export async function makeInference(image1, image2, type, annotatedText) {
                             },
                             {
                                 type: "text",
-                                text: `The user is marking an English test in red pen strokes and has ${type}:\n"${annotatedText}".`
+                                text: `The user is marking an English test in red pen strokes and has ${typeAnnotatedText}.`
                             },
                         ],
                     },

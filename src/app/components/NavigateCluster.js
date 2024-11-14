@@ -39,7 +39,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         let lastIndex = annotationsRef.current.length - 1;
 
         let filteredAnnotations = filterRef.current ? annotationsRef.current.filter(annotation => !annotation.spans[0].classList?.contains("toolTip")) : annotationsRef.current;
-        let indexFilter = filterRef.current ? filteredAnnotations.indexOf(currentAnnotation) : index.current;
+        let indexFilter = filterRef.current ? filteredAnnotations.indexOf(annotationsRef.current[index.current]) : index.current;
         
         if (indexFilter === -1) {
             return;
@@ -81,7 +81,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
             d3.select("#topButton").classed("disabled", topDisabled);
             d3.select("#bottomButton").classed("disabled", bottomDisabled);
         }
-    }, [currentAnnotation]);
+    }, []);
 
     let onPrev = () => {
         // if (resetIndex.current) {

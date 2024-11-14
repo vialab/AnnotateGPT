@@ -593,10 +593,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         }
     }
 
-    async function setUpAnnotations(annotationDescription, purposeTitle, purpose, onDetect, onEnd, forwardRef) {
+    async function setUpAnnotations(annotationDescription, purposeTitle, purpose, onDetect, onEnd, forwardRef, secondRun = false, filter = []) {
         rawAnnotationOutput.current.push({ output: "" });
         let index = rawAnnotationOutput.current.length - 1;
-        let setUpAnnotatedTokens = [];
+        let setUpAnnotatedTokens = [].concat(filter);
         let cutIndex = [];
         let done = 0;
         let finish = false;
@@ -863,8 +863,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
                 }
 
-                if (onEnd instanceof Function) {
-                    onEnd(rawAnnotationOutput.current[index].output);
+                if (!secondRun && setUpAnnotatedTokens.length <= 1) {
+                    setUpAnnotations(annotationDescription, purposeTitle, purpose, onDetect, onEnd, forwardRef, true, setUpAnnotatedTokens);
+                } else {
+                    if (onEnd instanceof Function) {
+                        let p = secondRun ? `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"` :  `${purposeTitle}`;
+                        onEnd((secondRun ? "<secondRun>" : "") + p + "\n" + rawAnnotationOutput.current[index].output);
+                    }
                 }
                 console.log(annotatedTokens.current);
                 // console.log(rawAnnotationOutput.current[index].output);
@@ -874,18 +879,26 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
             await new Promise(r => setTimeout(r, 2000));
             let message = "";
+            // let testData = `*** Suspendisse quis lorem sed est blandit sodales. ***
+            // {{ Test Explanation }}
+            // *** Sed sit amet rutrum metus. Integer in erat tellus. ***
+            // {{ Test Explanation }}
+            // *** Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. ***
+            // {{ Test Explanation }}
+            // *** Cras auctor faucibus lectus, a semper enim. Phasellus pellentesque tellus ut neque maximus dictum. ***
+            // {{ Test Explanation }}
+            // *** Duis molestie velit in auctor interdum. ***
+            // {{ Test Explanation }}
+            // `;
+            
             let testData = `*** Then you show your little light, ***
             {{ Test Explanation (Results Faked) }}
-            
             *** Then the traveler in the dark ***
             {{ Test Explanation (Results Faked) }}
-
             *** Often through my curtains peep ***
             {{ Test Explanation (Results Faked) }}
-
             *** For you never shut your eye ***
             {{ Test Explanation (Results Faked) }}
-
             *** Like a diamond in the sky ***
             {{ Test Explanation (Results Faked) }}
             `;
@@ -900,12 +913,17 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
             handleEnd();
         } else {
-            let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"`;
+            if (!secondRun) {
+                let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"`;
 
-            if (purpose.trim() !== "") {
-                p += `: "${purpose}"`;
+                if (purpose.trim() !== "") {
+                    p += `: "${purpose}"`;
+                }
+                findAnnotations(p, handleToken, handleEnd);
+            } else {
+                let p = `${purposeTitle}`;
+                findAnnotations(p, handleToken, handleEnd);
             }
-            findAnnotations(p, handleToken, handleEnd);
         }
     }
     
@@ -2146,6 +2164,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             </div>
                         </div>
                         {message}
+                        <div style={{ fontSize: "small", marginTop: "10px" }} >
+                            <i>Purpose: { overlappingAnnotation.groupAnnotation.purposeTitle }</i>
+                        </div>
                     </div>
                 );
             }
@@ -2202,7 +2223,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         <div className={"annotationMessageContainer " + googleSans.className}>
             { annotationMessages }
             { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Reply" /> : null }
-            <i style={{ fontSize: "small", marginTop: "-10px" }} >Purpose: { cluster.searching.purposeTitle }</i>
             
             <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
         </div>;

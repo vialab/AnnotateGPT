@@ -8,8 +8,8 @@ const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
 const app = admin.apps.length ? admin.apps[0] : admin.initializeApp({
     credential: admin.credential.cert({
         projectId: credentials.project_id,
-        clientEmail: credentials.client_email,
-        privateKey: credentials.private_key
+        client_email: credentials.client_email,
+        private_key: credentials.private_key,
     }),
 }, "service");
 

@@ -888,7 +888,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
 
         preTaskContent.current.push({
             "content": <div style={{ textAlign: "center" }}>
-                Are you ready to practice?
+                Are you ready to practice? (This is not the actual task)
             </div>,
             "prev": true,
             "confirm": true,

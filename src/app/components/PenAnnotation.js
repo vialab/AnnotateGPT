@@ -13,54 +13,95 @@ import './css/PenAnnotation.css';
 import toolbarStyles from "./css/Toolbar.module.css";
 import { googleSans } from '../page';
 
-function isHorizontalLine(coordinates) {
-    if (coordinates.length < 2) {
+// function isHorizontalLine(coordinates) {
+//     if (coordinates.length < 2) {
+//         return false;
+//     }
+
+//     // function getDisplacement(point1, point2) {
+//     //     var dx = point2[0] - point1[0];
+//     //     var dy = point2[1] - point1[1];
+//     //     return dx * dx + dy * dy;
+//     // }
+
+//     // let totalDistance = coordinates.reduce((acc, curr, i) => {
+//     //     if (i === 0) {
+//     //         return acc;
+//     //     }
+//     //     return acc + getDisplacement(coordinates[i - 1], curr);
+//     // }, 0);
+//     // let totalDisplacement = getDisplacement(coordinates[0], coordinates[coordinates.length - 1]);
+    
+//     // if (totalDistance >= totalDisplacement * 1.5) {
+//     //     return false;
+//     // }
+//     let y = coordinates[0][1];
+
+//     for (let i = 1; i < coordinates.length; i++) {
+//         if (coordinates[i][1] < y - 20 || coordinates[i][1] > y + 20) {
+//             return false;
+//         }
+//     }
+
+//     let current = coordinates[0];
+//     let averageX = 0;
+//     let averageY = 0;
+
+//     for (let i = 1; i < coordinates.length; i++) {
+//         let next = coordinates[i];
+
+//         averageX += next[0] - current[0];
+//         averageY += next[1] - current[1];
+
+//         current = next;
+//     }
+//     averageX /= coordinates.length - 1;
+//     averageY /= coordinates.length - 1;
+
+//     console.log(averageX, averageY, averageX / averageY);
+
+//     return Math.abs(averageX / averageY) > 15;
+// }
+
+function isHorizontalLine(coords, maxYVariance = 5, maxDirectionChanges = 3) {
+    // Extract x and y values from coordinates
+    if (coords.length < 2) {
         return false;
     }
 
-    // function getDisplacement(point1, point2) {
-    //     var dx = point2[0] - point1[0];
-    //     var dy = point2[1] - point1[1];
-    //     return dx * dx + dy * dy;
-    // }
+    let y = coords[0][1];
 
-    // let totalDistance = coordinates.reduce((acc, curr, i) => {
-    //     if (i === 0) {
-    //         return acc;
-    //     }
-    //     return acc + getDisplacement(coordinates[i - 1], curr);
-    // }, 0);
-    // let totalDisplacement = getDisplacement(coordinates[0], coordinates[coordinates.length - 1]);
-    
-    // if (totalDistance >= totalDisplacement * 1.5) {
-    //     return false;
-    // }
-    let y = coordinates[0][1];
-
-    for (let i = 1; i < coordinates.length; i++) {
-        if (coordinates[i][1] < y - 20 || coordinates[i][1] > y + 20) {
+    for (let i = 1; i < coords.length; i++) {
+        if (coords[i][1] < y - 20 || coords[i][1] > y + 20) {
             return false;
         }
     }
+    // const xVals = coords.map(pt => pt[0]);
+    const yVals = coords.map(pt => pt[1]);
 
-    let current = coordinates[0];
-    let averageX = 0;
-    let averageY = 0;
+    // Calculate the variance of y-values
+    const meanY = yVals.reduce((a, b) => a + b) / yVals.length;
+    const yVariance = yVals.reduce((sum, y) => sum + (y - meanY) ** 2, 0) / yVals.length;
 
-    for (let i = 1; i < coordinates.length; i++) {
-        let next = coordinates[i];
+    // console.log(yVariance);
 
-        averageX += next[0] - current[0];
-        averageY += next[1] - current[1];
-
-        current = next;
+    if (yVariance > maxYVariance) {
+        return false; // Too much vertical variation for a horizontal line
     }
-    averageX /= coordinates.length - 1;
-    averageY /= coordinates.length - 1;
 
-    // console.log(averageX / averageY);
+    // Check if x-values move predominantly in one direction
+    // let directionChanges = 0;
+    // for (let i = 1; i < xVals.length - 1; i++) {
+    //     if ((xVals[i] - xVals[i - 1]) * (xVals[i + 1] - xVals[i]) < 0) {
+    //         directionChanges++;
+    //     }
+    // }
 
-    return Math.abs(averageX / averageY) > 15;
+    // if (directionChanges > maxDirectionChanges) {
+    //     return false; // Too many changes in direction for a straight line
+    // }
+
+    return true;
 }
 
 function findClosestLine(lines, point) {
