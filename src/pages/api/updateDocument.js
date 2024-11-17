@@ -4,7 +4,7 @@ import path from "path";
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
 const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
-let document1ID = process.env.NEXT_PUBLIC_DOCUMENT_ONE_ID, document2ID = process.env.NEXT_PUBLIC_DOCUMENT_TWO_ID;
+let document1ID = process.env.NEXT_PUBLIC_DOCUMENT_ONE_ID, document2ID = process.env.NEXT_PUBLIC_DOCUMENT_TWO_ID, practiceDocumentID = process.env.NEXT_PUBLIC_PRACTICE_DOCUMENT_ID;
 
 let loading = false;
 
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
                 const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
         
                 for (let file of vectorStoreFiles.data) {
-                    if ((document1ID && file.id === document1ID) || (document2ID && file.id === document2ID)) {
+                    if ((document1ID && file.id === document1ID) || (document2ID && file.id === document2ID) || (practiceDocumentID && file.id === practiceDocumentID)) {
                         openai.beta.vectorStores.files.del(vectorStoreID, file.id)
                         .catch((error) => {
                             console.error(error.error.message, "in vector store");
@@ -132,6 +132,8 @@ export default async function handler(req, res) {
                                     currentDocumentID = document1ID;
                                 } else if (filePath.endsWith("Test 2.pdf") && document2ID) {
                                     currentDocumentID = document2ID;
+                                } else if (filePath.endsWith("Practice.pdf") && practiceDocumentID) {
+                                    currentDocumentID = practiceDocumentID;
                                 } else {
                                     processDocument = createReadStream(path.resolve("./public", filePath));
                                 }
@@ -147,11 +149,13 @@ export default async function handler(req, res) {
                                     }
                                 });
 
-                                if (fileID && (!document1ID || !document2ID)) {
+                                if (fileID && (!document1ID || !document2ID || !practiceDocumentID)) {
                                     if (filePath.endsWith("Test 1.pdf")) {
                                         document1ID = fileID;
                                     } else if (filePath.endsWith("Test 2.pdf")) {
                                         document2ID = fileID;
+                                    } else if (filePath.endsWith("Practice.pdf")) {
+                                        practiceDocumentID = fileID;
                                     }
                                 }
                             } else {

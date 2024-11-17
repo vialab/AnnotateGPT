@@ -863,68 +863,55 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
                 }
 
-                if (!secondRun && setUpAnnotatedTokens.length <= 1) {
-                    setUpAnnotations(annotationDescription, purposeTitle, purpose, onDetect, onEnd, forwardRef, true, setUpAnnotatedTokens);
-                } else {
-                    if (onEnd instanceof Function) {
-                        let p = secondRun ? `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"` :  `${purposeTitle}`;
-                        onEnd((secondRun ? "<secondRun>" : "") + p + "\n" + rawAnnotationOutput.current[index].output);
-                    }
+                if (onEnd instanceof Function) {
+                    let p = `${purposeTitle}: "${purpose}"`;
+                    onEnd(p + "\n" + rawAnnotationOutput.current[index].output);
                 }
                 console.log(annotatedTokens.current);
                 // console.log(rawAnnotationOutput.current[index].output);
             }
         }
 
-        if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
-            await new Promise(r => setTimeout(r, 2000));
-            let message = "";
-            // let testData = `*** Suspendisse quis lorem sed est blandit sodales. ***
-            // {{ Test Explanation }}
-            // *** Sed sit amet rutrum metus. Integer in erat tellus. ***
-            // {{ Test Explanation }}
-            // *** Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. ***
-            // {{ Test Explanation }}
-            // *** Cras auctor faucibus lectus, a semper enim. Phasellus pellentesque tellus ut neque maximus dictum. ***
-            // {{ Test Explanation }}
-            // *** Duis molestie velit in auctor interdum. ***
-            // {{ Test Explanation }}
-            // `;
+        // if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
+        //     await new Promise(r => setTimeout(r, 2000));
+        //     let message = "";
+        //     // let testData = `*** Suspendisse quis lorem sed est blandit sodales. ***
+        //     // {{ Test Explanation }}
+        //     // *** Sed sit amet rutrum metus. Integer in erat tellus. ***
+        //     // {{ Test Explanation }}
+        //     // *** Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. ***
+        //     // {{ Test Explanation }}
+        //     // *** Cras auctor faucibus lectus, a semper enim. Phasellus pellentesque tellus ut neque maximus dictum. ***
+        //     // {{ Test Explanation }}
+        //     // *** Duis molestie velit in auctor interdum. ***
+        //     // {{ Test Explanation }}
+        //     // `;
             
-            let testData = `*** Then you show your little light, ***
-            {{ Test Explanation (Results Faked) }}
-            *** Then the traveler in the dark ***
-            {{ Test Explanation (Results Faked) }}
-            *** Often through my curtains peep ***
-            {{ Test Explanation (Results Faked) }}
-            *** For you never shut your eye ***
-            {{ Test Explanation (Results Faked) }}
-            *** Like a diamond in the sky ***
-            {{ Test Explanation (Results Faked) }}
-            `;
+        //     let testData = `*** Then you show your little light, ***
+        //     {{ Test Explanation (Results Faked) }}
+        //     *** Then the traveler in the dark ***
+        //     {{ Test Explanation (Results Faked) }}
+        //     *** Often through my curtains peep ***
+        //     {{ Test Explanation (Results Faked) }}
+        //     *** For you never shut your eye ***
+        //     {{ Test Explanation (Results Faked) }}
+        //     *** Like a diamond in the sky ***
+        //     {{ Test Explanation (Results Faked) }}
+        //     `;
 
-            for (let token of testData.split(" ")) {
-                // console.log(token);
-                await new Promise(r => setTimeout(r, 10));
-                token = " " + token;
-                message += token;
+        //     for (let token of testData.split(" ")) {
+        //         // console.log(token);
+        //         await new Promise(r => setTimeout(r, 10));
+        //         token = " " + token;
+        //         message += token;
 
-                handleToken(token);
-            }
-            handleEnd();
-        } else {
-            if (!secondRun) {
-                let p = `${annotationDescription}${annotationDescription.trim().endsWith(".") ? "" : "."} "${purposeTitle}"`;
-
-                if (purpose.trim() !== "") {
-                    p += `: "${purpose}"`;
-                }
-                findAnnotations(p, handleToken, handleEnd);
-            } else {
-                let p = `${purposeTitle}`;
-                findAnnotations(p, handleToken, handleEnd);
-            }
-        }
+        //         handleToken(token);
+        //     }
+        //     handleEnd();
+        // } else {
+        let p = `${purposeTitle}: "${purpose}"`;
+        findAnnotations(p, handleToken, handleEnd, (typeof mode === "string" && mode.toLowerCase().includes("practice") ? 1 : 8));
+        // }
     }
     
     function findMostSimilarSubstring() {
@@ -2473,10 +2460,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         setLoading(true);
         setProgress(0);
 
-        if (typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("practice")) {
-            setLoadingDocument(false);
-            return;
-        }
+        // if (typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("practice")) {
+        //     setLoadingDocument(false);
+        //     return;
+        // }
         setLoadingDocument(true);
 
         let payload;

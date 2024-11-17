@@ -15,6 +15,9 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // makeInference(img.img1, img.img2, "underlined", "utilizes").catch(console.error);
 // makeInference(img.img7, img.img8, "circled", "8 ] utilizes").catch(console.error);
 // makeInference(img.img5, img.img6, "annotated (not circled, underlined or highlighted)", "(i.e.").catch(console.error).then(console.log);
+// makeInference(img.img9, img.img10, "underlined", "the prospective cycles of your education life.").catch(console.error).then(console.log);
+// makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"]).catch(console.error).then(console.log);
+// makeInference(img.img13, img.img14, ["circled"], ["extol"]).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -24,31 +27,35 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // findAnnotations(`The word 'utilizes' is underlined, and there is a handwritten note beside it suggesting to 'replace with 'use''. "Simplification of Vocabulary": "The editor has underlined the word to suggest a simpler or more direct vocabulary in the manuscript, which may help in making the text more accessible and easier to understand."`)
 // findAnnotations(`"Literature Review"`)
 // findAnnotations(`"Syntactic Errors: Look for misplaced modifiers, incorrect verb forms, or run-on sentences"`)
+// findAnnotations(`"Grammar/Usage Correction: Word-Specific: You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence."`)
+// findAnnotations(`"Grammar/Usage Correction: You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly."`)
+// findAnnotations(`Ensuring Gender-Inclusive Language (word-specific): You are testing the grammatical appropriateness of using 'he' by suggesting possible corrections to align the pronouns in the text with gender neutrality or specificity, as deemed fitting by the context.`)
+// findAnnotations(`Ensuring Gender-Inclusive Language: You are promoting gender-neutral or inclusive language use in textual representations, enabling broader interpretations and engagement with the text in terms of gender sensitivity.`)
 
-export async function findAnnotations(purpose, callback, endCallback) {
+export async function findAnnotations(purpose, callback, endCallback, n=8) {
     console.log(purpose);
     
-    if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
-        let message = "";
-        // await new Promise(r => setTimeout(r, 3000));
+    // if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+    //     let message = "";
+    //     // await new Promise(r => setTimeout(r, 3000));
 
-        for (let token of data.test20) {
-            // console.log(token);
-            // await new Promise(r => setTimeout(r, 0.1));
-            message += token;
+    //     for (let token of data.test20) {
+    //         // console.log(token);
+    //         // await new Promise(r => setTimeout(r, 0.1));
+    //         message += token;
 
-            if (callback instanceof Function) {
-                callback(token);
-            }
-        }
-        await new Promise(r => setTimeout(r, 8000));
+    //         if (callback instanceof Function) {
+    //             callback(token);
+    //         }
+    //     }
+    //     // await new Promise(r => setTimeout(r, 8000));
 
-        if (endCallback instanceof Function)
-            endCallback();
+    //     if (endCallback instanceof Function)
+    //         endCallback();
 
-        console.log(message);
-        return;
-    }
+    //     console.log(message);
+    //     return;
+    // }
 
     try {
         const thread = await openai.beta.threads.create();
@@ -57,11 +64,11 @@ export async function findAnnotations(purpose, callback, endCallback) {
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
 `You are an expert in English grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
 
-${purpose}
+"${purpose}"
 
 Here is a step-by-step list for annotating a document:
 
-1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way.
+1. Describe what details in sentences to look for in the document. Be specific. Do not change the original purpose in any way. If the purpose is word/phrase-specific, describe the specific word or phrase to look for that is in the purpose.
 2. Explain why you annotated the sentence.
 3. Suggest fixes for the sentence by describing the fix without giving the answer.
 4. Combine the explanation and suggestion without quoting the sentence using less than 20 words.
@@ -81,7 +88,7 @@ Here is a step-by-step list for annotating a document:
         });
 
         let totalRuns = 0;
-        let maxRuns = 8;
+        let maxRuns = Math.max(3, n);
 
         const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
         const vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
@@ -148,7 +155,7 @@ Here is a step-by-step list for annotating a document:
                             return;
                         } else if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`)) {
                             await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                                `Please proceed marking all eight questions without mentioning previous sentences.`
+                                `Please proceed marking all ${n} questions without repeating previous sentences. Respond with "yes" if you are done.`
                             });
     
                             executeRun(true);
@@ -157,7 +164,10 @@ Here is a step-by-step list for annotating a document:
                     }
     
                     await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Have you finished marking all eight questions? Respond with "yes" if you are done. Otherwise continue marking until all eight questions are marked without mentioning previous sentences.`
+                        `Have you finished marking all ${n} questions? Respond with "yes" if you are done. Otherwise continue marking until all eight questions are marked without repeating previous sentences.`
+                    })
+                    .catch((error) => {
+                        throw error;
                     });
     
                     executeRun(true);
@@ -176,7 +186,7 @@ Here is a step-by-step list for annotating a document:
     }
 }
 
-export async function makeInference(image1, image2, type, annotatedText) {
+export async function makeInference(image1, image2, type, annotatedText, specific=false) {
     let file1, file2;
     console.log(image1, image2);
     console.log(type, annotatedText);
@@ -195,46 +205,46 @@ export async function makeInference(image1, image2, type, annotatedText) {
     }
     console.log(typeAnnotatedText);
     
-    if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
-        return new Promise(
-            resolve => {
-                setTimeout(() => {
-                    console.log("Resolving promise...");
+    // if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+    //     return new Promise(
+    //         resolve => {
+    //             setTimeout(() => {
+    //                 console.log("Resolving promise...");
 
-                    resolve({
-                        rawText: "Bla bla bla...",
-                        result: JSON.parse(`{
-                            "annotationDescription": "The user has circled '8 ] utilizes' in the document. The annotation involves the text being encased in a hand-drawn circle, emphasizing the phrase within the context of the surrounding text.",
-                            "pastAnnotationHistory": "Previous annotations have included both simplification of terminology (replacing 'utilize' with 'use') and recommendations for improvement or refinements, such as suggesting a better title for a thesis to better align it with academic standards or market expectations【6:1†history.txt】.",
-                            "purpose": [
-                                {
-                                    "persona": "Academic Researcher",
-                                    "purpose": "The annotation might serve to highlight a reference or method being used in a scholarly context, implying interest in or critique of the source or methodology cited.",
-                                    "purposeTitle": "Highlighting Scholarly Reference"
-                                },
-                                {
-                                    "persona": "Student",
-                                    "purpose": "The student might have circled this text to remind themselves to look up the reference later, or to make a note of a significant term or concept that will be on an exam.",
-                                    "purposeTitle": "Noting Significant Reference"
-                                },
-                                {
-                                    "persona": "Editor or Reviewer",
-                                    "purpose": "The circle might signify that the term 'utilizes' is either misused or can be replaced with a simpler word, similar to previous annotations where complex terms were simplified.",
-                                    "purposeTitle": "Indication of Simplification"
-                                },
-                                {
-                                    "persona": "Curious Reader",
-                                    "purpose": "The reader may have circled this to indicate confusion or a point of interest, possibly requiring further investigation or clarity in the terminology or citation mentioned.",
-                                    "purposeTitle": "Identification of Confusing Content"
-                                }
-                            ]
-                        }`)
-                    });
+    //                 resolve({
+    //                     rawText: "Bla bla bla...",
+    //                     result: JSON.parse(`{
+    //                         "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
+    //                         "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
+    //                         "purpose": [
+    //                             {
+    //                                 "persona": "Persona 1 (Teacher, Corrective)",
+    //                                 "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
+    //                                 "purposeTitle": "Grammar/Usage Correction: Word-Specific"
+    //                             },
+    //                             {
+    //                                 "persona": "Persona 2 (Student, Learning)",
+    //                                 "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
+    //                                 "purposeTitle": "Vocabulary Expansion: Word-Specific"
+    //                             },
+    //                             {
+    //                                 "persona": "Persona 1 (Teacher, Corrective)",
+    //                                 "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
+    //                                 "purposeTitle": "Grammar/Usage Correction"
+    //                             },
+    //                             {
+    //                                 "persona": "Persona 2 (Student, Learning)",
+    //                                 "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
+    //                                 "purposeTitle": "Vocabulary Expansion"
+    //                             }
+    //                         ]
+    //                     }`)
+    //                 });
                         
-                }, 1000);
-            } 
-        );
-    }
+    //             }, 1000);
+    //         } 
+    //     );
+    // }
     
     return new Promise(async (resolve, reject) => {
         try {
@@ -262,34 +272,48 @@ export async function makeInference(image1, image2, type, annotatedText) {
                 getFile(image2)
             ]);
             console.log("Done uploading files");
-            
-            const thread = await openai.beta.threads.create({
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            {
-                                type: "image_file",
-                                image_file: {
-                                    file_id: file1.id,
-                                }
-                            },
-                            {
-                                type: "image_file",
-                                image_file: {
-                                    file_id: file2.id,
-                                }
-                            },
-                            {
-                                type: "text",
-                                text: `The user is marking an English test in red pen strokes and has ${typeAnnotatedText}.`
-                            },
-                        ],
-                    },
-                    {
-                        role: "user",
-                        content: `Parse your response as a JSON object in this format:
-{
+
+            let criteria = specific
+                ? `4. Give two different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.
+5. For each guess, give two levels of detail: specific and broad. When describing with specific, describe the purpose, so it is specific to the words of the annotated text. When describing with broad, use umbrella terms without using the annotated text.`
+                : `4. Give four different guesses of what the purpose can be using different personas and past annotation history. The purposes should have different themes and relate to the context.`;
+
+
+            let formatCriteria = specific
+                ? `{
+    "annotationDescription": "<annotation description>",
+    "pastAnnotationHistory": "<annotation history>",
+    "purpose": [
+        {
+            "persona": "<persona 1>",
+            "purpose": "<broad_purpose 1>",
+            "purposeTitle": "<broad_purpose_title 1>"
+        },
+        {
+            "persona": "<persona 2>",
+            "purpose": "<broad_purpose 2>",
+            "purposeTitle": "<broad_purpose_title 2>"
+        },
+        {
+            "persona": "<persona 1>",
+            "purpose": "<specific_purpose 1>",
+            "purposeTitle": "<specific_purpose_title 1>"
+        },
+        {
+            "persona": "<persona 2>",
+            "purpose": "<specific_purpose 2>",
+            "purposeTitle": "<specific_purpose_title 2>"
+        }
+    ]
+}
+
+<annotation description>: is a detailed description of the annotation.
+<annotation history>: is a detailed annotation history related to the annotation.
+<specific_purpose>: is a description of the annotation purpose and annotation type using <annotation description> and <annotation history> as context. Talk in the second person (you, your, etc.) without mentioning the persona. Be specific.
+<broad_purpose>: is a broader description of the <specific_purpose> without using the <annotation description>. The purpose should talk about the text as a whole. Talk in the second person (you, your, etc.) without mentioning the persona. Be specific.
+<broad_purpose_title>: is a short title for <specific_purpose> without mentioning the persona, be very specific.
+<specific_purpose_title>: is a short title for <specific_purpose> without mentioning the persona, be very specific. It should have the same wording as <broad_purpose_title>, but the title must have "word-specific" or "phrase-specific" depending on the annotated text.`
+            :  `{
     "annotationDescription": "<annotation description>",
     "pastAnnotationHistory": "<annotation history>",
     "purpose": [
@@ -319,14 +343,57 @@ export async function makeInference(image1, image2, type, annotatedText) {
 <annotation description>: is a detailed description of the annotation.
 <annotation history>: is a detailed annotation history related to the annotation.
 <purpose>: is a description of the annotation purpose and annotation type using the <annotation description> and <annotation history> as context. Talk in second person (you, your, etc.) and use as few words as possible.
-<purpose_title>: is a short title for <purpose> without mentioning the persona, be very specific.`
+<purpose_title>: is a short title for <purpose> without mentioning the persona, be very specific.`;
+            
+            const thread = await openai.beta.threads.create({
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            {
+                                type: "image_file",
+                                image_file: {
+                                    file_id: file1.id,
+                                }
+                            },
+                            {
+                                type: "image_file",
+                                image_file: {
+                                    file_id: file2.id,
+                                }
+                            },
+                            {
+                                type: "text",
+                                text: `Context: The user is marking an English test in red pen strokes and has ${typeAnnotatedText}.
+
+Types of annotation:
+- circles or boxes
+- underlining
+- highlighting
+- crossing out
+- handwritten notes/text (write out what the note/text says)
+- punctuation marks (e.g., commas, periods, question marks, asterisks, etc.), choose which one
+- arrows
+- brackets, angle brackets, or braces
+
+Here are the steps:
+1. Describe the annotation by reviewing the list of annotation types for possibilities.
+2. Look at past annotation history in your knowledge base 
+3. Summarize your past findings and relate them to the annotation
+${criteria}`
+                            },
+                        ],
+                    },
+                    {
+                        role: "user",
+                        content: `Describe your steps first using your step-by-step list then, parse your response as a JSON object in this format:\n${formatCriteria}`
                     },
                     {
                         role: "user",
                         content: [
                             {
                                 type: "text",
-                                text: "Let's work this out in a step by step way to be sure we have describe the annotation with the context of past history."
+                                text: "Let's work this out in a step by step way to be sure we have described the annotation in the context of past history and determined thematically different purposes that matches the user's context (The user is marking an English test)."
                             }
                         ],
                     }
@@ -418,6 +485,13 @@ export async function makeInference(image1, image2, type, annotatedText) {
             const message = messages.data.pop();
             
             console.log(message);
+
+            if (!message) {
+                openai.beta.threads.runs.retrieve(thread.id, run.id)
+                .then((run) => {
+                    console.log(run);
+                });
+            }
         
             if (message.content[0].type === "text") {
                 const { text } = message.content[0];

@@ -91,77 +91,77 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
     }, [mode]);
 
     const inferPurpose = useCallback(async (lastCluster) => {
-        if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
-            return new Promise(
-                resolve => {
-                    setTimeout(() => {
-                        console.log("Resolving promise...");
+        // if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
+        //     return new Promise(
+        //         resolve => {
+        //             setTimeout(() => {
+        //                 console.log("Resolving promise...");
                         
-                        // resolve({
-                        //     rawText: "Bla bla bla...",
-                        //     result: JSON.parse(`{
-                        //         "annotationDescription": "Test",
-                        //         "pastAnnotationHistory": "Test",
-                        //         "purpose": [
-                        //             {
-                        //                 "persona": "Persona 1",
-                        //                 "purpose": "Purpose 1",
-                        //                 "purposeTitle": "Purpose 1"
-                        //             },
-                        //             {
-                        //                 "persona": "Persona 2",
-                        //                 "purpose": "Purpose 2",
-                        //                 "purposeTitle": "Purpose 2"
-                        //             },
-                        //             {
-                        //                 "persona": "Persona 3",
-                        //                 "purpose": "Purpose 3",
-                        //                 "purposeTitle": "Purpose 3"
-                        //             },
-                        //             {
-                        //                 "persona": "Persona 4",
-                        //                 "purpose": "Purpose 4",
-                        //                 "purposeTitle": "Purpose 4"
-                        //             }
-                        //         ]
-                        //     }`),
-                        //     images: ["test image 1", "test image 2"]
-                        // });
-                        resolve({
-                            rawText: "Bla bla bla...",
-                            result: JSON.parse(`{
-                                "annotationDescription": "test",
-                                "pastAnnotationHistory": "test.",
-                                "purpose": [
-                                    {
-                                        "persona": "Literary Critic",
-                                        "purpose": "You may underline this line to mark a transition point or symbolic imagery pivotal to the poem’s theme. (Results Faked)",
-                                        "purposeTitle": "Marking Symbolic Imagery (Results Faked)"
-                                    },
-                                    {
-                                        "persona": "Student",
-                                        "purpose": "You could underline this line to prepare for an exam where understanding key literary elements or transitions is crucial. (Results Faked)",
-                                        "purposeTitle": "Highlighting Key Literary Element (Results Faked)"
-                                    },
-                                    {
-                                        "persona": "Poetry Enthusiast",
-                                        "purpose": "You underline this line to revisit an emotionally impactful moment that resonates personally within the poem. (Results Faked)",
-                                        "purposeTitle": "Emphasizing Emotional Impact (Results Faked)"
-                                    },
-                                    {
-                                        "persona": "Teacher",
-                                        "purpose": "You underline this line to indicate it should be discussed in class for its metaphorical value and connection. (Results Faked)",
-                                        "purposeTitle": "Indicating Discussion Point (Results Faked)"
-                                    }
-                                ]
-                            }`),
-                            images: ["test image 1", "test image 2"]
-                        });
+        //                 // resolve({
+        //                 //     rawText: "Bla bla bla...",
+        //                 //     result: JSON.parse(`{
+        //                 //         "annotationDescription": "Test",
+        //                 //         "pastAnnotationHistory": "Test",
+        //                 //         "purpose": [
+        //                 //             {
+        //                 //                 "persona": "Persona 1",
+        //                 //                 "purpose": "Purpose 1",
+        //                 //                 "purposeTitle": "Purpose 1"
+        //                 //             },
+        //                 //             {
+        //                 //                 "persona": "Persona 2",
+        //                 //                 "purpose": "Purpose 2",
+        //                 //                 "purposeTitle": "Purpose 2"
+        //                 //             },
+        //                 //             {
+        //                 //                 "persona": "Persona 3",
+        //                 //                 "purpose": "Purpose 3",
+        //                 //                 "purposeTitle": "Purpose 3"
+        //                 //             },
+        //                 //             {
+        //                 //                 "persona": "Persona 4",
+        //                 //                 "purpose": "Purpose 4",
+        //                 //                 "purposeTitle": "Purpose 4"
+        //                 //             }
+        //                 //         ]
+        //                 //     }`),
+        //                 //     images: ["test image 1", "test image 2"]
+        //                 // });
+        //                 resolve({
+        //                     rawText: "Bla bla bla...",
+        //                     result: JSON.parse(`{
+        //                         "annotationDescription": "test",
+        //                         "pastAnnotationHistory": "test.",
+        //                         "purpose": [
+        //                             {
+        //                                 "persona": "Literary Critic",
+        //                                 "purpose": "You may underline this line to mark a transition point or symbolic imagery pivotal to the poem’s theme. (Results Faked)",
+        //                                 "purposeTitle": "Marking Symbolic Imagery (Results Faked)"
+        //                             },
+        //                             {
+        //                                 "persona": "Student",
+        //                                 "purpose": "You could underline this line to prepare for an exam where understanding key literary elements or transitions is crucial. (Results Faked)",
+        //                                 "purposeTitle": "Highlighting Key Literary Element (Results Faked)"
+        //                             },
+        //                             {
+        //                                 "persona": "Poetry Enthusiast",
+        //                                 "purpose": "You underline this line to revisit an emotionally impactful moment that resonates personally within the poem. (Results Faked)",
+        //                                 "purposeTitle": "Emphasizing Emotional Impact (Results Faked)"
+        //                             },
+        //                             {
+        //                                 "persona": "Teacher",
+        //                                 "purpose": "You underline this line to indicate it should be discussed in class for its metaphorical value and connection. (Results Faked)",
+        //                                 "purposeTitle": "Indicating Discussion Point (Results Faked)"
+        //                             }
+        //                         ]
+        //                     }`),
+        //                     images: ["test image 1", "test image 2"]
+        //                 });
                             
-                    }, 1000);
-                } 
-            );
-        }
+        //             }, 1000);
+        //         } 
+        //     );
+        // }
         let bbox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
         let annotationPage1 = d3.select("#layer-" + index).node().cloneNode(true);
         let annotationPage2 = d3.select("#layer-" + index).node().cloneNode(true);
@@ -259,9 +259,14 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         });
         // let annotatedText = sortedStrokes.map(stroke => stroke.annotatedText).join("");
         let annotatedText = [];
+        let specific = false;
 
         let extractText = (type) => {
             return new Set(sortedStrokes.map(stroke => {
+                if (stroke.annotatedText?.length <= 2) {
+                    specific = true;
+                }
+
                 if (word) {
                     if (stroke.type.startsWith(type) && stroke.type.endsWith("words")) {
                         return stroke.annotatedText;
@@ -290,7 +295,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
 
         if (circle) {
             let annotatedTextNodes = extractText("circled");
-            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
             
             if (annotatedTextContent.trim() !== "") {
                 type.push("circled");
@@ -300,7 +305,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         
         if (underline) {
             let annotatedTextNodes = extractText("underlined");
-            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
             
             if (annotatedTextContent.trim() !== "") {
                 type.push("underlined");
@@ -310,7 +315,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         
         if (crossed) {
             let annotatedTextNodes = extractText("crossed");
-            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
             
             if (annotatedTextContent.trim() !== "") {
                 type.push("crossed out");
@@ -320,7 +325,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         
         if (highlighted) {
             let annotatedTextNodes = extractText("highlighted");
-            let annotatedTextContent = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join("");
+            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
             
             if (annotatedTextContent.trim() !== "") {
                 type.push("highlighted");
@@ -507,7 +512,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         console.log(lastCluster);
         
         let [annotationWithText, annotationWithoutText] = await Promise.all([cropAnnotation, pageImage]);
-        let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText);
+        let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText, specific);
         let typeAnnotatedText = "";
 
         if (annotatedText instanceof Array) {
@@ -522,7 +527,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
             typeAnnotatedText = `${type} "${annotatedText}"`;
         }
         return { rawText: typeAnnotatedText + "\n" + rawText, result, images: [annotationWithText, annotationWithoutText] };
-    }, [index, mode]);
+    }, [index]);
     
     const updateTextTooltips = useCallback(() => {
         clusterRef.current = clusterRef.current.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial"));
@@ -1455,7 +1460,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                         };
 
                         if (setUpAnnotations instanceof Function) {
-                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `But the user has said: "${this.value}"`, "", onDetect, onEnd, penAnnnotationRef);
+                            setUpAnnotations(clusterRef.current[i].purpose?.annotationDescription, `${this.value}`, "", onDetect, onEnd, penAnnnotationRef);
                         }
 
                         sendHistory({

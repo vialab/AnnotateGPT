@@ -865,7 +865,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                     <h3>Scrollbar Info</h3>
 
                     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "20px" }}>
-                        <Image src="/tutorial/Scrollbar.png" alt="logo" width={468 * 0.7} height={904 * 0.7} />
+                        <Image src="/tutorial/Scrollbar.png" alt="logo" width={740 * 0.7} height={752 * 0.7} />
                         <div style={{ textAlign: "left", width: "50%" }}>
                             A specialized scrollbar with three columns to help you navigate the annotations:
                             <br /><br />
@@ -873,7 +873,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
                             <br /><br />
                             <b>Center Column</b>: Position and state of the assistant markers. 
                             <br /><span style={{ color: "#06D6A0" }} >Green</span>: Assistant is done annotating.
-                            <br /><span style={{ color: "#FFFD82" }} >Yellow</span>: Assistant is waiting for you pick a purpose.
+                            <br /><span style={{ color: "#FFFD82" }} >Yellow</span>: Assistant is waiting for you to pick a purpose.
                             <br /><span style={{ color: "#F96900" }} >Orange</span>: Assistant is processing.
                             <br /><br />
                             <b>Right Column</b>: Position of the assistant&apos;s annotations.
