@@ -263,7 +263,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
 
         let extractText = (type) => {
             return new Set(sortedStrokes.map(stroke => {
-                if (stroke.annotatedText?.length <= 2) {
+                if (stroke.annotatedText?.length <= 2 && stroke.annotatedText?.length > 0) {
                     specific = true;
                 }
 

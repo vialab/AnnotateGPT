@@ -35,27 +35,27 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 export async function findAnnotations(purpose, callback, endCallback, n=8) {
     console.log(purpose);
     
-    // if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
-    //     let message = "";
-    //     // await new Promise(r => setTimeout(r, 3000));
+    if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+        let message = "";
+        // await new Promise(r => setTimeout(r, 3000));
 
-    //     for (let token of data.test20) {
-    //         // console.log(token);
-    //         // await new Promise(r => setTimeout(r, 0.1));
-    //         message += token;
+        for (let token of data.test20) {
+            // console.log(token);
+            // await new Promise(r => setTimeout(r, 0.1));
+            message += token;
 
-    //         if (callback instanceof Function) {
-    //             callback(token);
-    //         }
-    //     }
-    //     // await new Promise(r => setTimeout(r, 8000));
+            if (callback instanceof Function) {
+                callback(token);
+            }
+        }
+        // await new Promise(r => setTimeout(r, 8000));
 
-    //     if (endCallback instanceof Function)
-    //         endCallback();
+        if (endCallback instanceof Function)
+            endCallback();
 
-    //     console.log(message);
-    //     return;
-    // }
+        console.log(message);
+        return;
+    }
 
     try {
         const thread = await openai.beta.threads.create();
@@ -189,7 +189,7 @@ Here is a step-by-step list for annotating a document:
 export async function makeInference(image1, image2, type, annotatedText, specific=false) {
     let file1, file2;
     console.log(image1, image2);
-    console.log(type, annotatedText);
+    console.log(type, annotatedText, specific);
     let typeAnnotatedText = "";
 
     if (annotatedText instanceof Array) {
@@ -205,46 +205,46 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
     }
     console.log(typeAnnotatedText);
     
-    // if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
-    //     return new Promise(
-    //         resolve => {
-    //             setTimeout(() => {
-    //                 console.log("Resolving promise...");
+    if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+        return new Promise(
+            resolve => {
+                setTimeout(() => {
+                    console.log("Resolving promise...");
 
-    //                 resolve({
-    //                     rawText: "Bla bla bla...",
-    //                     result: JSON.parse(`{
-    //                         "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
-    //                         "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
-    //                         "purpose": [
-    //                             {
-    //                                 "persona": "Persona 1 (Teacher, Corrective)",
-    //                                 "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
-    //                                 "purposeTitle": "Grammar/Usage Correction: Word-Specific"
-    //                             },
-    //                             {
-    //                                 "persona": "Persona 2 (Student, Learning)",
-    //                                 "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
-    //                                 "purposeTitle": "Vocabulary Expansion: Word-Specific"
-    //                             },
-    //                             {
-    //                                 "persona": "Persona 1 (Teacher, Corrective)",
-    //                                 "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
-    //                                 "purposeTitle": "Grammar/Usage Correction"
-    //                             },
-    //                             {
-    //                                 "persona": "Persona 2 (Student, Learning)",
-    //                                 "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
-    //                                 "purposeTitle": "Vocabulary Expansion"
-    //                             }
-    //                         ]
-    //                     }`)
-    //                 });
+                    resolve({
+                        rawText: "Bla bla bla...",
+                        result: JSON.parse(`{
+                            "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
+                            "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
+                            "purpose": [
+                                {
+                                    "persona": "Persona 1 (Teacher, Corrective)",
+                                    "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
+                                    "purposeTitle": "Grammar/Usage Correction: Word-Specific"
+                                },
+                                {
+                                    "persona": "Persona 2 (Student, Learning)",
+                                    "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
+                                    "purposeTitle": "Vocabulary Expansion: Word-Specific"
+                                },
+                                {
+                                    "persona": "Persona 1 (Teacher, Corrective)",
+                                    "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
+                                    "purposeTitle": "Grammar/Usage Correction"
+                                },
+                                {
+                                    "persona": "Persona 2 (Student, Learning)",
+                                    "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
+                                    "purposeTitle": "Vocabulary Expansion"
+                                }
+                            ]
+                        }`)
+                    });
                         
-    //             }, 1000);
-    //         } 
-    //     );
-    // }
+                }, 1000);
+            } 
+        );
+    }
     
     return new Promise(async (resolve, reject) => {
         try {
