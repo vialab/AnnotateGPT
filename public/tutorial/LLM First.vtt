@@ -1,79 +1,91 @@
 WEBVTT
 
-00:00:00.080 --> 00:00:02.540
-Welcome to the study.
+00:00.080 --> 00:02.040
+Welcome to the study. 
 
-00:00:02.540 --> 00:00:05.600
+00:02.040 --> 00:05.600
 Your task is to evaluate our annotation systems.
 
-00:00:07.018 --> 00:00:12.658
-There are two tools you can use, the highlighter and the pen.
+00:07.018 --> 00:09.898
+There are two tools you can use,
 
-00:00:14.571 --> 00:00:17.691
+00:09.898 --> 00:12.458
+the highlighter and the pen.
+
+00:14.571 --> 00:17.691
 You can change the color of the ink by tapping on the palette.
 
-00:00:20.940 --> 00:00:23.020
-You can annotate the document by placing
+00:20.940 --> 00:25.020
+You can annotate the document by placing ink using the digital pen provided.
 
-00:00:23.020 --> 00:00:25.020
-ink using the digital pen provided.
+00:33.115 --> 00:35.275
+You can also erase your pen strokes by
 
-00:00:33.115 --> 00:00:38.635
-You can also erase your pen strokes by using the eraser tip or the side button on the digital pen.
+00:35.275 --> 00:38.635
+using the eraser tip or the side button on the digital pen.
 
-00:00:42.929 --> 00:00:46.496
+00:42.310 --> 00:45.990
 To use an assistant, you can hover the pen over the annotation.
 
-00:00:47.569 --> 00:00:50.529
-A tooltip would appear on the right side of the document.
+00:47.022 --> 00:49.822
+A marker would appear on the left side of the document.
 
-00:00:51.497 --> 00:00:53.737
-Tapping on the tooltip would activate it.
+00:51.497 --> 00:53.577
+Tapping on the marker would activate it.
 
-00:00:54.949 --> 00:00:59.009
+00:54.949 --> 00:58.909
 The system will guess on what the purpose of the annotation is.
 
-00:00:59.009 --> 00:01:02.869
+00:58.909 --> 01:02.869
 Hovering over the options will give more details about the guesses.
 
-00:01:03.933 --> 00:01:05.933
+01:03.933 --> 01:06.533
 If you are not satisfied with the options,
 
-00:01:05.933 --> 00:01:09.213
+01:06.533 --> 01:09.213
 you can type your own purpose using the input provided.
 
-00:01:10.851 --> 00:01:13.011
+01:10.851 --> 01:13.011
 When tapping an option, the system will
 
-00:01:13.011 --> 00:01:15.731
+01:13.011 --> 01:15.731
 search for further annotations with the given purpose.
 
-00:01:17.755 --> 00:01:22.195
-You can navigate recent annotations using the arrows on the left.
+01:17.835 --> 01:22.155
+You can navigate recent annotations using the arrows on the right.
 
-00:01:22.195 --> 00:01:26.555
+01:22.155 --> 01:26.475
 The system will give further explanation on why the sentence was annotated.
 
-00:01:27.776 --> 00:01:31.696
+01:29.801 --> 01:33.641
+If you are satisfied with the annotation, you can accept the annotation.
+
+01:36.200 --> 01:40.920
+If you think the sentence should not be annotated, you can reject the annotation as well.
+
+01:44.073 --> 01:47.993
 You can also hover over the annotation to navigate the annotations.
 
-00:01:35.082 --> 00:01:38.762
-If you are satisfied with the annotation, you can like the annotation.
+01:50.679 --> 01:53.559
+If the annotated sentence does not match the purpose,
 
-00:01:42.317 --> 00:01:46.237
+01:53.559 --> 01:55.799
+but gave good feedback, you can rate it helpful.
+
+01:58.366 --> 02:02.286
 If you need to further annotate the sentence, you can do so by commenting.
 
-00:01:48.463 --> 00:01:50.643
-If you think the sentence should not be annotated,
-
-00:01:50.643 --> 00:01:53.183
-you can reject the annotation as well.
-
-00:01:55.794 --> 00:01:58.034
+02:07.884 --> 02:10.124
 You can continue to annotate the document.
 
-00:02:01.865 --> 00:02:06.345
-Hovering over the tooltip will reveal which pen strokes are associated with it.
+02:11.853 --> 02:16.173
+Hovering over the marker will reveal which pen strokes are associated with it.
 
-00:02:08.139 --> 00:02:10.459
+02:24.998 --> 02:28.598
+In this study, you will be grading English test by giving feedback.
+
+02:28.598 --> 02:30.198
+Here is an example.
+
+03:09.624 --> 03:11.944
 You can now practice the interface yourself.

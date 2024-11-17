@@ -1,61 +1,70 @@
 WEBVTT
 
-00:00:00.160 --> 00:00:03.520
+00:00.080 --> 00:03.040
 For your second task, you will be using an assistance tool.
 
-00:00:06.049 --> 00:00:09.616
+00:04.970 --> 00:08.650
 To use an assistant, you can hover the pen over the annotation.
 
-00:00:10.689 --> 00:00:12.729
-A tooltip would appear on the right side of the document.
+00:09.682 --> 00:12.482
+A marker would appear on the left side of the document.
 
-00:00:14.617 --> 00:00:16.857
-Tapping on the tooltip would activate it.
+00:14.156 --> 00:16.236
+Tapping on the marker would activate it.
 
-00:00:18.062 --> 00:00:22.122
+00:17.609 --> 00:21.569
 The system will guess on what the purpose of the annotation is.
 
-00:00:22.122 --> 00:00:25.982
+00:21.569 --> 00:25.529
 Hovering over the options will give more details about the guesses.
 
-00:00:27.046 --> 00:00:29.046
+00:26.593 --> 00:29.193
 If you are not satisfied with the options,
 
-00:00:29.046 --> 00:00:32.326
+00:29.193 --> 00:31.873
 you can type your own purpose using the input provided.
 
-00:00:33.957 --> 00:00:36.117
+00:33.511 --> 00:35.671
 When tapping an option, the system will
 
-00:00:36.117 --> 00:00:38.837
+00:35.671 --> 00:38.391
 search for further annotations with the given purpose.
 
-00:00:40.857 --> 00:00:45.297
-You can navigate recent annotations using the arrows on the left.
+00:40.495 --> 00:45.815
+You can navigate recent annotations using the arrows on the right.
 
-00:00:45.297 --> 00:00:49.657
+00:45.815 --> 00:49.135
 The system will give further explanation on why the sentence was annotated.
 
-00:00:50.874 --> 00:00:54.794
+00:52.461 --> 00:56.301
+If you are satisfied with the annotation, you can accept the annotation.
+
+00:58.860 --> 01:03.580
+If you think the sentence should not be annotated, you can reject the annotation as well.
+
+01:06.732 --> 01:10.652
 You can also hover over the annotation to navigate the annotations.
 
-00:00:58.176 --> 00:01:01.856
-If you are satisfied with the annotation, you can like the annotation.
+01:13.339 --> 01:16.219
+If the annotated sentence does not match the purpose,
 
-00:01:05.406 --> 00:01:09.326
+01:16.219 --> 01:18.459
+but gave good feedback, you can rate it helpful.
+
+01:21.026 --> 01:24.946
 If you need to further annotate the sentence, you can do so by commenting.
 
-00:01:11.548 --> 00:01:13.728
-If you think the sentence should not be annotated,
-
-00:01:13.728 --> 00:01:16.268
-you can reject the annotation as well.
-
-00:01:18.874 --> 00:01:21.114
+01:30.544 --> 01:32.784
 You can continue to annotate the document.
 
-00:01:24.941 --> 00:01:29.421
-Hovering over the tool tip will reveal  which pen strokes are associated with it.
+01:34.512 --> 01:38.832
+Hovering over the marker will reveal which pen strokes are associated with it.
 
-00:01:31.211 --> 00:01:33.531
+01:47.658 --> 01:51.258
+In this study, you will be grading English test by giving feedback.
+
+01:51.258 --> 01:52.858
+Here is an example.
+
+02:32.283 --> 02:34.603
 You can now practice the interface yourself.
