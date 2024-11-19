@@ -16,8 +16,8 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // makeInference(img.img7, img.img8, "circled", "8 ] utilizes").catch(console.error);
 // makeInference(img.img5, img.img6, "annotated (not circled, underlined or highlighted)", "(i.e.").catch(console.error).then(console.log);
 // makeInference(img.img9, img.img10, "underlined", "the prospective cycles of your education life.").catch(console.error).then(console.log);
-// makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"]).catch(console.error).then(console.log);
-// makeInference(img.img13, img.img14, ["circled"], ["extol"]).catch(console.error).then(console.log);
+makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true).catch(console.error).then(console.log);
+// makeInference(img.img13, img.img14, ["circled"], ["extol"], false).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -35,7 +35,7 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 export async function findAnnotations(purpose, callback, endCallback, n=8) {
     console.log(purpose);
     
-    if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
+    if (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === "development") {
         let message = "";
         // await new Promise(r => setTimeout(r, 3000));
 
@@ -205,46 +205,46 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
     }
     console.log(typeAnnotatedText);
     
-    if (!process.env.NEXT_PUBLIC_VERCEL_ENV) {
-        return new Promise(
-            resolve => {
-                setTimeout(() => {
-                    console.log("Resolving promise...");
+    // if (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === "development") {
+    //     return new Promise(
+    //         resolve => {
+    //             setTimeout(() => {
+    //                 console.log("Resolving promise...");
 
-                    resolve({
-                        rawText: "Bla bla bla...",
-                        result: JSON.parse(`{
-                            "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
-                            "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
-                            "purpose": [
-                                {
-                                    "persona": "Persona 1 (Teacher, Corrective)",
-                                    "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
-                                    "purposeTitle": "Grammar/Usage Correction: Word-Specific"
-                                },
-                                {
-                                    "persona": "Persona 2 (Student, Learning)",
-                                    "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
-                                    "purposeTitle": "Vocabulary Expansion: Word-Specific"
-                                },
-                                {
-                                    "persona": "Persona 1 (Teacher, Corrective)",
-                                    "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
-                                    "purposeTitle": "Grammar/Usage Correction"
-                                },
-                                {
-                                    "persona": "Persona 2 (Student, Learning)",
-                                    "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
-                                    "purposeTitle": "Vocabulary Expansion"
-                                }
-                            ]
-                        }`)
-                    });
+    //                 resolve({
+    //                     rawText: "Bla bla bla...",
+    //                     result: JSON.parse(`{
+    //                         "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
+    //                         "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
+    //                         "purpose": [
+    //                             {
+    //                                 "persona": "Persona 1 (Teacher, Corrective)",
+    //                                 "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
+    //                                 "purposeTitle": "Grammar/Usage Correction: Word-Specific"
+    //                             },
+    //                             {
+    //                                 "persona": "Persona 2 (Student, Learning)",
+    //                                 "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
+    //                                 "purposeTitle": "Vocabulary Expansion: Word-Specific"
+    //                             },
+    //                             {
+    //                                 "persona": "Persona 1 (Teacher, Corrective)",
+    //                                 "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
+    //                                 "purposeTitle": "Grammar/Usage Correction"
+    //                             },
+    //                             {
+    //                                 "persona": "Persona 2 (Student, Learning)",
+    //                                 "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
+    //                                 "purposeTitle": "Vocabulary Expansion"
+    //                             }
+    //                         ]
+    //                     }`)
+    //                 });
                         
-                }, 1000);
-            } 
-        );
-    }
+    //             }, 1000);
+    //         } 
+    //     );
+    // }
     
     return new Promise(async (resolve, reject) => {
         try {
@@ -309,10 +309,10 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 
 <annotation description>: is a detailed description of the annotation.
 <annotation history>: is a detailed annotation history related to the annotation.
-<specific_purpose>: is a description of the annotation purpose and annotation type using <annotation description> and <annotation history> as context. Talk in the second person (you, your, etc.) without mentioning the persona. Be specific.
+<specific_purpose>: is a description of the annotation purpose and annotation type using <annotation description> and <annotation history> as context. Talk in the second person (you, your, etc.) without mentioning the persona. Mention the user is looking for specific words or phrases of the annotate text at the end. Be specific.
 <broad_purpose>: is a broader description of the <specific_purpose> without using the <annotation description>. The purpose should talk about the text as a whole. Talk in the second person (you, your, etc.) without mentioning the persona. Be specific.
-<broad_purpose_title>: is a short title for <specific_purpose> without mentioning the persona, be very specific.
-<specific_purpose_title>: is a short title for <specific_purpose> without mentioning the persona, be very specific. It should have the same wording as <broad_purpose_title>, but the title must have "word-specific" or "phrase-specific" depending on the annotated text.`
+<broad_purpose_title>: is a short title for <broad_purpose> without mentioning the persona, be very specific.
+<specific_purpose_title>: is a short title for <specific_purpose> without mentioning the persona, be very specific. It should have the same wording as <broad_purpose_title>, but the title must be word-specific or phrase-specific by having the annotated text in the title.`
             :  `{
     "annotationDescription": "<annotation description>",
     "pastAnnotationHistory": "<annotation history>",
@@ -342,7 +342,7 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 
 <annotation description>: is a detailed description of the annotation.
 <annotation history>: is a detailed annotation history related to the annotation.
-<purpose>: is a description of the annotation purpose and annotation type using the <annotation description> and <annotation history> as context. Talk in second person (you, your, etc.) and use as few words as possible.
+<purpose>: is a description of the annotation purpose and annotation type using the <annotation history> as context without using the <annotation description> and any words in the annotated text. Talk in second person (you, your, etc.). Be specific.
 <purpose_title>: is a short title for <purpose> without mentioning the persona, be very specific.`;
             
             const thread = await openai.beta.threads.create({
@@ -539,7 +539,7 @@ ${criteria}`
             }
             await new Promise(r => setTimeout(r, 1000));
             // return await makeInference(image1, image2, type, annotatedText);
-            resolve(await makeInference(image1, image2, type, annotatedText));
+            resolve(await makeInference(image1, image2, type, annotatedText, specific));
         }
     });
 }
