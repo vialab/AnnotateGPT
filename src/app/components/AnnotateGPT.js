@@ -1861,7 +1861,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     }
 
     let generateContent = useCallback((annotation, annotations) => {
-        function acceptAnnotation(e, a, j) {
+        function acceptAnnotation(e, a, j, filterSpans=[]) {
             a.accepted = true;
             let target = e.target;
             let rateContainer = target.closest(".rateContainer");
@@ -1882,6 +1882,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             });
     
             for (let span of a.spans) {
+                if (filterSpans.length > 0 && filterSpans.includes(span)) {
+                    continue;
+                }
                 d3.select(span)
                 .classed("highlighted", true)
                 .classed("accept", true);
@@ -1909,12 +1912,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
         }
 
-        function eitherAnnotation(e, a, j) {
+        function eitherAnnotation(e, a, j, filterSpans=[]) {
             a.either = true;
-            acceptAnnotation(e, a, j);
+            acceptAnnotation(e, a, j, filterSpans);
         }
     
-        function rejectAnnotation(e, a, j, overlappingAnnotations) {
+        function rejectAnnotation(e, a, j, overlappingAnnotations, filterSpans=[], convertFilterSpans=[]) {
             a.accepted = false;
             let target = e.target;
             let rateContainer = target.closest(".rateContainer");
@@ -1945,9 +1948,18 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
                     }
                 }
-    
-                d3.select(span)
-                .classed("highlighted", false);
+                if (filterSpans.length > 0 && filterSpans.includes(span)) {
+                    continue;
+                }
+                
+                if (convertFilterSpans.length > 0 && convertFilterSpans.includes(span)) {
+                    d3.select(span)
+                    .classed("highlighted", true)
+                    .classed("accept", true);
+                } else {
+                    d3.select(span)
+                    .classed("highlighted", false);
+                }
     
                 let space = d3.select(span).node().nextSibling;
     
@@ -1956,8 +1968,14 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
     
                 if (space && space.classList.contains("space")) {
-                    d3.select(space)
-                    .classed("highlighted", false);
+                    if (convertFilterSpans.length > 0 && convertFilterSpans.includes(span)) {
+                        d3.select(space)
+                        .classed("highlighted", true)
+                        .classed("accept", true);
+                    } else {
+                        d3.select(space)
+                        .classed("highlighted", false);
+                    }
                 }
             }
             miniMapRef.current?.synchronize();
@@ -2094,6 +2112,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
         }
         let annotationMessages = [];
+        let acceptFilterSpans = [];
+        let rejectFilterSpans = [];
+        let convertRejectFilterSpans = [];
 
         let overlappingAnnotations = [{groupIndex: annotatedTokens.current.findIndex(group => group === annotations), index: annotations.annotations.findIndex(a => a === annotation), annotation: annotation, groupAnnotation: annotations}];
         // console.log(overlappingAnnotations[0]);
@@ -2106,17 +2127,28 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let searchAnnotation = searchAnnotations.annotations[j];
 
                     if (searchAnnotation.accepted !== false) {
-                        if (annotation.spans instanceof Array && searchAnnotation.spans instanceof Array && searchAnnotation.spans.every((searchSpan) => annotation.spans.includes(searchSpan)) &&
-                            !overlappingAnnotations.find(a => a.groupIndex === i && a.index === j)
-                        ) {
-                            overlappingAnnotations.push({groupIndex: i, index: j, annotation: searchAnnotation, groupAnnotation: searchAnnotations});
-                            break loop;
+                        if (annotation.spans instanceof Array && searchAnnotation.spans instanceof Array && !overlappingAnnotations.find(a => a.groupIndex === i && a.index === j)) {
+                            if (searchAnnotation.spans.every((searchSpan) => annotation.spans.includes(searchSpan))) {
+                                if (searchAnnotation.spans.length < annotation.spans.length) {
+                                    acceptFilterSpans = acceptFilterSpans.concat(searchAnnotation.spans);
+                                    rejectFilterSpans = rejectFilterSpans.concat(annotation.spans.filter(span => searchAnnotation.spans.includes(span)));
+                                }
+                                if (searchAnnotation.spans.length === annotation.spans.length) {   
+                                    overlappingAnnotations.push({groupIndex: i, index: j, annotation: searchAnnotation, groupAnnotation: searchAnnotations});
+                                    break loop;
+                                }
+                            } else if (annotation.spans.every((searchSpan) => searchAnnotation.spans.includes(searchSpan))) {
+                                if (annotation.spans.length < searchAnnotation.spans.length && searchAnnotation.accepted === true) {
+                                    convertRejectFilterSpans = convertRejectFilterSpans.concat(annotation.spans);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-
+        // console.log(acceptFilterSpans);
+        // console.log(rejectFilterSpans);
         // console.log(overlappingAnnotations)
 
         for (let overlappingAnnotation of overlappingAnnotations) {
@@ -2136,13 +2168,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                     { a.explanation[0] !== "Generating explanation..." && (a.accepted !== false && a.accepted !== true)?
                                         <div className="rateContainer">
                                             <div className="rateButton" >
-                                                <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1", marginBottom: "5px" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, annotation, annotations) } />
+                                                <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1", marginBottom: "5px" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, acceptFilterSpans) } />
                                             </div>
                                             <div className="rateButton" >
-                                                <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, annotation, annotations)} />
+                                                <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, filterSpans)} />
                                             </div>
                                             <div className="rateButton" >
-                                                <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1", marginTop: "5px" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, annotation, annotations)} />
+                                                <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1", marginTop: "5px" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, rejectFilterSpans, convertRejectFilterSpans)} />
                                             </div>
                                         </div>
                                         : null
@@ -2359,6 +2391,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 for (j = 0; j < annotations.annotations.length; j++) {
                     annotation = annotations.annotations[j];
 
+                    if (annotation === activeAnnotation.current) {
+                        continue;
+                    }
+
                     // console.log(annotation.spans);
                     if (annotation.spans) {
                         for (let span of annotation.spans) {
@@ -2373,7 +2409,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                     hoverFound = true;
 
                                     if (hoverAnnotation.current !== annotation && annotation.accepted !== false && activeAnnotation.current !== annotation && 
-                                        !hoverAnnotation.current?.spans?.every(s => annotation.spans.includes(s)) && !activeAnnotation.current?.spans?.every(s => annotation.spans.includes(s))
+                                        (hoverAnnotation.current?.spans?.length !== annotation.spans.length || !hoverAnnotation.current?.spans?.every(s => annotation.spans.includes(s))) &&
+                                        (activeAnnotation.current?.spans?.length !== annotation.spans.length || !activeAnnotation.current?.spans?.every(s => annotation.spans.includes(s))) &&
+                                        (!hoverAnnotation.current?.spans?.includes(span)  || !hoverAnnotation.current || hoverAnnotation.current?.spans?.length >= annotation.spans.length) && 
+                                        (!activeAnnotation.current?.spans?.includes(span) || !activeAnnotation.current || activeAnnotation.current?.spans?.length >= annotation.spans.length)
                                     ) {
                                         hoverAnnotation.current = annotation;
                                         hoverGroupAnnotationRef.current = annotations;

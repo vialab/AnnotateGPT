@@ -9,6 +9,7 @@ import { ToastContainer, toast, Flip } from "react-toastify";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore, addDoc, collection } from "firebase/firestore";
+import AnimatedCursor from "react-animated-cursor";
 
 import { Cluster } from "./components/PenCluster.js";
 
@@ -58,7 +59,7 @@ export default function Home() {
     const [state, setState] = useState("home");
     const [svgContent, setSvgContent] = useState([]);
     const [screen, setScreen] = useState({ width: 0, height: 0 });
-    const [document, setDocument] = useState("./public/Test 1.pdf");
+    const [document, setDocument] = useState("./public/Test 2.pdf");
     const [mode, setMode] = useState("llm");
     const [disableNext, setDisableNext] = useState(true);
     const [toastMessage, setToastMessage] = useState("");
@@ -653,6 +654,10 @@ export default function Home() {
                             });
                         } else if (clusterData["actionType"].includes("comment")) {
                             let index = clusterData["actionType"].split(" ")[2];
+
+                            if (!clusterData.annotationsFound[index]) {
+                                continue;
+                            }
                             let reply = clusterData.annotationsFound[index].explanation[clusterData.annotationsFound[index].explanation.length - 1];
 
                             let annotatedSentence = clusterData.annotationsFound[index].spans;
@@ -866,6 +871,51 @@ export default function Home() {
         modeRef.current = mode;
     }, [mode]);
 
+    // let disabled = useRef(false);
+
+    // useEffect(() => {
+    //     const handleClick = (e) => {
+    //         if (disabled.current) {
+    //             return;
+    //         }
+
+    //         // Left click
+    //         if (e.button === 0) {
+    //             d3.select(":root").style("--cursor-color-inner", "#fd373732");
+    //             d3.select(":root").style("--cursor-color-outer", "#fd3737");
+    //         } else if (e.button === 2) {
+    //             d3.select(":root").style("--cursor-color-inner", "#3696e232");
+    //             d3.select(":root").style("--cursor-color-outer", "#3696e2");
+    //         }
+    //     };
+        
+    //     const handleMouseUp = () => {
+    //         if (disabled.current) {
+    //             return;
+    //         }
+    //         d3.select(":root").style("--cursor-color-inner", "#ffa00032");
+    //         d3.select(":root").style("--cursor-color-outer", "#ffa000");
+    //     };
+
+    //     const handleKeyDown = (event) => {
+    //         if (event.ctrlKey && event.key === "c") {
+    //             d3.select(":root").style("--cursor-color-inner", d3.select(":root").style("--cursor-color-inner") === "none" ? "#ffa00032" : "none");
+    //             d3.select(":root").style("--cursor-color-outer", d3.select(":root").style("--cursor-color-outer") === "none" ? "#ffa000" : "none");
+    //             disabled.current = !disabled.current;
+    //         }
+    //     };
+        
+    //     window.addEventListener("mousedown", handleClick);
+    //     window.addEventListener("mouseup", handleMouseUp);
+    //     window.addEventListener("keydown", handleKeyDown);
+
+    //     return () => {
+    //         window.removeEventListener("mousedown", handleClick);
+    //         window.removeEventListener("mouseup", handleMouseUp);
+    //         window.removeEventListener("keydown", handleKeyDown);
+    //     };
+    // }, []);
+
     return (
         <>
             { state === "study" ?
@@ -878,6 +928,7 @@ export default function Home() {
                         onEndAnnotateCallback={onEndAnnotateCallback}
                         navigateCallback={navigateCallback}
                         onReplyCallback={onReplyCallback}
+                        svgContent={svgContent}
                         mode={mode}
                         annotateRef={annotationeRef}
                         handiness={handiness}
@@ -918,7 +969,28 @@ export default function Home() {
                 studyState={state}
                 fileHandler={fileHandler}
             />
-            
+            {/* <AnimatedCursor 
+                color="193, 11, 111, 1"
+                innerSize={30}
+                outerSize={32}
+                innerScale={0.7}
+                outerScale={0.7}
+                outerAlpha={0}
+                trailingSpeed={1}
+                hasBlendMode={true}
+                showSystemCursor={true}
+                innerStyle={{
+                    border: "5px solid var(--cursor-color-inner)",
+                    borderRadius: "40%",
+                    willChange: "top, left"
+                }}
+                outerStyle={{
+                    border: "3px solid var(--cursor-color-outer)",
+                    borderRadius: "40%",
+                    willChange: "top, left"
+                }}
+                clickables={["a"]}
+            /> */}
             <ToastContainer
                 containerId="studyMessage"
                 position="top-center"
