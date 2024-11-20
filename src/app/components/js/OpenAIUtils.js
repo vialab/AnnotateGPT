@@ -9,6 +9,10 @@ const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY, dangerou
 
 const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
 const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
+const maxAnnotationQueue = 2;
+const maxPurposeQueue = 2;
+let annotationQueue = 0;
+let purposeQueue = 0;
 
 // makeInference(noNoteTest, noNoteTestCrop, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
 // makeInference(test, cropTest, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
@@ -16,7 +20,7 @@ const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 // makeInference(img.img7, img.img8, "circled", "8 ] utilizes").catch(console.error);
 // makeInference(img.img5, img.img6, "annotated (not circled, underlined or highlighted)", "(i.e.").catch(console.error).then(console.log);
 // makeInference(img.img9, img.img10, "underlined", "the prospective cycles of your education life.").catch(console.error).then(console.log);
-makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true).catch(console.error).then(console.log);
+// makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true).catch(console.error).then(console.log);
 // makeInference(img.img13, img.img14, ["circled"], ["extol"], false).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
@@ -33,6 +37,12 @@ makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true)
 // findAnnotations(`Ensuring Gender-Inclusive Language: You are promoting gender-neutral or inclusive language use in textual representations, enabling broader interpretations and engagement with the text in terms of gender sensitivity.`)
 
 export async function findAnnotations(purpose, callback, endCallback, n=8) {
+    if (annotationQueue >= maxAnnotationQueue) {
+        console.log("Annotation queue is full. Waiting for a spot...");
+        await new Promise(r => setTimeout(r, 1000));
+        return findAnnotations(purpose, callback, endCallback, n);
+    }
+    annotationQueue++;
     console.log(purpose);
     
     if (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === "development") {
@@ -54,6 +64,7 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
             endCallback();
 
         console.log(message);
+        annotationQueue--;
         return;
     }
 
@@ -152,6 +163,7 @@ Here is a step-by-step list for annotating a document:
                             } else if (endCallback instanceof Function) {
                                 endCallback(textDeltaArray);
                             }
+                            annotationQueue--;
                             return;
                         } else if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`)) {
                             await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
@@ -180,6 +192,7 @@ Here is a step-by-step list for annotating a document:
         executeRun(false);
     } catch (error) {
         console.log("error", error);
+        annotationQueue--;
         
         await new Promise(r => setTimeout(r, 1000));
         findAnnotations(purpose, callback, endCallback);
@@ -187,10 +200,17 @@ Here is a step-by-step list for annotating a document:
 }
 
 export async function makeInference(image1, image2, type, annotatedText, specific=false) {
+    if (purposeQueue >= maxPurposeQueue) {
+        console.log("Purpose queue is full. Waiting for a spot...");
+        await new Promise(r => setTimeout(r, 1000));
+        return await makeInference(image1, image2, type, annotatedText, specific);
+    }
     let file1, file2;
+    let typeAnnotatedText = "";
+    purposeQueue++;
+    
     console.log(image1, image2);
     console.log(type, annotatedText, specific);
-    let typeAnnotatedText = "";
 
     if (annotatedText instanceof Array) {
         for (let i = 0; i < annotatedText.length; i++) {
@@ -205,46 +225,46 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
     }
     console.log(typeAnnotatedText);
     
-    // if (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === "development") {
-    //     return new Promise(
-    //         resolve => {
-    //             setTimeout(() => {
-    //                 console.log("Resolving promise...");
+    if (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === "development") {
+        return new Promise(
+            resolve => {
+                setTimeout(() => {
+                    console.log("Resolving promise...");
+                    purposeQueue--;
 
-    //                 resolve({
-    //                     rawText: "Bla bla bla...",
-    //                     result: JSON.parse(`{
-    //                         "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
-    //                         "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
-    //                         "purpose": [
-    //                             {
-    //                                 "persona": "Persona 1 (Teacher, Corrective)",
-    //                                 "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
-    //                                 "purposeTitle": "Grammar/Usage Correction: Word-Specific"
-    //                             },
-    //                             {
-    //                                 "persona": "Persona 2 (Student, Learning)",
-    //                                 "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
-    //                                 "purposeTitle": "Vocabulary Expansion: Word-Specific"
-    //                             },
-    //                             {
-    //                                 "persona": "Persona 1 (Teacher, Corrective)",
-    //                                 "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
-    //                                 "purposeTitle": "Grammar/Usage Correction"
-    //                             },
-    //                             {
-    //                                 "persona": "Persona 2 (Student, Learning)",
-    //                                 "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
-    //                                 "purposeTitle": "Vocabulary Expansion"
-    //                             }
-    //                         ]
-    //                     }`)
-    //                 });
-                        
-    //             }, 1000);
-    //         } 
-    //     );
-    // }
+                    resolve({
+                        rawText: "Bla bla bla...",
+                        result: JSON.parse(`{
+                            "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
+                            "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
+                            "purpose": [
+                                {
+                                    "persona": "Persona 1 (Teacher, Corrective)",
+                                    "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
+                                    "purposeTitle": "Grammar/Usage Correction: Word-Specific"
+                                },
+                                {
+                                    "persona": "Persona 2 (Student, Learning)",
+                                    "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
+                                    "purposeTitle": "Vocabulary Expansion: Word-Specific"
+                                },
+                                {
+                                    "persona": "Persona 1 (Teacher, Corrective)",
+                                    "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
+                                    "purposeTitle": "Grammar/Usage Correction"
+                                },
+                                {
+                                    "persona": "Persona 2 (Student, Learning)",
+                                    "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
+                                    "purposeTitle": "Vocabulary Expansion"
+                                }
+                            ]
+                        }`)
+                    });
+                }, 1000);
+            } 
+        );
+    }
     
     return new Promise(async (resolve, reject) => {
         try {
@@ -513,6 +533,7 @@ ${criteria}`
                 } catch (error) {
                     console.error(error);
                 }
+                purposeQueue--;
                 resolve({ rawText: text.value, result: JSON.parse(match[0]) });
             } else {
                 throw new Error("No text response found.");
@@ -538,6 +559,7 @@ ${criteria}`
                 console.error(error);
             }
             await new Promise(r => setTimeout(r, 1000));
+            purposeQueue--;
             // return await makeInference(image1, image2, type, annotatedText);
             resolve(await makeInference(image1, image2, type, annotatedText, specific));
         }
