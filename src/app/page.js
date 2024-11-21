@@ -59,7 +59,7 @@ export default function Home() {
     const [state, setState] = useState("home");
     const [svgContent, setSvgContent] = useState([]);
     const [screen, setScreen] = useState({ width: 0, height: 0 });
-    const [document, setDocument] = useState("./public/Test 2.pdf");
+    const [document, setDocument] = useState("./public/Test 1.pdf");
     const [mode, setMode] = useState("llm");
     const [disableNext, setDisableNext] = useState(true);
     const [toastMessage, setToastMessage] = useState("");

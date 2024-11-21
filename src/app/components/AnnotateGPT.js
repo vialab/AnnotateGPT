@@ -754,8 +754,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (lastToken) {
                     lastToken.explain = false;
 
-                    if ((lastToken.explanation[0] + token).trim().endsWith("}}}")) {
-                        lastToken.explanation[0] = (lastToken.explanation[0] + token).trim().slice(0, -3);
+                    if ((lastToken.explanation[0] + token).trim().endsWith("}}")) {
+                        lastToken.explanation[0] = (lastToken.explanation[0] + token).trim().slice(0, -2);
                     }
                     lastToken.explanation[0] = lastToken.explanation[0].trim();
                     // .replace(/^\"+|\"+$/g, "");
@@ -1988,7 +1988,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             // }
             let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
     
-            if (overlappingAnnotations.length === 1) {
+            if (overlappingAnnotations.every(a => a.annotation.accepted === false)) {
                 let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
             
                 let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{ height: height + "px", pointerEvents: "none" }}>
@@ -1997,10 +1997,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                 d3.selectAll(".react-tooltip#annotationExplanation .annotationMessageContainer")
                 .selectAll("div:not(.navigateContainer), textarea")
+                .style("pointer-events", "none")
                 .transition()
-                .duration(200)
-                .style("opacity", 0)
-                .style("pointer-events", "none");
+                .duration(600)
+                .style("opacity", 0);
 
                 d3.selectAll(".word.highlighted, .space.highlighted")
                 .classed("fade", false);
@@ -2010,10 +2010,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 .blur();
 
                 d3.select(".react-tooltip#annotationExplanation")
-                .transition()
-                .duration(200)
-                .style("background", "rgba(34, 38, 43, 0)")
                 .style("pointer-events", "none")
+                .transition()
+                .duration(600)
+                .style("background", "rgba(34, 38, 43, 0)")
                 .on("end", () => {
                     explanationToolTipRef.current?.open({
                         anchorSelect: ".explanation-tooltip",
@@ -2023,11 +2023,22 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 });
             } else {
                 let content = generateContent(annotation, annotations);
+                let messageContainer = rateContainer.closest(".annotationMessageHeader").parentNode;
 
-                explanationToolTipRef.current?.open({
-                    anchorSelect: ".explanation-tooltip",
-                    content: content,
-                    place: "left",
+                d3.select(messageContainer)
+                .style("pointer-events", "none")
+                .style("overflow", "hidden")
+                .style("height", messageContainer.getBoundingClientRect().height + "px")
+                .transition()
+                .duration(600)
+                .style("height", "0px")
+                .style("margin-bottom", "-15px")
+                .on("end", () => {
+                    explanationToolTipRef.current?.open({
+                        anchorSelect: ".explanation-tooltip",
+                        content: content,
+                        place: "left",
+                    });
                 });
             }
             // console.log(annotations.ref?.current.lockClusters.current);
@@ -2171,7 +2182,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                                 <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1", marginBottom: "5px" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, acceptFilterSpans) } />
                                             </div>
                                             <div className="rateButton" >
-                                                <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, filterSpans)} />
+                                                <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, acceptFilterSpans)} />
                                             </div>
                                             <div className="rateButton" >
                                                 <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1", marginTop: "5px" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, rejectFilterSpans, convertRejectFilterSpans)} />

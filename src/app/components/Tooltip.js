@@ -591,23 +591,25 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 let stroke = clusterRef.current[idx].strokes[i];
                 let strokeID = stroke.id;
 
-                if (!clusterRef.current[idx].open && type === "border") {
-                    let strokeColour = "rgba(0, 0, 0, 0)";
-
-                    if (clusterRef.current[idx].annotating || clusterRef.current[idx].purpose === false) {
-                        strokeColour = "#F96900";
-                    } else if (clusterRef.current[idx].annotating === false) {
-                        strokeColour = "#06D6A0";
-                    } else if (clusterRef.current[idx].purpose) {
-                        strokeColour = "#FFFD82";
-                    }
-                    strokeList.push({bbox: stroke.bbox, colour: strokeColour});
-                } else {
-                    if (strokeID !== "initial" && !d3.select(`path[id="${strokeID}"]`).empty()) {
-                        let strokeColour = d3.select(`path[id="${strokeID}"]`).style("stroke");
+                if (strokeID !== "initial") {
+                    if (!clusterRef.current[idx].open && type === "border") {
+                        let strokeColour = "rgba(0, 0, 0, 0)";
+    
+                        if (clusterRef.current[idx].annotating || clusterRef.current[idx].purpose === false) {
+                            strokeColour = "#F96900";
+                        } else if (clusterRef.current[idx].annotating === false) {
+                            strokeColour = "#06D6A0";
+                        } else if (clusterRef.current[idx].purpose) {
+                            strokeColour = "#FFFD82";
+                        }
                         strokeList.push({bbox: stroke.bbox, colour: strokeColour});
-                    } else if (strokeID !== "initial") {
-                        strokeList.push({bbox: stroke.bbox, colour: "black"});
+                    } else {
+                        if (!d3.select(`path[id="${strokeID}"]`).empty()) {
+                            let strokeColour = d3.select(`path[id="${strokeID}"]`).style("stroke");
+                            strokeList.push({bbox: stroke.bbox, colour: strokeColour});
+                        } else {
+                            strokeList.push({bbox: stroke.bbox, colour: "black"});
+                        }
                     }
                 }
             }

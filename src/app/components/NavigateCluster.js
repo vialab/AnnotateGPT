@@ -60,8 +60,10 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
                 break;
             }
         }
-        let topDisabled = indexFilter === 0 || (filteredAnnotations[firstIndex]?.accepted === false && indexFilter === firstIndex + 1);
-        let bottomDisabled = indexFilter === filteredAnnotations.length - 1 || (filteredAnnotations[lastIndex]?.accepted === false && indexFilter === lastIndex - 1);
+        // console.log(indexFilter, firstIndex, lastIndex);
+        let topDisabled = indexFilter === 0 || (filteredAnnotations[firstIndex]?.accepted === false && indexFilter === firstIndex + 1) || indexFilter === firstIndex;
+        let bottomDisabled = indexFilter === filteredAnnotations.length - 1 || (filteredAnnotations[lastIndex]?.accepted === false && indexFilter === lastIndex - 1) || indexFilter === lastIndex;
+        // console.log(topDisabled, bottomDisabled);
 
         if (animate) {
             d3.select("#bottomButton")
