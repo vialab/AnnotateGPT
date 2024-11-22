@@ -2,6 +2,7 @@
 /* eslint-disable no-unreachable */
 /* eslint-disable no-unused-vars */
 import OpenAI from "openai";
+import JSON5 from "json5";
 import * as data from "./TestData";
 import * as img from "./TestImg";
 
@@ -21,7 +22,7 @@ let purposeQueue = 0;
 // makeInference(img.img5, img.img6, "annotated (not circled, underlined or highlighted)", "(i.e.").catch(console.error).then(console.log);
 // makeInference(img.img9, img.img10, "underlined", "the prospective cycles of your education life.").catch(console.error).then(console.log);
 // makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true).catch(console.error).then(console.log);
-// makeInference(img.img13, img.img14, ["circled"], ["extol"], false).catch(console.error).then(console.log);
+// makeInference(img.img13, img.img14, ["circled"], ["extol"], true).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -295,8 +296,8 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 
             let criteria = specific
                 ? `4. Give two different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.
-5. For each guess, give two levels of detail: specific and broad. When describing with specific, describe the purpose, so it is specific to the words of the annotated text. When describing with broad, use umbrella terms without using the annotated text.`
-                : `4. Give four different guesses of what the purpose can be using different personas and past annotation history. The purposes should have different themes and relate to the context.`;
+5. For each guess, give two levels of detail: specific and broad. When describing with specific, describe the purpose so it is specific to the words of the annotated text. When describing with broad, use umbrella terms without using the annotated text.`
+                : `4. Give four different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.`;
 
 
             let formatCriteria = specific
@@ -329,8 +330,8 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 
 <annotation description>: is a detailed description of the annotation.
 <annotation history>: is a detailed annotation history related to the annotation.
-<specific_purpose>: is a description of the annotation purpose and annotation type using <annotation description> and <annotation history> as context. Talk in the second person (you, your, etc.) without mentioning the persona. Mention the user is looking for specific words or phrases of the annotate text at the end. Be specific.
-<broad_purpose>: is a broader description of the <specific_purpose> without using the <annotation description>. The purpose should talk about the text as a whole. Talk in the second person (you, your, etc.) without mentioning the persona. Be specific.
+<broad_purpose>: is a broader description of the <specific_purpose> without using the <annotation description>. The purpose should talk about the text as a whole. Talk in the second person (you, your, etc.) without mentioning the persona. Be specific and use as few words as possible.
+<specific_purpose>: is a description of the annotation purpose and annotation type using <annotation description> and <annotation history> as context. Talk in the second person (you, your, etc.) without mentioning the persona. After, the purpose must state "The purpose only looks for <words/phrases of the annotated text>...". Be specific and use as few words as possible.
 <broad_purpose_title>: is a short title for <broad_purpose> without mentioning the persona, be very specific.
 <specific_purpose_title>: is a short title for <specific_purpose> without mentioning the persona, be very specific. It should have the same wording as <broad_purpose_title>, but the title must be word-specific or phrase-specific by having the annotated text in the title.`
             :  `{
@@ -362,7 +363,7 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 
 <annotation description>: is a detailed description of the annotation.
 <annotation history>: is a detailed annotation history related to the annotation.
-<purpose>: is a description of the annotation purpose and annotation type using the <annotation history> as context without using the <annotation description> and any words in the annotated text. Talk in second person (you, your, etc.). Be specific.
+<purpose>: is a description of the annotation purpose and annotation type using the <annotation history> as context without using the <annotation description> and any words in the annotated text. Talk in second person (you, your, etc.). Be specific and use as few words as possible.
 <purpose_title>: is a short title for <purpose> without mentioning the persona, be very specific.`;
             
             const thread = await openai.beta.threads.create({
@@ -518,7 +519,7 @@ ${criteria}`
                 let regex = /\{(\s|.)*\}/g;
         
                 let match = (text.value).match(regex);
-                console.log(JSON.parse(match[0]));
+                console.log(JSON5.parse(match[0]));
 
                 try {
                     openai.files.del(file1.id)
@@ -534,7 +535,7 @@ ${criteria}`
                     console.error(error);
                 }
                 purposeQueue--;
-                resolve({ rawText: text.value, result: JSON.parse(match[0]) });
+                resolve({ rawText: text.value, result: JSON5.parse(match[0]) });
             } else {
                 throw new Error("No text response found.");
             }
