@@ -1,6 +1,6 @@
 // "use client";
 
-import { useState, useRef, useReducer, useEffect, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useState, useRef, useReducer, useEffect, useCallback, useImperativeHandle } from "react";
 import Image from "next/image";
 
 import Modal from "react-modal";
@@ -17,7 +17,7 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange, handinessChange }, ref) => {
+function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange, handinessChange, ref }) {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     let [ ifFirst, setIfFirst ] = useState(true);
@@ -1181,7 +1181,7 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
 
     useEffect(() => {
         if (studyState === "study" && toastMessage && toastMessage !== "") {
-            let messageContainer = <div id={"prompt"} style={{ textAlign: "center" }}>
+            let messageContainer = <div id={"prompt"} style={{ textAlign: "center", width: "100%" }}>
                 {toastMessage}
             </div>;
 
@@ -1301,7 +1301,6 @@ const StudyModal = forwardRef(({ toastMessage, disableNext, checkTask, onNextTas
         </>
         
     );
-});
+};
 
-StudyModal.displayName = "StudyModal";
 export default StudyModal;

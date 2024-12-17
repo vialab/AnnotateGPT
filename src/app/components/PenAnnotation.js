@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import SvgPenSketch from './js/SvgPenSketch';
 import * as d3 from 'd3';
 import { ShapeInfo, Intersection } from "kld-intersections";
@@ -307,7 +307,8 @@ function nearPath(point, path) {
     return false;
 }
 
-const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipRef, handiness, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback }, ref) => {
+
+function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handiness, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback, ref }) {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
@@ -1350,7 +1351,6 @@ const PenAnnotation = forwardRef(({ mode, content, index, tool, colour, toolTipR
             />
         </div>
     );
-});
+};
 
-PenAnnotation.displayName = "PenAnnotation";
 export default PenAnnotation;

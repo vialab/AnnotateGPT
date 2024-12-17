@@ -1,5 +1,5 @@
 // https://github.com/jeremy-carbonne/react-minimap
-import { forwardRef, useState, useEffect, useCallback, useRef, useImperativeHandle } from "react";
+import { useState, useEffect, useCallback, useRef, useImperativeHandle } from "react";
 import "./css/Minimap.css";
 
 function Child(props) {
@@ -8,7 +8,7 @@ function Child(props) {
     return <div className="minimap-child" style={{ position: "absolute", width, height, left, top }} />;
 }
 
-const Minimap = forwardRef((props, ref) => {
+function Minimap({ ref, ...props }) {
     const { selector, scrollContainer, className = "", width = 200, height = 200, keepAspectRatio = false, childComponent = Child, onMountCenterOnX = false, onMountCenterOnY = false, children } = props;
     
     const [miniMapWidth, setMiniMapWidth] = useState(width);
@@ -242,7 +242,6 @@ const Minimap = forwardRef((props, ref) => {
             {children}
         </div>
     );
-});
-Minimap.displayName = "Minimap";
+}
 
 export default Minimap;

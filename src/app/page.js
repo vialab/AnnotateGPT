@@ -13,8 +13,6 @@ import AnimatedCursor from "react-animated-cursor";
 
 import { Cluster } from "./components/PenCluster.js";
 
-import "react-toastify/dist/ReactToastify.css";
-
 const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
 
 // import AnnotateGPT from "../app/components/AnnotateGPT.js";
