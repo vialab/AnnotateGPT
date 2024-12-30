@@ -27,26 +27,56 @@ async function updateHistory(retry = 3) {
         async function deleteFiles() {
             try {
                 const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
+                const promises = [];
         
                 for (let file of vectorStoreFiles.data) {
-                    openai.files.del(file.id)
+                    let p = openai.beta.vectorStores.files.del(vectorStoreID, file.id)
                     .catch((error) => {
-                        openai.beta.vectorStores.files.del(vectorStoreID, file.id)
-                        .catch((error) => {
-                            console.error(error.error.message, "in vector store");
-                        });
+                        console.error(error.error.message, "in vector store");
+                    });
+                    promises.push(p);
 
+                    p = openai.files.del(file.id)
+                    .catch((error) => {
                         console.error(error.error.message, "in files");
                     });
+                    promises.push(p);
                 }
+                await Promise.all(promises);
             } catch (error) {
                 console.error(error);
             }
         }
-        deleteFiles()
+        console.log("Deleting history...");
+
+        await deleteFiles()
         .catch((error) => {
             console.error(error);
         });
+
+        let files = await openai.beta.vectorStores.files.list(vectorStoreID);
+        console.log("# of files in history:", files.data.length);
+        let emptyRetry = 0;
+
+        while (files.data.length !== 0) {
+            console.log("Deleting history...", files.data.length);
+            await new Promise(r => setTimeout(r, 1000));
+            files = await openai.beta.vectorStores.files.list(vectorStoreID);
+            emptyRetry++;
+
+            if (emptyRetry > 30) {
+                throw new Error("History empty");
+            }
+        }
+        let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+        console.log("Checking history vector store status...", vectorStore.status);
+    
+        while (vectorStore.status !== "completed") {
+            await new Promise(r => setTimeout(r, 1000));
+            vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+            console.log("Checking history vector store status...", vectorStore.status);
+        }
+        console.log("Uploading history...");
     
         const historyFile = await openai.files.create({
             file: file,
@@ -58,10 +88,18 @@ async function updateHistory(retry = 3) {
             { file_id: historyFile.id },
             { pollIntervalMs: 500 }
         );
+        console.log("Updated history...");
 
         if (vfile.status !== "completed") {
-            throw new Error("Vector file not completed");
-        }    
+            throw new Error("History not completed");
+        } else {
+            setTimeout(() => {
+                openai.beta.vectorStores.files.list(vectorStoreID)
+                .then((files) => {
+                    console.log("# of files in history:", files.data.length);
+                });
+            }, 15000);
+        }
         return vfile;
     } catch (error) {
         if (retry > 0) {
@@ -82,8 +120,11 @@ export default async function handler(req, res) {
         res.status(200).send(history.join(""));
     } else if (req.method === "POST") {
         const dataFilePath = path.join(process.cwd(), `./history.txt`);
+        let waitInterval = 0;
 
-        while (done) {
+        while (done && waitInterval < 40) {
+            console.log("Waiting...", waitInterval);
+            waitInterval++;
             await new Promise(resolve => setTimeout(resolve, 500));
         }
         done = true;

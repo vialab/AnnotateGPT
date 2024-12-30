@@ -10,10 +10,11 @@ import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore, addDoc, collection } from "firebase/firestore";
 import AnimatedCursor from "react-animated-cursor";
+import AnnotateGPT from "./components/AnnotateGPT.js";
 
 import { Cluster } from "./components/PenCluster.js";
 
-const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
+// const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
 
 // import AnnotateGPT from "../app/components/AnnotateGPT.js";
 import Header from "../app/components/Header.js";
@@ -479,18 +480,39 @@ export default function Home() {
         }));
     };
 
+    let spanData = useRef(new Map());
+
+    let onDocumentLoad = () => {
+        spanData.current.clear();
+        let spans = d3.selectAll(`span[role="presentation"]`);
+        let pageContainers = d3.selectAll(".page-container");
+
+        spans.style("content-visibility", "visible");
+        pageContainers.style("content-visibility", "visible");
+
+        d3.selectAll("span.word").each(function() {
+            spanData.current.set(this, this.innerText);
+        });
+        spans.style("content-visibility", null);
+        pageContainers.style("content-visibility", "auto");
+    };
+
     let onInferenceCallback = (startTimetamp, cluster, rawText, images) => {
         let timestamp = Date.now();
-        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", "visible");
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return typeof value === "string" ? value : value.map(element => element.innerText).join(" ");
+                return typeof value === "string" ? value : value.map(element => {
+                    if (spanData.current.has(element)) {
+                        return spanData.current.get(element);
+                    } else {
+                        return element.innerText;
+                    }
+                }).join(" ");
             } else {
                 return value;
             }
         });
-        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", null);
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "inference", actionTimestamp: timestamp});
 
         updatePracticeMessages(1);
@@ -510,16 +532,20 @@ export default function Home() {
 
     let onEndAnnotateCallback = (startTimetamp, cluster, rawText) => {
         let timestamp = Date.now();
-        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", "visible");
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return typeof value === "string" ? value : value.map(element => element.innerText).join(" ");
+                return typeof value === "string" ? value : value.map(element => {
+                    if (spanData.current.has(element)) {
+                        return spanData.current.get(element);
+                    } else {
+                        return element.innerText;
+                    }
+                }).join(" ");
             } else {
                 return value;
             }
         });
-        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", null);
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "annotate", actionTimestamp: timestamp});
 
         updatePracticeMessages(2);
@@ -543,17 +569,20 @@ export default function Home() {
     
     let onReplyCallback = (cluster, type) => {
         let timestamp = Date.now();
-        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", "visible");
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
             if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return typeof value === "string" ? value : value.map(element => element.innerText).join(" ");
+                return typeof value === "string" ? value : value.map(element => {
+                    if (spanData.current.has(element)) {
+                        return spanData.current.get(element);
+                    } else {
+                        return element.innerText;
+                    }
+                }).join(" ");
             } else {
                 return value;
             }
         });
-        d3.selectAll(`span[role="presentation"], .page-container`).style("content-visibility", null);
-
         clusterData = JSON.stringify({...JSON.parse(clusterData), actionType: "reply " + type, actionTimestamp: timestamp});
 
         if (type.includes("accept") || type.includes("reject")) {
@@ -774,7 +803,6 @@ export default function Home() {
                     
                     for (let cluster of clusters) {
                         if (cluster.annotationsFound) {
-
                             annotationeRef.current?.annotatedTokens?.push({
                                 annotationDescription: cluster.purpose?.annotationDescription, 
                                 purposeTitle: cluster.searching?.purposeTitle,
@@ -789,23 +817,24 @@ export default function Home() {
                                 annotationeRef.current?.annotate(currentAnnotation.sentence, (results) => {
                                     currentAnnotation.spans = results;
 
-                                    if (currentAnnotation.accepted === false || currentAnnotation.accepted === true) {
-                                        for (let span of currentAnnotation.spans) {
-                                            d3.select(span)
+                                    if (results instanceof Array && results.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0) {
+                                        if (currentAnnotation.accepted === false || currentAnnotation.accepted === true) {
+                                            let spaces = [];
+
+                                            for (let span of currentAnnotation.spans) {
+                                                let space = d3.select(span).node()?.nextSibling;
+                                    
+                                                if (!space) {
+                                                    space = span.parentNode.nextSibling?.firstChild;
+                                                }
+                                    
+                                                if (space && space.classList.contains("space")) {
+                                                    spaces.push(space);
+                                                }
+                                            }
+                                            d3.selectAll(spaces.concat(currentAnnotation.spans))
                                             .classed("highlighted", currentAnnotation.accepted)
                                             .classed("accept", currentAnnotation.accepted);
-                                
-                                            let space = d3.select(span).node()?.nextSibling;
-                                
-                                            if (!space) {
-                                                space = span.parentNode.nextSibling?.firstChild;
-                                            }
-                                
-                                            if (space && space.classList.contains("space")) {
-                                                d3.select(space)
-                                                .classed("highlighted", currentAnnotation.accepted)
-                                                .classed("accept", currentAnnotation.accepted);
-                                            }
                                         }
                                     }
                                 });
@@ -920,6 +949,7 @@ export default function Home() {
                 <>
                     <AnnotateGPT
                         documentPDF={document}
+                        onDocumentLoad={onDocumentLoad}
                         pEndCallback={penEndCallback}
                         onECallback={onEraseCallback}
                         onInferenceCallback={onInferenceCallback}
@@ -941,6 +971,7 @@ export default function Home() {
 
                     <AnnotateGPT
                         documentPDF={document}
+                        onDocumentLoad={onDocumentLoad}
                         pEndCallback={penEndCallback}
                         onECallback={onEraseCallback}
                         onInferenceCallback={onInferenceCallback}

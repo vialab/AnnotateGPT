@@ -50,17 +50,22 @@ export default async function handler(req, res) {
                 console.log("Deleting document...");
     
                 const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
+                const promises = [];
         
                 for (let file of vectorStoreFiles.data) {
+                    let p;
+
                     if ((document1ID && file.id === document1ID) || (document2ID && file.id === document2ID) || (practiceDocumentID && file.id === practiceDocumentID)) {
-                        openai.beta.vectorStores.files.del(vectorStoreID, file.id)
-                        .catch((error) => {
-                            console.error(error.error.message, "in vector store");
-                        });
+                        if (documentID !== file.id) {
+                            p = openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                            .catch((error) => {
+                                console.error(error.error.message, "in vector store");
+                            });
+                        }
                     } else {
                         openai.files.del(file.id)
                         .catch((error) => {
-                            openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                            p = openai.beta.vectorStores.files.del(vectorStoreID, file.id)
                             .catch((error) => {
                                 console.error(error.error.message, "in vector store");
                             });
@@ -68,6 +73,16 @@ export default async function handler(req, res) {
                             console.error(error.error.message, "in files");
                         });
                     }
+                    promises.push(p);
+                }
+                await Promise.all(promises);
+                let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+                console.log("Checking document vector store status...", vectorStore.status);
+            
+                while (vectorStore.status !== "completed") {
+                    await new Promise(r => setTimeout(r, 1000));
+                    vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+                    console.log("Checking document vector store status...", vectorStore.status);
                 }
                 let fileID;
                 
@@ -94,7 +109,33 @@ export default async function handler(req, res) {
                 if (processedFile.status !== "completed") {
                     throw new Error("Document processing failed");
                 } else {
+                    let files = await openai.beta.vectorStores.files.list(vectorStoreID);
+                    let emptyRetry = 0;
+                    console.log("# of files in vector store:", files.data.length);
+
+                    while (files.data.length !== 1) {
+                        console.log("Deleting files...", files.data.length);
+                        await new Promise(r => setTimeout(r, 1000));
+                        files = await openai.beta.vectorStores.files.list(vectorStoreID);
+                        emptyRetry++;
+            
+                        if (emptyRetry > 30) {
+                            console.log("Vector store not empty");
+                            break;
+                        }
+
+                        if (files.data.length === 0) {
+                            throw new Error("Vector store empty");
+                        }
+                    }
                     res.status(200).send("Updated document!");
+
+                    setTimeout(() => {
+                        openai.beta.vectorStores.files.list(vectorStoreID)
+                        .then((files) => {
+                            console.log("# of files in vector store:", files.data.length);
+                        });
+                    }, 15000);
                 }
                 return fileID;
             } catch (error) {

@@ -35,12 +35,12 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
     }
 
     const checkDisable = useCallback((animate = true) => {
-        let firstIndex = 0;
-        let lastIndex = annotationsRef.current.length - 1;
-
         let filteredAnnotations = filterRef.current ? annotationsRef.current.filter(annotation => !annotation.spans[0].classList?.contains("toolTip")) : annotationsRef.current;
         let indexFilter = filterRef.current ? filteredAnnotations.indexOf(annotationsRef.current[index.current]) : index.current;
         
+        let firstIndex = 0;
+        let lastIndex = filteredAnnotations.length - 1;
+
         if (indexFilter === -1) {
             return;
         }

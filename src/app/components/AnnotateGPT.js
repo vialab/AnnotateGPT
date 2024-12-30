@@ -34,147 +34,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url,
 ).toString();
 
-let workerLevenshteinDistance = () => {
-    // https://github.com/ka-weihe/fastest-levenshtein
-    onmessage = function(e) {
-        const a = e.data.a;
-        const b = e.data.b;
-        const i = e.data.i;
-        const i2 = e.data.i2;
-        const peq = new Uint32Array(0x10000);
-
-        const myers_32 = (a, b) => {
-            const n = a.length;
-            const m = b.length;
-            const lst = 1 << (n - 1);
-            let pv = -1;
-            let mv = 0;
-            let sc = n;
-            let i = n;
-            while (i--) {
-                peq[a.charCodeAt(i)] |= 1 << i;
-            }
-            for (i = 0; i < m; i++) {
-                let eq = peq[b.charCodeAt(i)];
-                const xv = eq | mv;
-                eq |= ((eq & pv) + pv) ^ pv;
-                mv |= ~(eq | pv);
-                pv &= eq;
-                if (mv & lst) {
-                    sc++;
-                }
-                if (pv & lst) {
-                    sc--;
-                }
-                mv = (mv << 1) | 1;
-                pv = (pv << 1) | ~(xv | mv);
-                mv &= xv;
-            }
-            i = n;
-            while (i--) {
-                peq[a.charCodeAt(i)] = 0;
-            }
-            return sc;
-        };
-
-        const myers_x = (b, a) => {
-            const n = a.length;
-            const m = b.length;
-            const mhc = [];
-            const phc = [];
-            const hsize = Math.ceil(n / 32);
-            const vsize = Math.ceil(m / 32);
-            for (let i = 0; i < hsize; i++) {
-                phc[i] = -1;
-                mhc[i] = 0;
-            }
-            let j = 0;
-            for (; j < vsize - 1; j++) {
-                let mv = 0;
-                let pv = -1;
-                const start = j * 32;
-                const vlen = Math.min(32, m) + start;
-                for (let k = start; k < vlen; k++) {
-                    peq[b.charCodeAt(k)] |= 1 << k;
-                }
-                for (let i = 0; i < n; i++) {
-                    const eq = peq[a.charCodeAt(i)];
-                    const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                    const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                    const xv = eq | mv;
-                    const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                    let ph = mv | ~(xh | pv);
-                    let mh = pv & xh;
-                    if ((ph >>> 31) ^ pb) {
-                        phc[(i / 32) | 0] ^= 1 << i;
-                    }
-                    if ((mh >>> 31) ^ mb) {
-                        mhc[(i / 32) | 0] ^= 1 << i;
-                    }
-                    ph = (ph << 1) | pb;
-                    mh = (mh << 1) | mb;
-                    pv = mh | ~(xv | ph);
-                    mv = ph & xv;
-                }
-                for (let k = start; k < vlen; k++) {
-                    peq[b.charCodeAt(k)] = 0;
-                }
-            }
-            let mv = 0;
-            let pv = -1;
-            const start = j * 32;
-            const vlen = Math.min(32, m - start) + start;
-            for (let k = start; k < vlen; k++) {
-                peq[b.charCodeAt(k)] |= 1 << k;
-            }
-            let score = m;
-            for (let i = 0; i < n; i++) {
-                const eq = peq[a.charCodeAt(i)];
-                const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                const xv = eq | mv;
-                const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                let ph = mv | ~(xh | pv);
-                let mh = pv & xh;
-                score += (ph >>> (m - 1)) & 1;
-                score -= (mh >>> (m - 1)) & 1;
-                if ((ph >>> 31) ^ pb) {
-                    phc[(i / 32) | 0] ^= 1 << i;
-                }
-                if ((mh >>> 31) ^ mb) {
-                    mhc[(i / 32) | 0] ^= 1 << i;
-                }
-                ph = (ph << 1) | pb;
-                mh = (mh << 1) | mb;
-                pv = mh | ~(xv | ph);
-                mv = ph & xv;
-            }
-            for (let k = start; k < vlen; k++) {
-                peq[b.charCodeAt(k)] = 0;
-            }
-            return score;
-        };
-
-        const distance = (a, b) => {
-            if (a.length < b.length) {
-                const tmp = b;
-                b = a;
-                a = tmp;
-            }
-            if (b.length === 0) {
-                return a.length;
-            }
-            if (a.length <= 32) {
-                return myers_32(a, b);
-            }
-            return myers_x(a, b);
-        };
-
-        postMessage({distance: distance(a, b), a, b, i, i2});
-    };
-};
-
-export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness }) {
+export default function AnnotateGPT({ documentPDF, onDocumentLoad, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness }) {
     const defaultColour = "#000000";
 
     // const [numPages, setNumPages] = useState();
@@ -254,8 +114,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         // numPages = 8;
         // setNumPages(numPages);
         numPagesRef.current = numPages;
-          
-        d3.selectAll(".page-container").style("content-visibility", "visible");
         svgContentRef.current = Array(numPages).fill(null);
         textContent.current = Array(numPages).fill(null);
 
@@ -392,7 +250,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     penAnnnotationRef.current.clusterStrokes(clusters, stopIteration);
                 }
             }
-
             d3.selectAll(".page-container").style("content-visibility", "auto");
         }
     }, [svgContent, loading]);
@@ -443,11 +300,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         // .selectAll("span[role='presentation']")
         // .nodes();
 
-        if (d3.select(".screenshot-container1").empty()) {
+        if (d3.select(".screenshot-container").empty()) {
             let container = document.createElement("div");
 
             d3.select(container)
-            .attr("class", "screenshot-container1")
+            .attr("class", "screenshot-container")
             .style("position", "absolute")
             .style("top", "0")
             .style("left", "0")
@@ -458,24 +315,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             document.body.appendChild(container);
         }
-
-        if (d3.select(".screenshot-container2").empty()) {
-            let container = document.createElement("div");
-
-            d3.select(container)
-            .attr("class", "screenshot-container2")
-            .style("position", "absolute")
-            .style("top", "0")
-            .style("left", "0")
-            .style("width", "var(--annotation-width)")
-            .style("height", "var(--annotation-height)")
-            .style("display", "flex")
-            .style("justify-content", "center")
-            .style("z-index", "-1000");
-
-            document.body.appendChild(container);
-        }
-
         let text = d3.select(".react-pdf__Page.page-" + index)
         .selectAll("span[role='presentation']")
         .nodes();
@@ -488,10 +327,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         setMinimapHeight(window.innerHeight);
 
         d3.select(".pen-annotation-container").style("--annotation-height", height + "px");
-        d3.select(".screenshot-container1").style("--annotation-width", width + "px");
-        d3.select(".screenshot-container1").style("--annotation-height", height + "px");
-        d3.select(".screenshot-container2").style("--annotation-width", width + "px");
-        d3.select(".screenshot-container2").style("--annotation-height", height + "px");
+        d3.select(".screenshot-container").style("--annotation-width", width + "px");
+        d3.select(".screenshot-container").style("--annotation-height", height + "px");
+        d3.select(".screenshot-container").style("display", "none");
 
         // spanPresentation.forEach((span) => {
         //     let text = span.textContent;
@@ -573,6 +411,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             d3.selectAll(".page-container").style("content-visibility", "auto");
 
+            if (onDocumentLoad instanceof Function) {
+                onDocumentLoad();
+            }
             // setUpAnnotations("")
             // setUpAnnotations("");
             // setUpAnnotations(""); 
@@ -625,7 +466,25 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         // console.log("Done", done, cutIndex.length, setUpAnnotatedTokens.length, finish);
                         // console.log(setUpAnnotatedTokens);
 
-                        if (result instanceof Array) {
+                        if (result instanceof Array && result.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0) {
+                            result = result.filter(r => r instanceof Element);
+                            let spaces = [];
+
+                            for (let span of result) {
+                                let space = d3.select(span).node().nextSibling;
+
+                                if (!space) {
+                                    space = span.parentNode.nextSibling?.firstChild;
+                                }
+            
+                                if (space && (space.classList.contains("space")) && span !== result[result.length - 1]) {
+                                    spaces.push(space);
+                                }
+                            }
+                            d3.selectAll(spaces.concat(result))
+                            .classed("highlighted", true)
+                            .classed("fade", activeAnnotation.current && !(activeAnnotation.current instanceof Element) && !activeAnnotation.current.spans.some((r) => result.includes(r)));
+
                             lastToken.spans = result;
 
                             loop1: for (let i = 0; i < setUpAnnotatedTokens.length; i++) {
@@ -648,94 +507,54 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
 
                             if (onDetect instanceof Function) {
-                                onDetect([...setUpAnnotatedTokens].filter(annotation => annotation.spans.filter(r => r instanceof Element).length !== 0));
+                                onDetect([...setUpAnnotatedTokens].filter(annotation => annotation.spans.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0));
                             }
                         } else {
                             console.log(result);
                         }
+
                         if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
                             handleEnd();
                         }
                     };
-
-                    let done2 = 0;
-                    let executed2 = 0;
-                    let worker = new Worker(URL.createObjectURL(new Blob([`(${workerLevenshteinDistance})()`])));
-
-                    const messageQueue = [];
-                    let activeMessages = 0;
-                    const maxConcurrentMessages = 2;
-
-                    function sendMessageToWorker(message) {
-                        messageQueue.push({ message });
-                        processQueue();
-                    }
-
-                    function processQueue() {
-                        if (activeMessages >= maxConcurrentMessages) {
-                            return;
-                        }
-
-                        if (messageQueue.length > 0) {
-                            const { message } = messageQueue.shift();
-                            activeMessages++;
-                            worker.postMessage(message);
-                        }
-                    }
-
-                    worker.onmessage = (e) => {
-                        const distance = e.data.distance;
-                        const substring = e.data.a.length > e.data.b.length ? e.data.a : e.data.b;
-                        const i = e.data.i;
-                        const i2 = e.data.i2;
-                        done2++;
-                        activeMessages--;
-                        processQueue();
-                        // console.log("Distance", distance, e.data.a, e.data.b);
-                        
-                        if (distance < substring.length / 2) {
-                            // console.log("Cut", lastToken.sentence.trim());
-                            cutIndex.push([i, i2]);
-                            setUpAnnotatedTokens[i2].accepted = false;
-
-                            if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
-                                handleEnd();
-                            }
-                            worker.terminate();
-                            return;
-                        }
-
-                        if (done2 === executed2) {
-                            // console.log("Annotating", lastToken.sentence.trim());
-                            annotate(lastToken.sentence.trim(), callback);
-                            worker.terminate();
-                        }
-                    };
-
-                    for (let i = 0; i < setUpAnnotatedTokens.length - 1; i++) {
-                        let sentences = setUpAnnotatedTokens[i].sentence.trim();
-                        let sentencesSplit = split(sentences).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
-                        // console.log("Split", sentencesSplit);
-
-                        for (let sentence of sentencesSplit) {
-                            let sentencesSplit2 = split(lastToken.sentence.trim()).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
-
-                            for (let sentence2 of sentencesSplit2) {
-                                // console.log("Comparing", sentence, "||", sentence2);
-
-                                executed2++;
-                                sendMessageToWorker({ a: sentence, b: sentence2, i, i2: setUpAnnotatedTokens.length - 1 });
-                            }
-                        }
-                    }
-
-                    if (executed2 === 0) {
-                        worker.terminate();
-                    }
+                    console.log(setUpAnnotatedTokens);
 
                     if (setUpAnnotatedTokens.length === 1) {
                         console.log("Annotating", lastToken.sentence.trim());
                         annotate(lastToken.sentence.trim(), callback);
+                    } else {
+                        fetch("./api/findDuplicateSentence", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ setUpAnnotatedTokens, lastToken }),
+                        })
+                        .then((response) => response.json())
+                        .then((data) => {
+                            let { i, i2, duplicate } = data;
+                            
+                            if (duplicate) {
+                                console.log("Cut", lastToken.sentence.trim());
+                                cutIndex.push([i, i2]);
+                                setUpAnnotatedTokens[i2].accepted = false;
+
+                                if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
+                                    handleEnd();
+                                }
+                            } else {
+                                console.log("Annotating", lastToken.sentence.trim());
+                                annotate(lastToken.sentence.trim(), callback);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Error:", error);
+
+                            toast.error("An error occurred while looking for duplicates.", {
+                                toastId: "duplicateError",
+                                containerId: "errorMessage"
+                            });
+                        });
                     }
                 } else {
                     setUpAnnotatedTokens.push({ sentence: "", state: "start", explanation: ["Generating explanation..."], explain: false, spans: []});
@@ -783,7 +602,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             finish = true;
 
             if (done + cutIndex.length === setUpAnnotatedTokens.length) {
-                // FIlter out repeated cut indexes
                 cutIndex = cutIndex.sort((a, b) => b[1] - a[1]);
                 cutIndex = cutIndex.filter((index, i) => i === 0 || index[1] !== cutIndex[i - 1][1]);
 
@@ -792,14 +610,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         setUpAnnotatedTokens[index[0]].explanation[0] = setUpAnnotatedTokens[index[1]]?.explanation[0];
                     }
                 }
+                let cutElements = [];
+                let highlightElements = [];
                 
                 for (let index of cutIndex) {
                     for (let span of setUpAnnotatedTokens[index[1]].spans) {
                         if (span instanceof Element) {
-                            d3.select(span)
-                            .style("background", null)
-                            .classed("highlighted", false);
-
+                            cutElements.push(span);
                             let space = d3.select(span).node().nextSibling;
 
                             if (!space) {
@@ -807,9 +624,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
         
                             if (space && space.classList.contains("space")) {
-                                d3.select(space)
-                                .classed("highlighted", false)
-                                .style("background", null);
+                                cutElements.push(space);
                             }
                         }
                     }
@@ -819,9 +634,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             let span = setUpAnnotatedTokens[index[0]].spans[i];
 
                             if (span instanceof Element) {
-                                d3.select(span)
-                                .classed("highlighted", true);
-
+                                highlightElements.push(span);
                                 let space = d3.select(span).node().nextSibling;
 
                                 if (!space) {
@@ -829,13 +642,18 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                 }
             
                                 if (space && space.classList.contains("space") && i !== setUpAnnotatedTokens[index[0]].spans.length - 1) {
-                                    d3.select(space)
-                                    .classed("highlighted", true);
+                                    highlightElements.push(space);
                                 }
                             }
                         }
                     }
                 }
+                d3.selectAll(cutElements)
+                .style("background", null)
+                .classed("highlighted", false);
+
+                d3.selectAll(highlightElements)
+                .classed("highlighted", true);
                 // console.log("Cut Index", cutIndex);
 
                 for (let index of cutIndex) {
@@ -846,7 +664,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 for (let i = 0; i < setUpAnnotatedTokens.length; i++) {
                     let annotation = setUpAnnotatedTokens[i];
                     
-                    if (annotation.spans.filter(r => r instanceof Element).length === 0) {
+                    if (annotation.spans.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length === 0) {
                         setUpAnnotatedTokens.splice(i, 1);
                         i--;
                     }
@@ -912,230 +730,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         let p = `${purposeTitle}: "${purpose}"`;
         findAnnotations(p, handleToken, handleEnd, (typeof mode === "string" && mode.toLowerCase().includes("practice") ? 1 : 8));
         // }
-    }
-    
-    function findMostSimilarSubstring() {
-        onmessage = function(e) {
-            let text = e.data.text;
-            let target = e.data.target;
-            let sameLength = e.data.sameLength;
-            let index = e.data.index;
-            let minDistance = Infinity;
-            let mostSimilar = "";
-            
-            let workerLevenshteinDistance = () => {
-                // https://github.com/ka-weihe/fastest-levenshtein
-                onmessage = function(e) {
-                    const a = e.data.a;
-                    const b = e.data.b;
-                    const peq = new Uint32Array(0x10000);
-
-                    const myers_32 = (a, b) => {
-                        const n = a.length;
-                        const m = b.length;
-                        const lst = 1 << (n - 1);
-                        let pv = -1;
-                        let mv = 0;
-                        let sc = n;
-                        let i = n;
-                        while (i--) {
-                            peq[a.charCodeAt(i)] |= 1 << i;
-                        }
-                        for (i = 0; i < m; i++) {
-                            let eq = peq[b.charCodeAt(i)];
-                            const xv = eq | mv;
-                            eq |= ((eq & pv) + pv) ^ pv;
-                            mv |= ~(eq | pv);
-                            pv &= eq;
-                            if (mv & lst) {
-                                sc++;
-                            }
-                            if (pv & lst) {
-                                sc--;
-                            }
-                            mv = (mv << 1) | 1;
-                            pv = (pv << 1) | ~(xv | mv);
-                            mv &= xv;
-                        }
-                        i = n;
-                        while (i--) {
-                            peq[a.charCodeAt(i)] = 0;
-                        }
-                        return sc;
-                    };
-
-                    const myers_x = (b, a) => {
-                        const n = a.length;
-                        const m = b.length;
-                        const mhc = [];
-                        const phc = [];
-                        const hsize = Math.ceil(n / 32);
-                        const vsize = Math.ceil(m / 32);
-                        for (let i = 0; i < hsize; i++) {
-                            phc[i] = -1;
-                            mhc[i] = 0;
-                        }
-                        let j = 0;
-                        for (; j < vsize - 1; j++) {
-                            let mv = 0;
-                            let pv = -1;
-                            const start = j * 32;
-                            const vlen = Math.min(32, m) + start;
-                            for (let k = start; k < vlen; k++) {
-                                peq[b.charCodeAt(k)] |= 1 << k;
-                            }
-                            for (let i = 0; i < n; i++) {
-                                const eq = peq[a.charCodeAt(i)];
-                                const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                                const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                                const xv = eq | mv;
-                                const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                                let ph = mv | ~(xh | pv);
-                                let mh = pv & xh;
-                                if ((ph >>> 31) ^ pb) {
-                                    phc[(i / 32) | 0] ^= 1 << i;
-                                }
-                                if ((mh >>> 31) ^ mb) {
-                                    mhc[(i / 32) | 0] ^= 1 << i;
-                                }
-                                ph = (ph << 1) | pb;
-                                mh = (mh << 1) | mb;
-                                pv = mh | ~(xv | ph);
-                                mv = ph & xv;
-                            }
-                            for (let k = start; k < vlen; k++) {
-                                peq[b.charCodeAt(k)] = 0;
-                            }
-                        }
-                        let mv = 0;
-                        let pv = -1;
-                        const start = j * 32;
-                        const vlen = Math.min(32, m - start) + start;
-                        for (let k = start; k < vlen; k++) {
-                            peq[b.charCodeAt(k)] |= 1 << k;
-                        }
-                        let score = m;
-                        for (let i = 0; i < n; i++) {
-                            const eq = peq[a.charCodeAt(i)];
-                            const pb = (phc[(i / 32) | 0] >>> i) & 1;
-                            const mb = (mhc[(i / 32) | 0] >>> i) & 1;
-                            const xv = eq | mv;
-                            const xh = ((((eq | mb) & pv) + pv) ^ pv) | eq | mb;
-                            let ph = mv | ~(xh | pv);
-                            let mh = pv & xh;
-                            score += (ph >>> (m - 1)) & 1;
-                            score -= (mh >>> (m - 1)) & 1;
-                            if ((ph >>> 31) ^ pb) {
-                                phc[(i / 32) | 0] ^= 1 << i;
-                            }
-                            if ((mh >>> 31) ^ mb) {
-                                mhc[(i / 32) | 0] ^= 1 << i;
-                            }
-                            ph = (ph << 1) | pb;
-                            mh = (mh << 1) | mb;
-                            pv = mh | ~(xv | ph);
-                            mv = ph & xv;
-                        }
-                        for (let k = start; k < vlen; k++) {
-                            peq[b.charCodeAt(k)] = 0;
-                        }
-                        return score;
-                    };
-
-                    const distance = (a, b) => {
-                        if (a.length < b.length) {
-                            const tmp = b;
-                            b = a;
-                            a = tmp;
-                        }
-                        if (b.length === 0) {
-                            return a.length;
-                        }
-                        if (a.length <= 32) {
-                            return myers_32(a, b);
-                        }
-                        return myers_x(a, b);
-                    };
-
-                    postMessage({distance: distance(a, b), a, b});
-                };
-            };
-            let done = 0;
-            let executed = 0;
-            let worker = new Worker(URL.createObjectURL(new Blob([`(${workerLevenshteinDistance})()`])));
-
-            const messageQueue = [];
-            let activeMessages = 0;
-            const maxConcurrentMessages = 2;
-
-            function sendMessageToWorker(message) {
-                messageQueue.push({ message });
-                processQueue();
-            }
-
-            function processQueue() {
-                if (activeMessages >= maxConcurrentMessages) {
-                    return;
-                }
-
-                if (messageQueue.length > 0) {
-                    const { message } = messageQueue.shift();
-                    activeMessages++;
-                    worker.postMessage(message);
-                }
-            }
-            
-            worker.onmessage = (e) => {
-                activeMessages--;
-                processQueue();
-                const distance = e.data.distance;
-                const substring = e.data.a;
-                // const target = e.data.b;
-                
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    mostSimilar = substring;
-                }
-                done++;
-
-                if (!sameLength && done === executed) {
-                    worker.terminate();
-                    postMessage([mostSimilar, minDistance, index, sameLength]);
-                } else if (sameLength && done === executed) {
-                    worker.terminate();
-                    postMessage([mostSimilar, minDistance, index, sameLength]);
-                }
-            };
-
-            if (text.length < target.length) {
-                worker.terminate();
-                postMessage(null);
-            }
-
-            if (sameLength) {
-                for (let i = 0; i <= text.length - target.length; i++) {
-                    let substring = text.substring(i, i + target.length);
-                    
-                    if ((i !== 0 && text[i - 1] !== " ") || substring[0] === " ") {
-                        continue;
-                    }
-                    executed++;
-                    sendMessageToWorker({ a: substring, b: target });
-                }
-            } else {
-                for (let length = target.length; length <= text.length; length++) {
-                    for (let i = 0; i <= text.length - length; i++) {
-                        const substring = text.substring(i, i + length);
-                        
-                        if ((i !== 0 && text[i - 1] !== " ") || substring[0] === " ") {
-                            continue;
-                        }
-                        executed++;
-                        sendMessageToWorker({ a: substring, b: target });
-                    }
-                }
-            }
-        };
     }
 
     function annotate(text, callback) {
@@ -1226,26 +820,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
 
                 if (found) {
-                    for (let i = 0; i < listOfSpans.length; i++) {
-                        let span = listOfSpans[i];
-
-                        d3.select(span)
-                        .classed("highlighted", true)
-                        .classed("fade", activeAnnotation.current && !(activeAnnotation.current instanceof Element) && !activeAnnotation.current.spans.some((r) => r === span));
-    
-                        let space = d3.select(span).node().nextSibling;
-
-                        if (!space) {
-                            space = span.parentNode.nextSibling?.firstChild;
-                        }
-    
-                        if (space && space.classList.contains("space") && i !== listOfSpans.length - 1) {
-                            d3.select(space)
-                            .classed("highlighted", true)
-                            .classed("fade", activeAnnotation.current && !(activeAnnotation.current instanceof Element) && !activeAnnotation.current.spans.some((r) => r === span));
-                        }
-                    }
-                    
                     if (callback instanceof Function) {
                         callback(listOfSpans);
                     }
@@ -1257,92 +831,20 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             } else if (done === executed) {
                 worker.terminate();
-                getClosestSubstring();
-            }
-        };
-
-        function getClosestSubstring() {
-            // console.log("Running getClosestSubstring...");
-            let minDistance = Infinity;
-            let done = 0;
-            let executed = 0;
-            let pageNumber = 0;
-            let substring = "";
-            let ifSinglePage = true;
-
-            let worker = new Worker(URL.createObjectURL(new Blob([`(${findMostSimilarSubstring})()`])));
-
-            const messageQueue = [];
-            let activeMessages = 0;
-            const maxConcurrentMessages = 2;
-
-            function sendMessageToWorker(message) {
-                messageQueue.push({ message });
-                processQueue();
-            }
-
-            function processQueue() {
-                if (activeMessages >= maxConcurrentMessages) {
-                    return;
-                }
-
-                if (messageQueue.length > 0) {
-                    const { message } = messageQueue.shift();
-                    activeMessages++;
-                    worker.postMessage(message);
-                }
-            }
-
-            for (let i = 0; i < textContent.current.length - 1; i++) {
-                if (textContent.current[i].length === 0 || textContent.current[i + 1].length === 0) {
-                    continue;
-                }
-                let currPage = textContent.current[i].map((span) => span.textContent).join(" ").toLowerCase();
-                let currPageSlice = currPage.slice(-text.length);
-                let nextPage = textContent.current[i + 1].map((span) => span.textContent).join(" ").toLowerCase();
-                let nextPageSlice = nextPage.slice(0, text.length);
-                let fullPage = currPageSlice + " " + nextPageSlice;
-                // console.log(fullPage);
-                fullPage = fullPage.replace(/[^a-zA-Z0-9\s]/g, "");
-
-                executed++;
-                sendMessageToWorker({ text: fullPage, target: text.toLowerCase(), sameLength: false, index: i });
-            }
-            
-            for (let i = 0; i < textContent.current.length; i++) {
-                let pageText = textContent.current[i].map((span) => span.textContent).join(" ").toLowerCase().replace(/[^a-zA-Z0-9\s]/g, "");
-
-                if (pageText === "") {
-                    continue;
-                }
-                pageText = pageText.replace(/\s+/g, " ");
-
-                executed++;
-                sendMessageToWorker({ text: pageText, target: text.toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""), sameLength: true, index: i });
-            }
-
-            worker.onmessage = (e) => {
-                activeMessages--;
-                processQueue();
-
-                let result = e.data;
-                done++;
-
-                if (result !== null) {
-                    let distance = result[1];
-
-                    if (distance < minDistance) {
-                        minDistance = distance;
-                        substring = result[0];
-                        pageNumber = result[2];
-                        ifSinglePage = result[3];
-
-                    }
-                }
-
-                if (done === executed) {
-                    worker.terminate();
-                    // console.log(text, minDistance, substring);
+                
+                fetch("api/findSimilarString", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: text.toLowerCase(),
+                        textContent: textContent.current.map((page) => page.map((span) => span.textContent).join(" ").toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""))
+                    })
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    const { substring, minDistance, pageNumber, ifSinglePage } = data;
 
                     if (minDistance > text.length / 2) {
                         let sentences = split(text).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
@@ -1426,22 +928,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             word = substringWords[wordIndex].replace(/[^a-zA-Z0-9]/g, "");
                         }
                         // console.log(listOfSpans);
-
-                        for (let span of listOfSpans) {
-                            d3.select(span)
-                            .classed("highlighted", true);
-        
-                            let space = d3.select(span).node().nextSibling;
-
-                            if (!space) {
-                                space = span.parentNode.nextSibling?.firstChild;
-                            }
-        
-                            if (space && (space.classList.contains("space")) && span !== listOfSpans[listOfSpans.length - 1]) {
-                                d3.select(space)
-                                .classed("highlighted", true);
-                            }
-                        }
                         
                         if (callback instanceof Function) {
                             callback(listOfSpans);
@@ -1520,29 +1006,21 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
                         }
                         
-                        for (let span of highLightSpans) {
-                            d3.select(span)
-                            .classed("highlighted", true);
-    
-                            let space = d3.select(span).node().nextSibling;
-
-                            if (!space) {
-                                space = span.parentNode.nextSibling?.firstChild;
-                            }
-    
-                            if (space && space.classList.contains("space")) {
-                                d3.select(space)
-                                .classed("highlighted", true);
-                            }
-                        }
-                        
                         if (callback instanceof Function) {
                             callback(highLightSpans);
                         }
                     }
-                }
-            };
-        }
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+
+                    toast.error("An error occurred while annotating text.", {
+                        toastId: "annotatingError",
+                        containerId: "errorMessage"
+                    });
+                });
+            }
+        };
     }
 
     function onChange(colour, event) {
@@ -1880,14 +1358,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     place: "left",
                 });
             });
-    
+            let spans = [];
+
             for (let span of a.spans) {
                 if (filterSpans.length > 0 && filterSpans.includes(span)) {
                     continue;
                 }
-                d3.select(span)
-                .classed("highlighted", true)
-                .classed("accept", true);
+                spans.push(span);
     
                 let space = d3.select(span).node().nextSibling;
     
@@ -1896,14 +1373,28 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
         
                 if (space && space.classList.contains("space")) {
-                    d3.select(space)
-                    .classed("highlighted", true)
-                    .classed("accept", true);
+                    spans.push(space);
                 }
             }
+            d3.selectAll(spans)
+            .classed("highlighted", true)
+            .classed("accept", true);
+
             miniMapRef.current?.synchronize();
     
-            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
+            // let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a)));
+            // let cluster = ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
+            let cluster = null;
+
+            penAnnotationRef.current.some(ref => {
+                const foundCluster = ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a));
+
+                if (foundCluster) {
+                    cluster = foundCluster;
+                    return true;
+                }
+                return false;
+            });
                     
             if (cluster) {
                 if (onReplyCallback instanceof Function) {
@@ -1937,10 +1428,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             //         place: "left",
             //     });
             // });
+            let acceptedSpans = [];
+            let rejectedSpans = [];
     
             loop1: for (let span of a.spans) {
                 for (let overlappingAnnotation of overlappingAnnotations) {
-                    if (overlappingAnnotation.annotation !== a) {
+                    if (overlappingAnnotation.annotation !== a && overlappingAnnotation.annotation.accepted !== false) {
                         for (let overlappingSpan of overlappingAnnotation.annotation.spans) {
                             if (span === overlappingSpan) {
                                 continue loop1;
@@ -1948,19 +1441,16 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
                     }
                 }
+
                 if (filterSpans.length > 0 && filterSpans.includes(span)) {
                     continue;
                 }
                 
                 if (convertFilterSpans.length > 0 && convertFilterSpans.includes(span)) {
-                    d3.select(span)
-                    .classed("highlighted", true)
-                    .classed("accept", true);
+                    acceptedSpans.push(span);
                 } else {
-                    d3.select(span)
-                    .classed("highlighted", false);
+                    rejectedSpans.push(span);
                 }
-    
                 let space = d3.select(span).node().nextSibling;
     
                 if (!space) {
@@ -1969,15 +1459,19 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     
                 if (space && space.classList.contains("space")) {
                     if (convertFilterSpans.length > 0 && convertFilterSpans.includes(span)) {
-                        d3.select(space)
-                        .classed("highlighted", true)
-                        .classed("accept", true);
+                        acceptedSpans.push(space);
                     } else {
-                        d3.select(space)
-                        .classed("highlighted", false);
+                        rejectedSpans.push(space);
                     }
                 }
             }
+            d3.selectAll(rejectedSpans)
+            .classed("highlighted", false);
+
+            d3.selectAll(acceptedSpans)
+            .classed("highlighted", true)
+            .classed("accept", true);
+
             miniMapRef.current?.synchronize();
     
             // for (let i = 0; i < annotations.annotations.length; i++) {
@@ -1986,8 +1480,22 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             //         break;
             //     }
             // }
-            let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
-    
+
+            // let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a)));
+            // let cluster = ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
+            let cluster = null, clusterRef = null;
+
+            penAnnotationRef.current.some(ref => {
+                const foundCluster = ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a));
+
+                if (foundCluster) {
+                    clusterRef = ref;
+                    cluster = foundCluster;
+                    return true;
+                }
+                return false;
+            });
+
             if (overlappingAnnotations.every(a => a.annotation.accepted === false)) {
                 let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
             
@@ -2043,7 +1551,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
             // console.log(annotations.ref?.current.lockClusters.current);
     
-            annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+            clusterRef?.current.updateLockCluster([...clusterRef?.current.lockClusters.current]);
                     
             if (cluster) {
                 if (onReplyCallback instanceof Function) {
@@ -2220,7 +1728,21 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 </div>
             );
         }
-        let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
+        
+        // let cluster = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(annotation)));
+        // let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
+        let cluster = null;
+
+        penAnnotationRef.current.some(ref => {
+            const foundCluster = ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a));
+
+            if (foundCluster) {
+                cluster = foundCluster;
+                return true;
+            }
+            return false;
+        });
+
         let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
         let onNavigateCallback = (annotation) => {
@@ -2272,25 +1794,24 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             d3.selectAll(".word.highlighted, .space.highlighted")
             .classed("fade", true);
         }
+        let spans = [];
 
         for (let i = 0; i < highlighAnnotation.length; i++) {
             let span = highlighAnnotation[i];
-
-            d3.select(span)
-            .classed("fade", false);
-
             let space = d3.select(span).node().nextSibling;
+            spans.push(span);
 
             if (!space) {
                 space = span.parentNode.nextSibling?.firstChild;
             }
 
             if (space && space.classList.contains("space") && i !== highlighAnnotation.length - 1) {
-                d3.select(space)
-                .classed("highlighted", true)
-                .classed("fade", false);
+                spans.push(space);
             }
         }
+        d3.selectAll(spans)
+        .classed("highlighted", true)
+        .classed("fade", false);
 
         if (!explanationToolTipRef.current?.isOpen) {
             d3.select(".explanation-tooltip")
@@ -2459,11 +1980,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     d3.selectAll(".word.highlighted, .space.highlighted")
                     .classed("fade", true);
 
+                    let spans = [];
+
                     for (let i = 0; i < annotation.spans.length; i++) {
                         let span = annotation.spans[i];
-
-                        d3.select(span)
-                        .classed("fade", false);
+                        spans.push(span);
 
                         let space = d3.select(span).node().nextSibling;
 
@@ -2472,11 +1993,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
     
                         if (space && space.classList.contains("space") && i !== annotation.spans.length - 1) {
-                            d3.select(space)
-                            .classed("highlighted", true)
-                            .classed("fade", false);
+                            spans.push(space);
                         }
                     }
+                    d3.selectAll(spans)
+                    .classed("highlighted", true)
+                    .classed("fade", false);
                 }, 1000);
 
                 let content = generateContent(annotation, annotations);
@@ -2484,10 +2006,17 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 explainTooltipTimeout.current = setTimeout(() => {
                     fadeDisplayExplanation(content, annotation);
                     activeAnnotation.current = annotation;
-
-                    let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
-                    cluster.open = false;
-                    annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
+                    
+                    for (let a of annotatedTokens.current) {
+                        if (a.ref?.current.lockClusters.current) {
+                            for (let cluster of a.ref.current.lockClusters.current) {
+                                if (cluster.open) {
+                                    cluster.open = false;
+                                    a.ref.current.updateLockCluster([...a.ref.current.lockClusters.current]);
+                                }
+                            }
+                        }
+                    }
 
                     if (navigateCallback instanceof Function) {
                         navigateCallback(annotation);

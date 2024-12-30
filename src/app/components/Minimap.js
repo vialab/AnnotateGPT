@@ -16,7 +16,7 @@ function Minimap({ ref, ...props }) {
     const [miniMapChildren, setMiniMapChildren] = useState(null);
 
     const minimapRef = useRef(null);
-    const sourceRef = useRef(document.querySelector(scrollContainer));
+    const sourceRef = useRef(null);
     const viewPortRef = useRef(null);
     const downState = useRef(false);
 
@@ -28,6 +28,11 @@ function Minimap({ ref, ...props }) {
     const h = useRef(0);
 
     const init = useCallback(() => {
+        sourceRef.current = document.querySelector(scrollContainer);
+
+        if (!sourceRef.current) {
+            return;
+        }
         const ChildComponent = childComponent;
         const { scrollWidth, scrollHeight, scrollTop, scrollLeft } = sourceRef.current;
         const sourceRect = sourceRef.current.getBoundingClientRect();
@@ -62,9 +67,12 @@ function Minimap({ ref, ...props }) {
 
             return <ChildComponent key={key} width={Math.round(wM)} height={Math.round(hM)} left={Math.round(xM)} top={Math.round(yM)} node={node} />;
         }));
-    }, [childComponent, height, keepAspectRatio, selector, width]);
+    }, [childComponent, height, keepAspectRatio, selector, width, scrollContainer]);
 
     const synchronize = useCallback(options => {
+        if (!sourceRef.current) {
+            return;
+        }
         const { width, height } = { width: miniMapWidth, height: miniMapHeight };
 
         const rect = sourceRef.current.getBoundingClientRect();
@@ -110,10 +118,9 @@ function Minimap({ ref, ...props }) {
             up();
             return;
         }
-
         let event;
-
         e.preventDefault();
+
         if (e.type.match(/touch/)) {
             if (e.touches.length > 1) {
                 return;
@@ -122,7 +129,6 @@ function Minimap({ ref, ...props }) {
         } else {
             event = e;
         }
-
         let dx = event.clientX - x.current;
         let dy = event.clientY - y.current;
         const { width, height } = { width: miniMapWidth, height: miniMapHeight };
@@ -139,7 +145,6 @@ function Minimap({ ref, ...props }) {
         if (t.current + h.current + dy > height) {
             dy = height - t.current - h.current;
         }
-
         x.current += dx;
         y.current += dy;
 
@@ -203,14 +208,6 @@ function Minimap({ ref, ...props }) {
         };
     }, [childComponent, height, init, keepAspectRatio, onMountCenterOnX, onMountCenterOnY, selector, synchronize, width]);
 
-    useImperativeHandle(ref, () => ({
-        synchronize,
-        up,
-        down,
-        move,
-        element: minimapRef.current,
-    }), [down, move, synchronize]);
-
     useEffect(() => {
         let element = document.querySelector(scrollContainer);
 
@@ -228,6 +225,14 @@ function Minimap({ ref, ...props }) {
             element.removeEventListener("pointerup", up);
         };
     }, [synchronize, scrollContainer, move]);
+
+    useImperativeHandle(ref, () => ({
+        synchronize,
+        up,
+        down,
+        move,
+        element: minimapRef.current,
+    }), [down, move, synchronize]);
 
     return (
         <div className={`minimap-container ${className}`}>

@@ -692,8 +692,21 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             navagation.classed("disabled", false);
 
             if (coords.length < 2) {
+                d3.select(path).remove();
                 return;
             }
+            let outLinePath = svgPenSketch.current._element.append("path");
+
+            outLinePath
+            .attr("d", d3.select(path).attr("d"))
+            .attr("class", "lineDrawOutline")
+            .attr("style", svgPenSketch.current.strokeStyles["style"])
+            .style("fill", "none")
+            .style("stroke", "none")
+            .style("opacity", "0")
+            .style("stroke-width", 30)
+            .attr("id", d3.select(path).attr("id") + "Outline");
+
             let scrollCoords = coords.map(coord => [coord[0], coord[1] - window.scrollY]);
 
             let processWords = (wordsOfInterest, type) => {

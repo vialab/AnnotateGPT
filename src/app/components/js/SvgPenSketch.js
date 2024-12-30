@@ -122,13 +122,19 @@ export default class SvgPenSketch {
         // };
         // d3.selectAll(".canvasElement").style("pointer-events", "visible");
 
-        // Get the paths in the eraser's range
-
-        
+        // Get the paths in the eraser's range        
         let lineDraw = d3.selectAll("path.lineDraw").nodes();
         let linePaths = [];
         let strokeWidth = this.strokeStyles["stroke-width"] ? parseFloat(this.strokeStyles["stroke-width"]) : 1;
-        // Check if circle of radius `range` is inside bounding box first
+        
+        let isPointInCircle = (px, py) => {
+            let cx = this.transform.x / this.transform.k + x;
+            let cy = this.transform.y / this.transform.k + y;
+
+            const dx = px - cx;
+            const dy = py - cy;
+            return dx * dx + dy * dy <= range * range;
+        };
 
         for (let i = 0; i < lineDraw.length; i++) {
             let path = lineDraw[i];
@@ -139,7 +145,10 @@ export default class SvgPenSketch {
             let y1 = bbox.y - range - strokeWidth / 2;
             let y2 = bbox.y + bbox.height + range + strokeWidth / 2;
 
-            if (x > x1 && x < x2 && y > y1 && y < y2) {
+            if (isPointInCircle(x1 + range, y1 + range) && isPointInCircle(x1 + range, y2 - range) && isPointInCircle(x2 - range, y1 + range) && isPointInCircle(x2 - range, y2 - range)) {
+                paths.push(path);
+                elements.push(path);
+            } else if (x > x1 && x < x2 && y > y1 && y < y2) {
                 linePaths.push(path);
             }
         }
@@ -467,18 +476,6 @@ export default class SvgPenSketch {
 
         // Interpolate the path if needed
         // this._interpolateStroke(strokePath, penCoords);
-
-        let outLinePath = this._element.append("path");
-
-        outLinePath
-        .attr("d", strokePath.attr("d"))
-        .attr("class", "lineDrawOutline")
-        .attr("style", this.strokeStyles["style"])
-        .style("fill", "none")
-        .style("stroke", "none")
-        .style("opacity", "0")
-        .style("stroke-width", 30)
-        .attr("id", strokePath.attr("id") + "Outline");
 
         // Call the callback
         if (this.penUpCallback !== undefined) {

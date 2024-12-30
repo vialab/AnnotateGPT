@@ -162,371 +162,426 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         //         } 
         //     );
         // }
-        let bbox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
-        let annotationPage1 = d3.select("#layer-" + index).node().cloneNode(true);
-        let annotationPage2 = d3.select("#layer-" + index).node().cloneNode(true);
-        let page = d3.select(".react-pdf__Page.page-" + index).node().cloneNode();
-        let canvasPage = d3.select(".react-pdf__Page.page-" + index).select("canvas").node().cloneNode();
-        let container1 = d3.select(".screenshot-container1").html("").node();
-        let container2 = d3.select(".screenshot-container2").html("").node();
+        let bbox = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
 
-        d3.select(annotationPage1)
-        .select("#toolTipcanvas")
-        .remove();
+        // Cache DOM selections to avoid redundant queries
+        let reactPdfPage = d3.select(".react-pdf__Page.page-" + index);
+        let layerNode = d3.select("#layer-" + index).node();
 
-        d3.select(annotationPage1)
-        .selectAll("path")
-        .attr("filter", null);
+        let annotationPage = layerNode.cloneNode(true);
+        let page = reactPdfPage.node().cloneNode();
+        let canvasPage = reactPdfPage.select("canvas").node().cloneNode();
 
-        d3.select(annotationPage2)
-        .select("#toolTipcanvas")
-        .remove();
+        let container = d3.select(".screenshot-container").node();
+        let annotationPages = d3.select(annotationPage);
 
-        d3.select(annotationPage2)
-        .selectAll("path")
-        .attr("filter", null);
-        
-        container1.appendChild(page);
-        container1.appendChild(annotationPage1);
-        container2.appendChild(annotationPage2);
-        d3.select(page).append(() => canvasPage);
-
-        let context = d3.select(container1).select("canvas").node().getContext("2d");
-
-        d3.select(annotationPage1)
-        .style("position", "absolute")
-        .style("top", index === 1 ? "0" : "-10px")
-        .selectAll("path")
-        .style("stroke", "red")
-        .attr("class", null)
-        .attr("opacity", null);
-
-        d3.select(annotationPage2)
-        .style("position", "absolute")
-        .style("top", index === 1 ? "0" : "-10px")
-        .selectAll("path")
-        .style("stroke", "red")
-        .attr("class", null)
-        .attr("opacity", null);
-
-        context.drawImage(d3.select(".react-pdf__Page.page-" + index).select("canvas").node(), 0, 0);
-
-        let ids = lastCluster.strokes.map(stroke => stroke.id);
-
-        const createC1 = createContext(container1, {
-            workerUrl: "./Worker.js",
-            workerNumber: 1,
-            filter: (node) => {
-                if (node.tagName === "path") {
-                    let id = node.id;
-                    d3.select(node)
-                    .attr("id", null)
-                    .style("fill", "red");
-
-                    return ids.includes(id);
-                }
-                return true;
+        function renderInSteps(steps, onComplete = () => {}, index = 0) {
+            if (index >= steps.length) {
+                onComplete();
+                return; 
             }
-        });
 
-        const createC2 = createContext(container2, {
-            workerUrl: "./Worker.js",
-            workerNumber: 1,
-            filter: (node) => {
-                if (node.tagName === "path") {
-                    let id = node.id;
-                    d3.select(node)
-                    .attr("id", null)
-                    .style("fill", "red");
+            requestAnimationFrame(() => {
+                steps[index]();
+                renderInSteps(steps, onComplete, index + 1);
+            });
+        }
 
-                    return ids.includes(id);
-                }
-                return true;
-            }
-        });
-        
-        let circle = lastCluster.strokes.find(stroke => stroke.type.startsWith("circled"));
-        let underline = lastCluster.strokes.find(stroke => stroke.type.startsWith("underlined"));
-        let highlighted = lastCluster.strokes.find(stroke => stroke.type.startsWith("highlighted"));
-        let crossed = lastCluster.strokes.find(stroke => stroke.type.startsWith("crossed"));
-        let word = lastCluster.strokes.find(stroke => stroke.type.endsWith("words"));
-        
-        let sortedStrokes = [...lastCluster.strokes].sort((a, b) => {
-            if (a.bbox.y === b.bbox.y) {
-                return a.bbox.x - b.bbox.x;
-            }
-            return a.bbox.y - b.bbox.y;
-        });
-        // let annotatedText = sortedStrokes.map(stroke => stroke.annotatedText).join("");
-        let annotatedText = [];
-        let specific = false;
+        let renderSteps = [
+            () => {
+                container.replaceChildren();
 
-        let extractText = (type) => {
-            return new Set(sortedStrokes.map(stroke => {
-                if (stroke.annotatedText?.length <= 2 && stroke.annotatedText?.length > 0) {
-                    specific = true;
-                }
+                annotationPages
+                .style("position", "absolute")
+                .selectAll("#toolTipcanvas")
+                .remove();
 
-                if (word) {
-                    if (stroke.type.startsWith(type) && stroke.type.endsWith("words")) {
+                annotationPages
+                .selectAll("path")
+                .attr("filter", null)
+                .style("stroke", "red")
+                .attr("class", null)
+                .attr("opacity", null);
+
+                page.appendChild(canvasPage);
+
+                const fragment = document.createDocumentFragment();
+                fragment.appendChild(page);
+                fragment.appendChild(annotationPage);
+                container.appendChild(fragment);
+
+                let sourceCanvas = reactPdfPage.select("canvas").node();
+                let context = d3.select(container).select("canvas").node().getContext("2d");
+                context.drawImage(sourceCanvas, 0, 0);
+            },
+        ];
+
+        return new Promise((resolve) => {
+            renderInSteps(renderSteps, async () => {
+                let ids = lastCluster.strokes.map(stroke => stroke.id);
+
+                const createC1 = createContext(container, {
+                    workerUrl: "./Worker.js",
+                    workerNumber: 1,
+                    width: d3.select(".screenshot-container").style("--annotation-width").split("px")[0],
+                    height: d3.select(".screenshot-container").style("--annotation-height").split("px")[0],
+                    onCloneNode: (node) => {
+                        if (node.classList.contains("screenshot-container")) {
+                            d3.select(node)
+                            .style("display", "block");
+
+                            d3.select(node)
+                            .selectAll("path")
+                            .attr("filter", null)
+                            .style("fill", "red");
+                        }
+                    },
+                    filter: (node) => {
+                        if (node.tagName === "path") {
+                            let id = node.id;
+                            return ids.includes(id);
+                        }
+                        return true;
+                    }
+                });
+
+                const createC2 = createContext(container, {
+                    workerUrl: "./Worker.js",
+                    workerNumber: 1,
+                    width: d3.select(".screenshot-container").style("--annotation-width").split("px")[0],
+                    height: d3.select(".screenshot-container").style("--annotation-height").split("px")[0],
+                    onCloneNode: (node) => {
+                        if (node.classList.contains("screenshot-container")) {
+                            d3.select(node).style("display", "block");
+
+                            d3.select(node)
+                            .selectAll("path")
+                            .attr("filter", null)
+                            .style("fill", "red");
+                        }
+                    },
+                    filter: (node) => {
+                        if (node.tagName && node.tagName.toLowerCase() === "div" && node.classList.contains("react-pdf__Page")) {
+                            return false;
+                        }
+
+                        if (node.tagName === "path") {
+                            let id = node.id;
+                            return ids.includes(id);
+                        }
+                        return true;
+                    }
+                });
+                
+                let circle = lastCluster.strokes.find(stroke => stroke.type.startsWith("circled"));
+                let underline = lastCluster.strokes.find(stroke => stroke.type.startsWith("underlined"));
+                let highlighted = lastCluster.strokes.find(stroke => stroke.type.startsWith("highlighted"));
+                let crossed = lastCluster.strokes.find(stroke => stroke.type.startsWith("crossed"));
+                let word = lastCluster.strokes.find(stroke => stroke.type.endsWith("words"));
+                
+                let sortedStrokes = [...lastCluster.strokes].sort((a, b) => {
+                    if (a.bbox.y === b.bbox.y) {
+                        return a.bbox.x - b.bbox.x;
+                    }
+                    return a.bbox.y - b.bbox.y;
+                });
+                // let annotatedText = sortedStrokes.map(stroke => stroke.annotatedText).join("");
+                let annotatedText = [];
+                let specific = false;
+
+                let extractText = (type) => {
+                    return new Set(sortedStrokes.map(stroke => {
+                        if (stroke.annotatedText?.length <= 2 && stroke.annotatedText?.length > 0) {
+                            specific = true;
+                        }
+
+                        if (word) {
+                            if (stroke.type.startsWith(type) && stroke.type.endsWith("words")) {
+                                return stroke.annotatedText;
+                            } else {
+                                return "";
+                            }
+                        }
                         return stroke.annotatedText;
-                    } else {
-                        return "";
+                    }).flat());
+                };
+
+                // let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
+                //     if (word) {
+                //         if (stroke.type.endsWith("words")) {
+                //             return stroke.annotatedText;
+                //         } else {
+                //             return "";
+                //         }
+                //     }
+                //     return stroke.annotatedText;
+                // }).flat());
+                
+                // annotatedText = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                // console.log(annotatedText);
+                let type = [];
+
+                if (circle) {
+                    let annotatedTextNodes = extractText("circled");
+                    let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                    
+                    if (annotatedTextContent.trim() !== "") {
+                        type.push("circled");
+                        annotatedText.push(annotatedTextContent.trim());
+                    }
+                } 
+                
+                if (underline) {
+                    let annotatedTextNodes = extractText("underlined");
+                    let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                    
+                    if (annotatedTextContent.trim() !== "") {
+                        type.push("underlined");
+                        annotatedText.push(annotatedTextContent.trim());
+                    }
+                } 
+                
+                if (crossed) {
+                    let annotatedTextNodes = extractText("crossed");
+                    let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                    
+                    if (annotatedTextContent.trim() !== "") {
+                        type.push("crossed out");
+                        annotatedText.push(annotatedTextContent.trim());
+                    }
+                } 
+                
+                if (highlighted) {
+                    let annotatedTextNodes = extractText("highlighted");
+                    let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                    
+                    if (annotatedTextContent.trim() !== "") {
+                        type.push("highlighted");
+                        annotatedText.push(annotatedTextContent.trim());
                     }
                 }
-                return stroke.annotatedText;
-            }).flat());
-        };
 
-        // let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
-        //     if (word) {
-        //         if (stroke.type.endsWith("words")) {
-        //             return stroke.annotatedText;
-        //         } else {
-        //             return "";
-        //         }
-        //     }
-        //     return stroke.annotatedText;
-        // }).flat());
-        
-        // annotatedText = word ? [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ") : [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
-        // console.log(annotatedText);
-        let type = [];
+                // d3.selectAll("#hightlighed_word").remove();
+                let pageTop = (d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top - d3.select(".react-pdf__Page.page-" + index).node().getBoundingClientRect().top) / window.innerHeight;
+                // let pageTop = 0;
 
-        if (circle) {
-            let annotatedTextNodes = extractText("circled");
-            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
-            
-            if (annotatedTextContent.trim() !== "") {
-                type.push("circled");
-                annotatedText.push(annotatedTextContent.trim());
-            }
-        } 
-        
-        if (underline) {
-            let annotatedTextNodes = extractText("underlined");
-            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
-            
-            if (annotatedTextContent.trim() !== "") {
-                type.push("underlined");
-                annotatedText.push(annotatedTextContent.trim());
-            }
-        } 
-        
-        if (crossed) {
-            let annotatedTextNodes = extractText("crossed");
-            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
-            
-            if (annotatedTextContent.trim() !== "") {
-                type.push("crossed out");
-                annotatedText.push(annotatedTextContent.trim());
-            }
-        } 
-        
-        if (highlighted) {
-            let annotatedTextNodes = extractText("highlighted");
-            let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
-            
-            if (annotatedTextContent.trim() !== "") {
-                type.push("highlighted");
-                annotatedText.push(annotatedTextContent.trim());
-            }
-        }
+                for (let stroke of lastCluster.strokes) {
+                    if (stroke.id !== "initial") {
+                        let bb = stroke.bbox;
+                        let textBBox = stroke.textBbox;
+                        let lineBBox = stroke.lineBbox;
 
-        // d3.selectAll("#hightlighed_word").remove();
-        let pageTop = (d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top - d3.select(".react-pdf__Page.page-" + index).node().getBoundingClientRect().top) / window.innerHeight;
-        // let pageTop = 0;
+                        let textX2 = textBBox.x + textBBox.width;
+                        let textY2 = textBBox.y + textBBox.height;
+                        let lineX2 = lineBBox.x + lineBBox.width;
+                        let lineY2 = lineBBox.y + lineBBox.height;
 
-        for (let stroke of lastCluster.strokes) {
-            if (stroke.id !== "initial") {
-                let bb = stroke.bbox;
-                let textBBox = stroke.textBbox;
-                let lineBBox = stroke.lineBbox;
+                        textX2 = isNaN(textX2) ? -Infinity : textX2;
+                        textY2 = isNaN(textY2) ? -Infinity : textY2;
+                        lineX2 = isNaN(lineX2) ? -Infinity : lineX2;
+                        lineY2 = isNaN(lineY2) ? -Infinity : lineY2;
 
-                let textX2 = textBBox.x + textBBox.width;
-                let textY2 = textBBox.y + textBBox.height;
-                let lineX2 = lineBBox.x + lineBBox.width;
-                let lineY2 = lineBBox.y + lineBBox.height;
+                        bbox.x1 = Math.min(bb.x, bbox.x1, textBBox.x, lineBBox.x);
+                        bbox.y1 = Math.min(bb.y, bbox.y1, textBBox.y, lineBBox.y);
+                        bbox.x2 = Math.max(bb.right, bbox.x2, textX2, lineX2);
+                        bbox.y2 = Math.max(bb.bottom, bbox.y2, textY2, lineY2);
 
-                textX2 = isNaN(textX2) ? -Infinity : textX2;
-                textY2 = isNaN(textY2) ? -Infinity : textY2;
-                lineX2 = isNaN(lineX2) ? -Infinity : lineX2;
-                lineY2 = isNaN(lineY2) ? -Infinity : lineY2;
+                        // d3.select("body")
+                        // .append("div")
+                        // .attr("id", "hightlighed_word")
+                        // .style("position", "absolute")
+                        // .style("top", bb.y * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
+                        // .style("left", bb.x * window.innerWidth + "px")
+                        // .style("width", (bb.right - bb.x) * window.innerWidth + "px")
+                        // .style("height", (bb.bottom - bb.y) * window.innerHeight + "px")
+                        // .style("background-color", "rgba(255, 0, 0, 0.5)")
+                        // .style("pointer-events", "none");
 
-                bbox.x1 = Math.min(bb.x, bbox.x1, textBBox.x, lineBBox.x);
-                bbox.y1 = Math.min(bb.y, bbox.y1, textBBox.y, lineBBox.y);
-                bbox.x2 = Math.max(bb.right, bbox.x2, textX2, lineX2);
-                bbox.y2 = Math.max(bb.bottom, bbox.y2, textY2, lineY2);
+                        // d3.select("body")
+                        // .append("div")
+                        // .attr("id", "hightlighed_word")
+                        // .style("position", "absolute")
+                        // .style("top", textBBox.y * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
+                        // .style("left", textBBox.x * window.innerWidth + "px")
+                        // .style("width", (textX2 - textBBox.x) * window.innerWidth + "px")
+                        // .style("height", (textY2 - textBBox.y) * window.innerHeight + "px")
+                        // .style("background-color", "rgba(0, 255, 0, 0.5)")
+                        // .style("pointer-events", "none");
 
-                // d3.select("body")
-                // .append("div")
-                // .attr("id", "hightlighed_word")
-                // .style("position", "absolute")
-                // .style("top", bb.y * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
-                // .style("left", bb.x * window.innerWidth + "px")
-                // .style("width", (bb.right - bb.x) * window.innerWidth + "px")
-                // .style("height", (bb.bottom - bb.y) * window.innerHeight + "px")
-                // .style("background-color", "rgba(255, 0, 0, 0.5)")
-                // .style("pointer-events", "none");
+                        // d3.select("body")
+                        //     .append("div")
+                        //     .style("position", "absolute")
+                        //     .style("top", `${lineBBox.y1 + window.scrollY + pageTop}px`)
+                        //     .style("left", `${lineBBox.x1}px`)
+                        //     .style("width", `${lineBBox.x2 - lineBBox.x1}px`)
+                        //     .style("height", `${lineBBox.y2 - lineBBox.y1}px`)
+                        //     .style("border", "2px solid red");
 
-                // d3.select("body")
-                // .append("div")
-                // .attr("id", "hightlighed_word")
-                // .style("position", "absolute")
-                // .style("top", textBBox.y * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
-                // .style("left", textBBox.x * window.innerWidth + "px")
-                // .style("width", (textX2 - textBBox.x) * window.innerWidth + "px")
-                // .style("height", (textY2 - textBBox.y) * window.innerHeight + "px")
-                // .style("background-color", "rgba(0, 255, 0, 0.5)")
-                // .style("pointer-events", "none");
-
-                // d3.select("body")
-                //     .append("div")
-                //     .style("position", "absolute")
-                //     .style("top", `${lineBBox.y1 + window.scrollY + pageTop}px`)
-                //     .style("left", `${lineBBox.x1}px`)
-                //     .style("width", `${lineBBox.x2 - lineBBox.x1}px`)
-                //     .style("height", `${lineBBox.y2 - lineBBox.y1}px`)
-                //     .style("border", "2px solid red");
-
-                // d3.select("body")
-                // .append("div")
-                // .attr("id", "hightlighed_word")
-                // .style("position", "absolute")
-                // .style("top", lineBBox.y * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
-                // .style("left", lineBBox.x * window.innerWidth + "px")
-                // .style("width", (lineX2 - lineBBox.x) * window.innerWidth + "px")
-                // .style("height", (lineY2 - lineBBox.y) * window.innerHeight + "px")
-                // .style("background-color", "rgba(0, 0, 0, 0.5)")
-                // .style("pointer-events", "none");
-            }
-        }
-
-        if (annotatedText.length === 0) {
-            // annotatedText = lastCluster.strokes.map(stroke => stroke.marginalText).join(" ");
-
-            let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
-                return stroke.marginalText;
-            }).flat());
-            annotatedText = [...annotatedTextNodes].map(node => node.textContent).join(" ").trim();
-            
-            type = "annotated";
-
-            for (let stroke of lastCluster.strokes) {
-                if (stroke.id !== "initial") {
-                    let marginalBBox = stroke.marginalTextBbox;
-    
-                    let marginalX2 = marginalBBox.x + marginalBBox.width;
-                    let marginalY2 = marginalBBox.y + marginalBBox.height;
-    
-                    marginalX2 = isNaN(marginalX2) ? -Infinity : marginalX2;
-                    marginalY2 = isNaN(marginalY2) ? -Infinity : marginalY2;
-    
-                    bbox.x1 = Math.min(bbox.x1, marginalBBox.x);
-                    bbox.y1 = Math.min(bbox.y1, marginalBBox.y);
-                    bbox.x2 = Math.max(bbox.x2, marginalX2);
-                    bbox.y2 = Math.max(bbox.y2, marginalY2);
+                        // d3.select("body")
+                        // .append("div")
+                        // .attr("id", "hightlighed_word")
+                        // .style("position", "absolute")
+                        // .style("top", lineBBox.y * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
+                        // .style("left", lineBBox.x * window.innerWidth + "px")
+                        // .style("width", (lineX2 - lineBBox.x) * window.innerWidth + "px")
+                        // .style("height", (lineY2 - lineBBox.y) * window.innerHeight + "px")
+                        // .style("background-color", "rgba(0, 0, 0, 0.5)")
+                        // .style("pointer-events", "none");
+                    }
                 }
-            }
-        }
-        // d3.select("body")
-        // .append("div")
-        // .attr("id", "hightlighed_word")
-        // .style("position", "absolute")
-        // .style("top", bbox.y1 * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
-        // .style("left", bbox.x1 * window.innerWidth + "px")
-        // .style("width", (bbox.x2 - bbox.x1) * window.innerWidth + "px")
-        // .style("height", (bbox.y2 - bbox.y1) * window.innerHeight + "px")
-        // .style("background-color", "rgba(255, 255, 0, 0.5)")
-        // .style("pointer-events", "none");
 
-        let contexts = await Promise.all([createC1, createC2]);
-        let [c1, c2] = contexts;
+                if (annotatedText.length === 0) {
+                    // annotatedText = lastCluster.strokes.map(stroke => stroke.marginalText).join(" ");
 
-        let cropAnnotation = domToCanvas(c1).then(canvas => {
-            c1.workers.forEach(worker => worker.terminate());
-            destroyContext(c1);
+                    let annotatedTextNodes = new Set(sortedStrokes.map(stroke => {
+                        return stroke.marginalText;
+                    }).flat());
+                    annotatedText = [...annotatedTextNodes].map(node => node.textContent).join(" ").trim();
+                    
+                    type = "annotated";
 
-            return new Promise((resolve, reject) => {
-                let dataUrl = canvas.toDataURL('image/png');
-                // console.log(dataUrl);
+                    for (let stroke of lastCluster.strokes) {
+                        if (stroke.id !== "initial") {
+                            let marginalBBox = stroke.marginalTextBbox;
+            
+                            let marginalX2 = marginalBBox.x + marginalBBox.width;
+                            let marginalY2 = marginalBBox.y + marginalBBox.height;
+            
+                            marginalX2 = isNaN(marginalX2) ? -Infinity : marginalX2;
+                            marginalY2 = isNaN(marginalY2) ? -Infinity : marginalY2;
+            
+                            bbox.x1 = Math.min(bbox.x1, marginalBBox.x);
+                            bbox.y1 = Math.min(bbox.y1, marginalBBox.y);
+                            bbox.x2 = Math.max(bbox.x2, marginalX2);
+                            bbox.y2 = Math.max(bbox.y2, marginalY2);
+                        }
+                    }
+                }
+                // d3.select("body")
+                // .append("div")
+                // .attr("id", "hightlighed_word")
+                // .style("position", "absolute")
+                // .style("top", bbox.y1 * window.innerHeight + pageTop * window.innerHeight + window.scrollY + "px")
+                // .style("left", bbox.x1 * window.innerWidth + "px")
+                // .style("width", (bbox.x2 - bbox.x1) * window.innerWidth + "px")
+                // .style("height", (bbox.y2 - bbox.y1) * window.innerHeight + "px")
+                // .style("background-color", "rgba(255, 255, 0, 0.5)")
+                // .style("pointer-events", "none");
 
-                if (dataUrl) {
-                    let img = new Image();
-                    img.src = dataUrl;
+                let contexts = await Promise.all([createC1, createC2]);
+                let [c1, c2] = contexts;
 
-                    let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
-                    let startX = bbox.x1 * window.innerWidth - 10;
-                    let startY = (bbox.y1 + pageTop) * height - 10;
-                    let cropWidth = (bbox.x2 - bbox.x1) * window.innerWidth + 20;
-                    let cropHeight = (bbox.y2 - bbox.y1 - pageTop) * height + 20;
-
-                    img.onload = function () {
-                        let canvas = document.createElement('canvas');
-                        canvas.width = cropWidth;
-                        canvas.height = cropHeight;
-
-                        let ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-                        let croppedBase64 = canvas.toDataURL('image/png');
-                        resolve(croppedBase64);
+                function cropWorker() {
+                    self.onmessage = async function (event) {
+                        const { dataUrl, bbox, dimensions } = event.data;
+                        const { width, height, pageTop } = dimensions;
+                    
+                        try {
+                            const img = await createImageBitmap(await fetch(dataUrl).then(res => res.blob()));
+                    
+                            const startX = bbox.x1 * width - 10;
+                            const startY = (bbox.y1 + pageTop) * height - 10;
+                            const cropWidth = (bbox.x2 - bbox.x1) * width + 20;
+                            const cropHeight = (bbox.y2 - bbox.y1 - pageTop) * height + 20;
+                    
+                            // Create an OffscreenCanvas
+                            const offscreenCanvas = new OffscreenCanvas(cropWidth, cropHeight);
+                            const ctx = offscreenCanvas.getContext('2d');
+                    
+                            // Draw the cropped image
+                            ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                    
+                            // Convert the canvas to a Blob and then to a base64 string
+                            const blob = await offscreenCanvas.convertToBlob();
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                                self.postMessage({ croppedBase64: reader.result });
+                            };
+                            reader.readAsDataURL(blob);
+                        } catch (error) {
+                            self.postMessage({ error: error.message });
+                        }
                     };
                 }
+
+                function cropCanvas(canvas) {
+                    return new Promise((resolve, reject) => {
+                        const url = URL.createObjectURL(new Blob([`(${cropWorker.toString()})()`]));
+                        const worker = new Worker(url);
+                        const dataUrl = canvas.toDataURL('image/png');
+                
+                        if (!dataUrl) {
+                            reject(new Error('Failed to get canvas data URL'));
+                            return;
+                        }
+                        const height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
+
+                        const payload = {
+                            dataUrl,
+                            bbox,
+                            dimensions: {
+                                width: window.innerWidth,
+                                height,
+                                pageTop,
+                            },
+                        };
+
+                        worker.onmessage = (event) => {
+                            resolve(event.data.croppedBase64);
+                            worker.terminate();
+                            URL.revokeObjectURL(url);
+                        };
+
+                        worker.onerror = (err) => {
+                            reject(err);
+                            worker.terminate();
+                            URL.revokeObjectURL(url);
+                        };
+
+                        worker.postMessage(payload);
+                    });
+                }
+
+                let cropAnnotation = domToCanvas(c1)
+                .then(canvas => {
+                    c1.workers.forEach(worker => worker.terminate());
+                    destroyContext(c1);
+                    return cropCanvas(canvas);
+                })
+                .then(croppedBase64 => {
+                    return croppedBase64;
+                });
+
+                let pageImage = domToCanvas(c2)
+                .then(canvas => {
+                    c2.workers.forEach(worker => worker.terminate());
+                    destroyContext(c2);
+                    return cropCanvas(canvas);
+                })
+                .then(croppedBase64 => {
+                    return croppedBase64;
+                });
+
+                console.log(lastCluster);
+                
+                let [annotationWithText, annotationWithoutText] = await Promise.all([cropAnnotation, pageImage]);
+                let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText, specific);
+                let typeAnnotatedText = "";
+
+                if (annotatedText instanceof Array) {
+                    for (let i = 0; i < annotatedText.length; i++) {
+                        typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
+
+                        if (i < annotatedText.length - 1) {
+                            typeAnnotatedText += " and ";
+                        }
+                    }
+                } else {
+                    typeAnnotatedText = `${type} "${annotatedText}"`;
+                }
+                resolve({ rawText: typeAnnotatedText + "\n" + rawText, result, images: [annotationWithText, annotationWithoutText] });
             });
         });
-
-        let pageImage = domToCanvas(c2).then(canvas => {
-            c2.workers.forEach(worker => worker.terminate());
-            destroyContext(c2);
-
-            return new Promise((resolve, reject) => {
-                let dataUrl = canvas.toDataURL('image/png');
-                // console.log(dataUrl);
-
-                if (dataUrl) {
-                    let img = new Image();
-                    img.src = dataUrl;
-
-                    let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
-                    let startX = bbox.x1 * window.innerWidth - 10;
-                    let startY = (bbox.y1 + pageTop) * height - 10;
-                    let cropWidth = (bbox.x2 - bbox.x1) * window.innerWidth + 20;
-                    let cropHeight = (bbox.y2 - bbox.y1 - pageTop) * height + 20;
-
-                    img.onload = function () {
-                        let canvas = document.createElement('canvas');
-                        canvas.width = cropWidth;
-                        canvas.height = cropHeight;
-
-                        let ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-                        let croppedBase64 = canvas.toDataURL('image/png');
-                        resolve(croppedBase64);
-                    };
-                }
-            });
-        });
-
-        console.log(lastCluster);
-        
-        let [annotationWithText, annotationWithoutText] = await Promise.all([cropAnnotation, pageImage]);
-        let { rawText, result } = await makeInference(annotationWithText, annotationWithoutText, type, annotatedText, specific);
-        let typeAnnotatedText = "";
-
-        if (annotatedText instanceof Array) {
-            for (let i = 0; i < annotatedText.length; i++) {
-                typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
-
-                if (i < annotatedText.length - 1) {
-                    typeAnnotatedText += " and ";
-                }
-            }
-        } else {
-            typeAnnotatedText = `${type} "${annotatedText}"`;
-        }
-        return { rawText: typeAnnotatedText + "\n" + rawText, result, images: [annotationWithText, annotationWithoutText] };
     }, [index]);
     
     const updateTextTooltips = useCallback(() => {
@@ -969,6 +1024,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 .attr("y", (d, i) => {
                     return clusterRef.current[i].y;
                 })
+                .style("will-change", "width, height")
                 .attr("width", (d, i) => clusterRef.current[i].open ? window.innerWidth - width - 36 : toolTipSize)
                 .attr("height", (d, i) => clusterRef.current[i].open ? 200 : toolTipSize)
                 .attr("rx", toolTipSize / 2)
@@ -1015,11 +1071,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 // .attr("filter", `url(#strokeHighlight${stroke.id})`);
                             }
                         }
-                    } else {
-                        for (let idx = 0; idx < clusterRef.current.length; idx++) {
-                            if (idx !== i) {
-                                clusterRef.current[idx].open = false;
-                            }
+                    }
+
+                    for (let idx = 0; idx < clusterRef.current.length; idx++) {
+                        if (idx !== i) {
+                            clusterRef.current[idx].open = false;
                         }
                     }
                     updateTooltips(clusterRef.current);
@@ -2298,11 +2354,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                                                 0 0 0 0 0`);
                                         }
                                     }
-                                } else {
-                                    for (let idx = 0; idx < clusterRef.current.length; idx++) {
-                                        if (idx !== i) {
-                                            clusterRef.current[idx].open = false;
-                                        }
+                                }
+                                
+                                for (let idx = 0; idx < clusterRef.current.length; idx++) {
+                                    if (idx !== i) {
+                                        clusterRef.current[idx].open = false;
                                     }
                                 }
                                 updateTooltips(clusterRef.current);
