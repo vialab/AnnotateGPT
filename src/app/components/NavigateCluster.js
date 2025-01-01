@@ -71,6 +71,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
             .duration(1000)
             .on("end", () => {
                 d3.select("#bottomButton").classed("disabled", bottomDisabled);
+                d3.select("#bottomButton svg").style("pointer-events", "all");
             });
 
             d3.select("#topButton")
@@ -78,10 +79,13 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
             .duration(1000)
             .on("end", () => {
                 d3.select("#topButton").classed("disabled", topDisabled);
+                d3.select("#topButton svg").style("pointer-events", "all");
             });
         } else {
             d3.select("#topButton").classed("disabled", topDisabled);
             d3.select("#bottomButton").classed("disabled", bottomDisabled);
+            d3.select("#topButton svg").style("pointer-events", "all");
+            d3.select("#bottomButton svg").style("pointer-events", "all");
         }
     }, []);
 
@@ -121,6 +125,9 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         //         index.current = i;
         //     }
         // } else {
+        d3.select("#topButton svg")
+        .style("pointer-events", "none");
+
         if (index.current > 0) {
             index.current--;
         }
@@ -196,6 +203,9 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         //         index.current = i;
         //     }
         // } else {
+        d3.select("#bottomButton svg")
+        .style("pointer-events", "none");
+
         if (index.current < annotationsRef.current.length - 1) {
             index.current++;
         }
