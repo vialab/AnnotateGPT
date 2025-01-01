@@ -11,7 +11,7 @@ const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY, dangerou
 const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
 const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 const maxAnnotationQueue = 2;
-const maxPurposeQueue = 2;
+const maxPurposeQueue = 3;
 let annotationQueue = 0;
 let purposeQueue = 0;
 

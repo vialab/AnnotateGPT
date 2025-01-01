@@ -1497,14 +1497,14 @@ export default function AnnotateGPT({ documentPDF, onDocumentLoad, pEndCallback,
             });
 
             if (overlappingAnnotations.every(a => a.annotation.accepted === false)) {
-                let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
+                // let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
             
-                let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{ height: height + "px", pointerEvents: "none" }}>
-                    <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
-                </div>;
+                // let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{ height: height + "px", pointerEvents: "none" }}>
+                //     <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
+                // </div>;
 
                 d3.selectAll(".react-tooltip#annotationExplanation .annotationMessageContainer")
-                .selectAll("div:not(.navigateContainer), textarea")
+                .selectAll("div:not(.navigateContainer):not(.navigationContainer), textarea")
                 .style("pointer-events", "none")
                 .transition()
                 .duration(600)
@@ -1521,14 +1521,14 @@ export default function AnnotateGPT({ documentPDF, onDocumentLoad, pEndCallback,
                 .style("pointer-events", "none")
                 .transition()
                 .duration(600)
-                .style("background", "rgba(34, 38, 43, 0)")
-                .on("end", () => {
-                    explanationToolTipRef.current?.open({
-                        anchorSelect: ".explanation-tooltip",
-                        content: newContent,
-                        place: "left",
-                    });
-                });
+                .style("background", "rgba(34, 38, 43, 0)");
+                // .on("end", () => {
+                //     explanationToolTipRef.current?.open({
+                //         anchorSelect: ".explanation-tooltip",
+                //         content: newContent,
+                //         place: "left",
+                //     });
+                // });
             } else {
                 let content = generateContent(annotation, annotations);
                 let messageContainer = rateContainer.closest(".annotationMessageHeader").parentNode;
@@ -1578,7 +1578,7 @@ export default function AnnotateGPT({ documentPDF, onDocumentLoad, pEndCallback,
                         
                         let cluster = overlappingAnnotation.groupAnnotation.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
                         
-                        if (cluster) {
+                        if (cluster && a.accepted !== false) {
                             if (onReplyCallback instanceof Function) {
                                 onReplyCallback(cluster, "comment " + overlappingAnnotation.index);
                             }
@@ -1826,7 +1826,10 @@ export default function AnnotateGPT({ documentPDF, onDocumentLoad, pEndCallback,
             
             setTimeout(() => {
                 d3.select(".react-tooltip#annotationExplanation")
-                .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)");
+                .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)")
+                .select("textarea")
+                .style("pointer-events", "auto")
+                .style("opacity", 1);
             }, 10);
         } else {
             d3.select(".react-tooltip#annotationExplanation")
@@ -1847,7 +1850,10 @@ export default function AnnotateGPT({ documentPDF, onDocumentLoad, pEndCallback,
                     
                     setTimeout(() => {
                         d3.select(".react-tooltip#annotationExplanation")
-                        .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)");
+                        .style("background", overrideDisplay ? "rgba(34, 38, 43, 1)" : "rgba(34, 38, 43, 0)")
+                        .select("textarea")
+                        .style("pointer-events", "auto")
+                        .style("opacity", 1);
                     }, 10);
 
                     d3.select(".react-tooltip#annotationExplanation")
