@@ -14,7 +14,7 @@ async function runWorker(data) {
 
         const messageQueue = [];
         let activeMessages = 0;
-        const maxConcurrentMessages = 2;
+        const maxConcurrentMessages = 4;
 
         function sendMessageToWorker(message) {
             messageQueue.push({ message });

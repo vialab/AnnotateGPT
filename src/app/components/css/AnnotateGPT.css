@@ -57,8 +57,16 @@ span[role="presentation"] {
     background: rgba(252, 232, 151, 1);
 }
 
+.word.highlighted.target, .space.highlighted.target {
+    background: rgb(255, 204, 0);
+}
+
 .word.highlighted.accept, .space.highlighted.accept {
     background: rgba(167, 241, 167, 1);
+}
+
+.word.highlighted.accept.target, .space.highlighted.accept.target {
+    background: rgb(28, 227, 28);
 }
 
 .word.highlighted.fade, .space.highlighted.fade {

@@ -480,35 +480,12 @@ export default function Home() {
         }));
     };
 
-    let spanData = useRef(new Map());
-
-    let onDocumentLoad = () => {
-        spanData.current.clear();
-        let spans = d3.selectAll(`span[role="presentation"]`);
-        let pageContainers = d3.selectAll(".page-container");
-
-        spans.style("content-visibility", "visible");
-        pageContainers.style("content-visibility", "visible");
-
-        d3.selectAll("span.word").each(function() {
-            spanData.current.set(this, this.innerText);
-        });
-        spans.style("content-visibility", null);
-        pageContainers.style("content-visibility", "auto");
-    };
-
     let onInferenceCallback = (startTimetamp, cluster, rawText, images) => {
         let timestamp = Date.now();
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
-            if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return typeof value === "string" ? value : value.map(element => {
-                    if (spanData.current.has(element)) {
-                        return spanData.current.get(element);
-                    } else {
-                        return element.innerText;
-                    }
-                }).join(" ");
+            if (key === "annotatedText" || key === "marginalText" || key === "spans" || key === "targetSpans") {
+                return typeof value === "string" ? value : value.map(element => element.textContent).join(" ");
             } else {
                 return value;
             }
@@ -534,14 +511,8 @@ export default function Home() {
         let timestamp = Date.now();
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
-            if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return typeof value === "string" ? value : value.map(element => {
-                    if (spanData.current.has(element)) {
-                        return spanData.current.get(element);
-                    } else {
-                        return element.innerText;
-                    }
-                }).join(" ");
+            if (key === "annotatedText" || key === "marginalText" || key === "spans" || key === "targetSpans") {
+                return typeof value === "string" ? value : value.map(element => element.textContent).join(" ");
             } else {
                 return value;
             }
@@ -571,14 +542,8 @@ export default function Home() {
         let timestamp = Date.now();
 
         let clusterData = JSON.stringify(cluster, (key, value) => {
-            if (key === "annotatedText" || key === "marginalText" || key === "spans") {
-                return typeof value === "string" ? value : value.map(element => {
-                    if (spanData.current.has(element)) {
-                        return spanData.current.get(element);
-                    } else {
-                        return element.innerText;
-                    }
-                }).join(" ");
+            if (key === "annotatedText" || key === "marginalText" || key === "spans" || key === "targetSpans") {
+                return typeof value === "string" ? value : value.map(element => element.textContent).join(" ");
             } else {
                 return value;
             }
@@ -949,7 +914,6 @@ export default function Home() {
                 <>
                     <AnnotateGPT
                         documentPDF={document}
-                        onDocumentLoad={onDocumentLoad}
                         pEndCallback={penEndCallback}
                         onECallback={onEraseCallback}
                         onInferenceCallback={onInferenceCallback}
@@ -971,7 +935,6 @@ export default function Home() {
 
                     <AnnotateGPT
                         documentPDF={document}
-                        onDocumentLoad={onDocumentLoad}
                         pEndCallback={penEndCallback}
                         onECallback={onEraseCallback}
                         onInferenceCallback={onInferenceCallback}

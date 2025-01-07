@@ -164,16 +164,14 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         // }
         let bbox = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
 
-        // Cache DOM selections to avoid redundant queries
         let reactPdfPage = d3.select(".react-pdf__Page.page-" + index);
         let layerNode = d3.select("#layer-" + index).node();
 
         let annotationPage = layerNode.cloneNode(true);
         let page = reactPdfPage.node().cloneNode();
         let canvasPage = reactPdfPage.select("canvas").node().cloneNode();
-
-        let container = d3.select(".screenshot-container").node();
         let annotationPages = d3.select(annotationPage);
+        let container = document.createElement("div");
 
         function renderInSteps(steps, onComplete = () => {}, index = 0) {
             if (index >= steps.length) {
@@ -189,17 +187,42 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
 
         let renderSteps = [
             () => {
-                container.replaceChildren();
+                d3.select(container)
+                .attr("class", "screenshot-container")
+                .style("position", "absolute")
+                .style("top", "0")
+                .style("left", "0")
+                .style("width", "var(--annotation-width)")
+                .style("height", "var(--annotation-height)")
+                .style("--annotation-width", d3.select(".pen-annotation-container").style("--annotation-width"))
+                .style("--annotation-height", d3.select(".pen-annotation-container").style("--annotation-height"))
+                .style("display", "flex")
+                .style("justify-content", "center");
 
                 annotationPages
                 .style("position", "absolute")
+                .style("width", "100%")
+                .style("height", "var(--annotation-height)")
+                .style("top", "0")
+                .style("left", "0")
+                .style("overflow", "hidden")
                 .selectAll("#toolTipcanvas")
                 .remove();
+                
+                annotationPages
+                .select(".pageNumber")
+                .style("position", "absolute")
+                .style("left", "0")
+                .style("right", "0")
+                .style("bottom", "24px")
+                .style("font-size", "1rem")
+                .style("color", "black")
+                .style("text-align", "center");
 
                 annotationPages
                 .selectAll("path")
                 .attr("filter", null)
-                .style("stroke", "red")
+                .style("fill", "red")
                 .attr("class", null)
                 .attr("opacity", null);
 
@@ -223,19 +246,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 const createC1 = createContext(container, {
                     workerUrl: "./Worker.js",
                     workerNumber: 1,
-                    width: d3.select(".screenshot-container").style("--annotation-width").split("px")[0],
-                    height: d3.select(".screenshot-container").style("--annotation-height").split("px")[0],
-                    onCloneNode: (node) => {
-                        if (node.classList.contains("screenshot-container")) {
-                            d3.select(node)
-                            .style("display", "block");
-
-                            d3.select(node)
-                            .selectAll("path")
-                            .attr("filter", null)
-                            .style("fill", "red");
-                        }
-                    },
+                    width: d3.select(".pen-annotation-container").style("--annotation-width").split("px")[0],
+                    height: d3.select(".pen-annotation-container").style("--annotation-height").split("px")[0],
                     filter: (node) => {
                         if (node.tagName === "path") {
                             let id = node.id;
@@ -248,18 +260,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 const createC2 = createContext(container, {
                     workerUrl: "./Worker.js",
                     workerNumber: 1,
-                    width: d3.select(".screenshot-container").style("--annotation-width").split("px")[0],
-                    height: d3.select(".screenshot-container").style("--annotation-height").split("px")[0],
-                    onCloneNode: (node) => {
-                        if (node.classList.contains("screenshot-container")) {
-                            d3.select(node).style("display", "block");
-
-                            d3.select(node)
-                            .selectAll("path")
-                            .attr("filter", null)
-                            .style("fill", "red");
-                        }
-                    },
+                    width: d3.select(".pen-annotation-container").style("--annotation-width").split("px")[0],
+                    height: d3.select(".pen-annotation-container").style("--annotation-height").split("px")[0],
                     filter: (node) => {
                         if (node.tagName && node.tagName.toLowerCase() === "div" && node.classList.contains("react-pdf__Page")) {
                             return false;
@@ -2230,7 +2232,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 .duration(1000)
                                 .attr("opacity", 0.1);
                                 
-                                if (cluster.strokes) {
+                                if (cluster?.strokes) {
                                     for (let stroke of cluster.strokes) {
                                         let path = d3.select(`path[id="${stroke.id}"]`);
     

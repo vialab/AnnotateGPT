@@ -37,6 +37,24 @@ let purposeQueue = 0;
 // findAnnotations(`Ensuring Gender-Inclusive Language (word-specific): You are testing the grammatical appropriateness of using 'he' by suggesting possible corrections to align the pronouns in the text with gender neutrality or specificity, as deemed fitting by the context.`)
 // findAnnotations(`Ensuring Gender-Inclusive Language: You are promoting gender-neutral or inclusive language use in textual representations, enabling broader interpretations and engagement with the text in terms of gender sensitivity.`)
 
+// openai.files.list().then((files) => {
+//     console.log("Files", files);
+
+//     files.data.forEach((file) => {
+//         if (file.filename === "history.txt") {
+//             openai.files.del(file.id).then((res) => {
+//                 console.log("Deleted file", res);
+//             });
+//         }
+
+//         if (file.purpose === "vision") {
+//             openai.files.del(file.id).then((res) => {
+//                 console.log("Deleted file", res);
+//             });
+//         }
+//     });
+// });
+
 export async function findAnnotations(purpose, callback, endCallback, n=8) {
     if (annotationQueue >= maxAnnotationQueue) {
         console.log("Annotation queue is full. Waiting for a spot...");
@@ -49,8 +67,10 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
     if (!process.env.NEXT_PUBLIC_VERCEL_ENV && process.env.NODE_ENV === "development") {
         let message = "";
         // await new Promise(r => setTimeout(r, 3000));
+        let rand = Math.floor(Math.random() * 2);
+        let test = rand === 0 ? data.duplicateTest1 : data.duplicateTest3;
 
-        for (let token of data.test20) {
+        for (let token of data.test25) {
             // console.log(token);
             // await new Promise(r => setTimeout(r, 0.1));
             message += token;
@@ -84,15 +104,25 @@ Here is a step-by-step list for annotating a document:
 2. Explain why you annotated the sentence.
 3. Suggest fixes for the sentence by describing the fix without giving the answer.
 4. Combine the explanation and suggestion without quoting the sentence using less than 20 words.
-5. Do not include any sentences that need no modification.
+5. Do not include any sentences that need no modification or annotation.
 6. Make a list of sentences for each response using triple asterisks for sentences and double curly braces for the explanation and suggestion. For example:
 
-## Response <number>
+## Response 1
 
 *** <sentence> ***
 {{ <explanation and suggestion> }}
 ...
-`
+
+7. For each sentence you can optionally target words in the sentence to annotate. If you do, list the words or phrase to look for in the sentence seperated by commas enclosed by triple quotation marks. For example:
+
+## Response 1
+
+*** <sentence> ***
+""" <words or phrase to look for (e.g. <word/phrase 1>, <word/phrase 2>)> """
+{{ <explanation and suggestion> }}
+...
+
+Make sure you have all the sentences needed to be annotated in the format above.`
         });
 
         await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
@@ -134,8 +164,12 @@ Here is a step-by-step list for annotating a document:
                     max_completion_tokens: 2048
                     
                 })
+                .on("error", (error) => {
+                    console.log("error", error);
+                    executeRun(checkFinish);
+                })
                 // .on('textCreated', (text) => console.log('\nassistant > '))
-                .on('textDelta', (textDelta, snapshot) => {
+                .on("textDelta", (textDelta, snapshot) => {
                     textDeltaArray.push(textDelta.value);
                     newTextDeltaArray.push(textDelta.value);
         
