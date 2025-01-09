@@ -10,7 +10,7 @@ parentPort.on("message", (e) => {
     
     let done = 0;
     let executed = 0;
-    let worker = new Worker("./src/app/components/js/levenshteinDistanceWorker.js");
+    let worker = new Worker("./levenshteinDistanceWorker.js");
 
     const messageQueue = [];
     let activeMessages = 0;

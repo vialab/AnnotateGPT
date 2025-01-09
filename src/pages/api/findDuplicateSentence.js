@@ -1,16 +1,20 @@
-import { Worker } from 'worker_threads';
+import { Worker } from "worker_threads";
 import { split } from "sentence-splitter";
+import path from "path";
 
 export const config = {
     maxDuration: 60,
 };
+
+const workerUrl = path.resolve("./src/workers/levenshteinDistanceWorker.js");
 
 async function runWorker(data) {
     return new Promise((resolve, reject) => {
         let { setUpAnnotatedTokens, lastToken } = data;
         let done2 = 0;
         let executed2 = 0;
-        let worker = new Worker("./src/app/components/js/levenshteinDistanceWorker.js");
+
+        let worker = new Worker(workerUrl);
 
         const messageQueue = [];
         let activeMessages = 0;

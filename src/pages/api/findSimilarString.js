@@ -1,8 +1,10 @@
-import { Worker } from 'worker_threads';
+import { Worker } from "worker_threads";
 
 export const config = {
     maxDuration: 60,
 };
+
+const workerUrl = path.resolve("./src/workers/findSimilarStringWorker.js");
 
 function runWorker(data) {
     let { text, textContent } = data;
@@ -17,7 +19,7 @@ function runWorker(data) {
         let substring = "";
         let ifSinglePage = true;
 
-        let worker = new Worker("./src/app/components/js/findSimilarStringWorker.js");
+        let worker = new Worker(workerUrl);
 
         const messageQueue = [];
         let activeMessages = 0;
@@ -95,7 +97,7 @@ function runWorker(data) {
 }
 
 export default async function handler(req, res) {
-    if (req.method === 'POST') {
+    if (req.method === "POST") {
         const result = await runWorker(req.body.data);
         res.status(200).json(result);
     }

@@ -163,6 +163,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
         //     );
         // }
         let bbox = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
+        let annotationBBox = { x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity };
 
         let reactPdfPage = d3.select(".react-pdf__Page.page-" + index);
         let layerNode = d3.select("#layer-" + index).node();
@@ -379,6 +380,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                         bbox.x2 = Math.max(bb.right, bbox.x2, textX2, lineX2);
                         bbox.y2 = Math.max(bb.bottom, bbox.y2, textY2, lineY2);
 
+                        annotationBBox.x1 = Math.min(bb.x, annotationBBox.x1);
+                        annotationBBox.y1 = Math.min(bb.y, annotationBBox.y1);
+                        annotationBBox.x2 = Math.max(bb.right, annotationBBox.x2);
+                        annotationBBox.y2 = Math.max(bb.bottom, annotationBBox.y2);
+
                         // d3.select("body")
                         // .append("div")
                         // .attr("id", "hightlighed_word")
@@ -497,7 +503,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     };
                 }
 
-                function cropCanvas(canvas) {
+                function cropCanvas(canvas, bbox) {
                     return new Promise((resolve, reject) => {
                         const url = URL.createObjectURL(new Blob([`(${cropWorker.toString()})()`]));
                         const worker = new Worker(url);
@@ -539,7 +545,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 .then(canvas => {
                     c1.workers.forEach(worker => worker.terminate());
                     destroyContext(c1);
-                    return cropCanvas(canvas);
+                    return cropCanvas(canvas, bbox);
                 })
                 .then(croppedBase64 => {
                     return croppedBase64;
@@ -549,7 +555,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                 .then(canvas => {
                     c2.workers.forEach(worker => worker.terminate());
                     destroyContext(c2);
-                    return cropCanvas(canvas);
+                    return cropCanvas(canvas, annotationBBox);
                 })
                 .then(croppedBase64 => {
                     return croppedBase64;
