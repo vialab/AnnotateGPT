@@ -1,4 +1,5 @@
 import { Worker } from "worker_threads";
+import path from "path";
 
 export const config = {
     maxDuration: 60,

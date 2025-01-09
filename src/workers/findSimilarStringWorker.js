@@ -1,4 +1,7 @@
 const { parentPort, Worker } = require("worker_threads");
+const path = require("path");
+
+const workerUrl = path.resolve("./src/workers/levenshteinDistanceWorker.js");
 
 parentPort.on("message", (e) => {
     let text = e.text;
@@ -10,7 +13,7 @@ parentPort.on("message", (e) => {
     
     let done = 0;
     let executed = 0;
-    let worker = new Worker("./levenshteinDistanceWorker.js");
+    let worker = new Worker(workerUrl);
 
     const messageQueue = [];
     let activeMessages = 0;
