@@ -2,6 +2,10 @@ import fsPromises from "fs/promises";
 import path from "path";
 import OpenAI from "openai";
 
+export const config = {
+    maxDuration: 60,
+};
+
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
 const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 

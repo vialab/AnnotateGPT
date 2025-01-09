@@ -96,7 +96,7 @@ function runWorker(data) {
 
 export default async function handler(req, res) {
     if (req.method === 'POST') {
-        const result = await runWorker(req.body);
+        const result = await runWorker(req.body.data);
         res.status(200).json(result);
     }
 } 

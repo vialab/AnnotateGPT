@@ -166,7 +166,8 @@ Make sure you have all the sentences needed to be annotated in the format above.
                 })
                 .on("error", (error) => {
                     console.log("error", error);
-                    executeRun(checkFinish);
+                    totalRuns--;
+                    setTimeout(() => executeRun(checkFinish), 1000);
                 })
                 // .on('textCreated', (text) => console.log('\nassistant > '))
                 .on("textDelta", (textDelta, snapshot) => {

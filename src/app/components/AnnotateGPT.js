@@ -12,6 +12,7 @@ import {autoPlacement} from "@floating-ui/dom";
 import { FaThumbsUp, FaThumbsDown, FaExclamation  } from "react-icons/fa";
 import { split } from "sentence-splitter";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 import PenAnnotation from "./PenAnnotation.js";
 import Toolbar from "./Toolbar.js";
@@ -90,7 +91,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             content += `<span class="word">`;
 
-            characters.forEach((character, j) => {
+            characters.forEach((character) => {
                 content += `<span class="character">${character}</span>`;
             });
 
@@ -552,16 +553,16 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     handleEnd();
                 }
             } else {
-                fetch("./api/findDuplicateSentence", {
-                    method: "POST",
+                axios.post("./api/findDuplicateSentence", {
+                    // method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ setUpAnnotatedTokens, lastToken }),
+                    data: { setUpAnnotatedTokens, lastToken },
                 })
-                .then((response) => response.json())
-                .then((data) => {
-                    let { i, i2, duplicate } = data;
+                // .then((response) => response.json())
+                .then((response) => {
+                    let { i, i2, duplicate } = response.data;
                     
                     if (duplicate) {
                         console.log("Cut", lastToken.sentence.trim());
@@ -851,6 +852,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         //     handleEnd();
         // } else {
         let p = `${purposeTitle}: "${purpose}"`;
+
+        if (purpose.trim() === "") {
+            p = `${annotationDescription}. ${purposeTitle}`;
+        }
         findAnnotations(p, handleToken, handleEnd, (typeof mode === "string" && mode.toLowerCase().includes("practice") ? 1 : 8));
         // }
     }
@@ -955,19 +960,19 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             } else if (done === executed) {
                 worker.terminate();
                 
-                fetch("api/findSimilarString", {
-                    method: "POST",
+                axios.post("api/findSimilarString", {
+                    // method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({
+                    data: {
                         text: text.toLowerCase(),
                         textContent: textContent.current.map((page) => page.map((span) => span.textContent).join(" ").toLowerCase().replace(/[^a-zA-Z0-9]/g, ""))
-                    })
+                    }
                 })
-                .then((response) => response.json())
-                .then((data) => {
-                    const { substring, minDistance, pageNumber, ifSinglePage } = data;
+                // .then((response) => response.json())
+                .then((response) => {
+                    const { substring, minDistance, pageNumber, ifSinglePage } = response.data;
 
                     if (minDistance > text.length / 2) {
                         let sentences = split(text).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");

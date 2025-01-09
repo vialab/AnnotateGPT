@@ -12,7 +12,7 @@ import { getFirestore, addDoc, collection } from "firebase/firestore";
 import AnimatedCursor from "react-animated-cursor";
 import AnnotateGPT from "./components/AnnotateGPT.js";
 
-import { Cluster } from "./components/PenCluster.js";
+import { Cluster } from "./components/js/PenCluster.js";
 
 // const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
 

@@ -92,7 +92,7 @@ async function runWorker(data) {
 
 export default async function handler(req, res) {
     if (req.method === "POST") {
-        let results = await runWorker(req.body);
+        let results = await runWorker(req.body.data);
         res.status(200).json(results);
     }
 }
