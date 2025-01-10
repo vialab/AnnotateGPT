@@ -70,7 +70,7 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
         let rand = Math.floor(Math.random() * 2);
         let test = rand === 0 ? data.duplicateTest1 : data.duplicateTest3;
 
-        for (let token of data.test25) {
+        for (let token of data.test21) {
             // console.log(token);
             // await new Promise(r => setTimeout(r, 0.1));
             message += token;
@@ -407,22 +407,8 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
                         role: "user",
                         content: [
                             {
-                                type: "image_file",
-                                image_file: {
-                                    file_id: file1.id,
-                                }
-                            },
-                            {
-                                type: "image_file",
-                                image_file: {
-                                    file_id: file2.id,
-                                }
-                            },
-                            {
                                 type: "text",
-                                text: `Context: The user is marking an English test in red pen strokes and has ${typeAnnotatedText}.
-
-Types of annotation:
+                                text: `Types of annotation:
 - circles or boxes
 - underlining
 - highlighting
@@ -438,7 +424,23 @@ Here are the steps:
 3. Summarize your past findings and relate them to the annotation
 ${criteria}`
                             },
+                            {
+                                type: "image_file",
+                                image_file: {
+                                    file_id: file1.id,
+                                }
+                            },
+                            {
+                                type: "image_file",
+                                image_file: {
+                                    file_id: file2.id,
+                                }
+                            },
                         ],
+                    },
+                    {
+                        role: "user",
+                        content: `Context: The user is marking an English test in red pen strokes and has ${typeAnnotatedText}.`
                     },
                     {
                         role: "user",

@@ -36,7 +36,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 ).toString();
 
 export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness }) {
-    const defaultColour = "#000000";
+    const defaultColour = "#3f51b5";
 
     // const [numPages, setNumPages] = useState();
     const [colour, setColour] = useState(defaultColour);
@@ -423,6 +423,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         let finish = false;
         let prevToken = "";
         let buffer = "";
+
+        miniMapRef.current?.synchronize();
 
         annotatedTokens.current.push({annotationDescription: annotationDescription, purposeTitle: purposeTitle, purpose: purpose, annotations: setUpAnnotatedTokens, ref: forwardRef});
 
@@ -967,7 +969,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     },
                     data: {
                         text: text.toLowerCase(),
-                        textContent: textContent.current.map((page) => page.map((span) => span.textContent).join(" ").toLowerCase().replace(/[^a-zA-Z0-9]/g, ""))
+                        textContent: textContent.current.map((page) => page.map((span) => span.textContent).join(" ").toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""))
                     }
                 })
                 // .then((response) => response.json())

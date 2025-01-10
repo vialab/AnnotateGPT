@@ -57,16 +57,26 @@ function Minimap({ ref, ...props }) {
         setMiniMapWidth(miniMapWidth);
         setMiniMapHeight(miniMapHeight);
 
-        setMiniMapChildren(Array.from(nodes).map((node, key) => {
-            const { width, height, left, top } = node.getBoundingClientRect();
+        setMiniMapChildren(
+            Array.from(nodes)
+            .sort((a, b) => {
+                const aRect = a.getBoundingClientRect();
+                const bRect = b.getBoundingClientRect();
 
-            const wM = width * ratioX;
-            const hM = height * ratioY;
-            const xM = (left + scrollLeft - sourceRect.left) * ratioX;
-            const yM = (top + scrollTop - sourceRect.top) * ratioY;
+                // Sort by height size
+                return bRect.height - aRect.height;
+            })
+            .map((node, key) => {
+                const { width, height, left, top } = node.getBoundingClientRect();
 
-            return <ChildComponent key={key} width={Math.round(wM)} height={Math.round(hM)} left={Math.round(xM)} top={Math.round(yM)} node={node} />;
-        }));
+                const wM = width * ratioX;
+                const hM = height * ratioY;
+                const xM = (left + scrollLeft - sourceRect.left) * ratioX;
+                const yM = (top + scrollTop - sourceRect.top) * ratioY;
+
+                return <ChildComponent key={key} width={Math.round(wM)} height={Math.round(hM)} left={Math.round(xM)} top={Math.round(yM)} node={node} />;
+            })
+        );
     }, [childComponent, height, keepAspectRatio, selector, width, scrollContainer]);
 
     const synchronize = useCallback(options => {

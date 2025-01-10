@@ -1136,9 +1136,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                             .transition()
                             .duration(1000)
                             .attr("values", `0 0 0 0 ${r / 255}
-                                                0 0 0 0 ${g / 255}
-                                                0 0 0 0 ${b / 255}
-                                                0 0 0 5 0`);
+                                             0 0 0 0 ${g / 255}
+                                             0 0 0 0 ${b / 255}
+                                             0 0 0 5 0`);
                         }
                     }
                 })
@@ -1190,9 +1190,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                             .transition()
                             .duration(1000)
                             .attr("values", `0 0 0 0 ${r / 255}
-                                                0 0 0 0 ${g / 255}
-                                                0 0 0 0 ${b / 255}
-                                                0 0 0 0 0`);
+                                             0 0 0 0 ${g / 255}
+                                             0 0 0 0 ${b / 255}
+                                             0 0 0 0 0`);
                         }
                     }
                 });
@@ -1379,6 +1379,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 }
                             };
 
+                            updateTooltips();
+                            toolTipRef.current?.close();
+
                             if (setUpAnnotations instanceof Function) {
                                 setUpAnnotations(d.purpose.annotationDescription, d.searching.purposeTitle, d.searching.purpose, onDetect, onEnd, penAnnnotationRef);
                             }
@@ -1389,9 +1392,6 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 annotationDescription: cluster.purpose.annotationDescription,
                                 action: "update"
                             });
-
-                            updateTooltips();
-                            toolTipRef.current?.close();
                         });
 
                         tooltip
@@ -1483,6 +1483,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                             }
                         };
 
+                        updateTooltips();
+                        toolTipRef.current?.close();
+
                         if (setUpAnnotations instanceof Function) {
                             setUpAnnotations(d.purpose?.annotationDescription, `${this.value}`, "", onDetect, onEnd, penAnnnotationRef);
                         }
@@ -1493,8 +1496,6 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                             annotationDescription: cluster.purpose?.annotationDescription,
                             action: "update"
                         });
-
-                        updateTooltips();
                     }
                 });
 
@@ -1883,6 +1884,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 onEndAnnotate(startTimetamp, cluster, rawText);
                             }
                         };
+                        
+                        updateTooltips();
+                        toolTipRef.current?.close();
 
                         if (setUpAnnotations instanceof Function) {
                             setUpAnnotations(d.purpose?.annotationDescription, `But the user has said: "${this.value}".`, "", onDetect, onEnd, penAnnnotationRef);
@@ -1894,8 +1898,6 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                             annotationDescription: cluster.purpose?.annotationDescription,
                             action: "update"
                         });
-
-                        updateTooltips();
                     }
                 });
 
@@ -1976,6 +1978,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 }
                             };
 
+                            updateTooltips();
+                            toolTipRef.current?.close();
+
                             if (setUpAnnotations instanceof Function) {
                                 setUpAnnotations(d.purpose.annotationDescription, d.searching.purposeTitle, d.searching.purpose, onDetect, onEnd, penAnnnotationRef);
                             }
@@ -1986,9 +1991,6 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                                 annotationDescription: cluster.purpose.annotationDescription,
                                 action: "update"
                             });
-
-                            updateTooltips();
-                            toolTipRef.current?.close();
                         })
                         .transition("update")
                         .duration(1000)
