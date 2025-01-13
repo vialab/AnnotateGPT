@@ -1,15 +1,14 @@
-import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import SvgPenSketch from './js/SvgPenSketch';
-import * as d3 from 'd3';
-import { ShapeInfo, Intersection } from "kld-intersections";
-import PenCluster, { calculateMinDistance, Cluster } from './js/PenCluster';
-import Tooltip from './Tooltip.js';
+import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import SvgPenSketch from "./js/SvgPenSketch";
+import * as d3 from "d3";
+import PenCluster, { calculateMinDistance, Cluster } from "./js/PenCluster";
+import Tooltip from "./Tooltip.js";
 import "./js/OpenAIUtils";
 
-import './css/PenAnnotation.css';
+import "./css/PenAnnotation.css";
 
 import toolbarStyles from "./css/Toolbar.module.css";
-import { googleSans } from '../page';
+import { googleSans } from "../page";
 
 // function isHorizontalLine(coordinates) {
 //     if (coordinates.length < 2) {
@@ -1244,7 +1243,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 let distance = (coords[0][0] - coords[coords.length - 1][0]) ** 2 + (coords[0][1] - coords[coords.length - 1][1]) ** 2;
                 let type = "annotated";
 
-                let shape = ShapeInfo.path(d3.select(path).attr("d"));
+                // let shape = ShapeInfo.path(d3.select(path).attr("d"));
                 let words = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.word").nodes();
                 let pathBoundingBox = path.getBoundingClientRect();
                 let svgBoundingBox = svgRef.current.getBoundingClientRect();
@@ -1259,40 +1258,50 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 // .style("border", "2px solid blue");
 
                 let checkContainWords = (words, checkCenter = true) => {
-                    for (let word of words) {
-                        let rect = word.getBoundingClientRect();
+                    let worker = new Worker(new URL("../../workers/checkContain.js", import.meta.url));
+                    let done = 0;
 
-                        if (rect.left > pathBoundingBox.x + pathBoundingBox.width || rect.right < pathBoundingBox.x || rect.top > pathBoundingBox.y + pathBoundingBox.height || rect.bottom < pathBoundingBox.y) {
-                            continue;
-                        } else if (rect.left > pathBoundingBox.x && rect.right < pathBoundingBox.x + pathBoundingBox.width && rect.top > pathBoundingBox.y && rect.bottom < pathBoundingBox.y + pathBoundingBox.height) {
-                            wordsOfInterest.push({ element: word });
-                        } else {
-                            let svgPoint = svgRef.current.createSVGPoint();
-                            svgPoint.x = rect.left;
-                            svgPoint.y = rect.top - svgBoundingBox.top;
-                            svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
+                    for (let i = 0; i < words.length; i++) {
+                        let rect = words[i].getBoundingClientRect();
+                        
+                        let svgPoint = svgRef.current.createSVGPoint();
+                        svgPoint.x = rect.left;
+                        svgPoint.y = rect.top - svgBoundingBox.top;
+                        svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
 
-                            let svgPoint2 = svgRef.current.createSVGPoint();
-                            svgPoint2.x = rect.right;
-                            svgPoint2.y = rect.bottom - svgBoundingBox.top;
-                            svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
+                        let svgPoint2 = svgRef.current.createSVGPoint();
+                        svgPoint2.x = rect.right;
+                        svgPoint2.y = rect.bottom - svgBoundingBox.top;
+                        svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
 
-                            // d3.select(svgRef.current)
-                            // .append("rect")
-                            // .attr("x", svgPoint.x)
-                            // .attr("y", svgPoint.y - svgBoundingBox.top)
-                            // .attr("width", svgPoint2.x - svgPoint.x)
-                            // .attr("height", svgPoint2.y - svgPoint.y)
-                            // .attr("fill", "none")
-                            // .attr("stroke", "black");
+                        // console.log("Sending message to worker");
 
-                            let rectShape = ShapeInfo.rectangle(svgPoint.x, svgPoint.y - svgBoundingBox.top, svgPoint2.x - svgPoint.x, svgPoint2.y - svgPoint.y);
-                            let intersection = Intersection.intersect(rectShape, shape);
+                        worker.postMessage({ 
+                            rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }, 
+                            pathBoundingBox: pathBoundingBox,
+                            svgBoundingBox: svgBoundingBox,
+                            coords: coords,
+                            checkCenter: checkCenter,
+                            i: i,
+                            svgPoint: { x: svgPoint.x, y: svgPoint.y },
+                            svgPoint2: { x: svgPoint2.x, y: svgPoint2.y },
+                            d: d3.select(path).attr("d"),
+                        });
+                    }
 
-                            if (intersection.status === "Intersection") {
-                                let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
-                                let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
-                                let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];
+                    return new Promise((resolve, reject) => {
+                        worker.onmessage = (e) => {
+                            done++;
+
+                            if (e.data.contain) {
+                                // d3.select(svgRef.current)
+                                // .append("rect")
+                                // .attr("x", svgPoint.x)
+                                // .attr("y", svgPoint.y - svgBoundingBox.top)
+                                // .attr("width", svgPoint2.x - svgPoint.x)
+                                // .attr("height", svgPoint2.y - svgPoint.y)
+                                // .attr("fill", "none")
+                                // .attr("stroke", "black");
 
                                 // d3.select(svgRef.current)
                                 // .append("circle")
@@ -1313,54 +1322,57 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                                 // .attr("cx", leftCenter[0])
                                 // .attr("cy", leftCenter[1])
                                 // .attr("r", 2)
-                                // .attr("fill", "black");                     
+                                // .attr("fill", "black");
 
-                                if (!checkCenter) {
-                                    function overlapArea(rect1, rect2) {
-                                        // Extract rectangle coordinates
-                                        const [x1A, y1A, x2A, y2A] = rect1;
-                                        const [x1B, y1B, x2B, y2B] = rect2;
-                                      
-                                        // Calculate overlap width and height
-                                        const overlapWidth = Math.max(0, Math.min(x2A, x2B) - Math.max(x1A, x1B));
-                                        const overlapHeight = Math.max(0, Math.min(y2A, y2B) - Math.max(y1A, y1B));
-                                      
-                                        // Calculate overlap area
-                                        return overlapWidth * overlapHeight;
-                                    }
-                                    let rect1 = [svgPoint.x, svgPoint.y, svgPoint2.x, svgPoint2.y];
-                                    let rect2 = [pathBoundingBox.x, pathBoundingBox.y, pathBoundingBox.x + pathBoundingBox.width, pathBoundingBox.y + pathBoundingBox.height];
-                                    let area = overlapArea(rect1, rect2);
-                                    let ratio = area / ((svgPoint2.x - svgPoint.x) * (svgPoint2.y - svgPoint.y));
-                                    
-                                    if (ratio > 0.5) {
-                                        wordsOfInterest.push({ element: word });
-                                    }
-                                } else if (d3.polygonContains(coords, center) && (d3.polygonContains(coords, rightCenter) || d3.polygonContains(coords, leftCenter))) {
-                                    wordsOfInterest.push({ element: word });
-                                }
-                                
+                                wordsOfInterest.push({ element: words[e.data.i] });
                             }
-                        }
-                    }
+
+                            if (done === words.length) {
+                                resolve(wordsOfInterest);
+                                worker.terminate();
+                            }
+                        };
+                    });
                 };
 
                 if (checkSelfIntersect(coords) && (distance < 300 || checkEnclosed(coords))) {
-                    checkContainWords(words);
                     type = "circled_words";
 
-                    if (wordsOfInterest.length === 0) {
-                        let characters = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.character").nodes();
-                        checkContainWords(characters);
-                        type = "circled_character";
-                    }
-                } 
-                
-                if (wordsOfInterest.length === 0) {
-                    checkContainWords(words, false);
+                    checkContainWords(words)
+                    .then(() => {
+                        if (wordsOfInterest.length === 0) {
+                            type = "circled_character";
+                            let characters = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.character").nodes();
+
+                            checkContainWords(characters)
+                            .then(() => {
+                                if (wordsOfInterest.length === 0) {
+                                    type = "annotated_words";
+
+                                    checkContainWords(words, false)
+                                    .then(() => {
+                                        processWords(wordsOfInterest, type);
+                                    });
+                                } else {
+                                    processWords(wordsOfInterest, type);
+                                }
+                            });
+                        } else {
+                            processWords(wordsOfInterest, type);
+                        }
+                    });
+                } else {
                     type = "annotated_words";
+
+                    checkContainWords(words, false)
+                    .then(() => {
+                        processWords(wordsOfInterest, type);
+                    });
                 }
-                processWords(wordsOfInterest, type);
+                
+                // if (wordsOfInterest.length === 0) {
+                //     checkContainWords(words, false);
+                // }
             }
         };
     }, [index, tool, penEndCallback]);
@@ -1405,8 +1417,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             // newCluster.x = cluster.x;
             // newCluster.y = cluster.y;
             // newCluster.purpose = cluster.purpose;
-            console.log([...lockClusterRef.current]);
-            console.log([...clustersRef.current]);
 
             setLockCluster([...lockClusterRef.current, cluster]);
             lockClusterRef.current = [...lockClusterRef.current, cluster];
@@ -1422,8 +1432,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             setClusters(newClusters);
             clustersRef.current = newClusters;
             activeCluster.current = cluster;
-            console.log([...lockClusterRef.current]);
-            console.log([...clustersRef.current]);
 
             if (onNewActiveCluster instanceof Function)
                 onNewActiveCluster(cluster, false);

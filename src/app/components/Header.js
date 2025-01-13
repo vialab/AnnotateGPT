@@ -11,7 +11,7 @@ import "./css/Header.css";
 
 export const mistrully = localFont({
     src: "./css/Mistrully.otf",
-    display: 'swap',
+    display: "swap",
 });
 
 export default function Header({ children }) {

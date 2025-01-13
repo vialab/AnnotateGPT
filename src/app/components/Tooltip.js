@@ -485,7 +485,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     
                             // Create an OffscreenCanvas
                             const offscreenCanvas = new OffscreenCanvas(cropWidth, cropHeight);
-                            const ctx = offscreenCanvas.getContext('2d');
+                            const ctx = offscreenCanvas.getContext("2d");
                     
                             // Draw the cropped image
                             ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
@@ -507,10 +507,10 @@ export default function Tooltip({ mode, clusters, index, handinessRef, onClick, 
                     return new Promise((resolve, reject) => {
                         const url = URL.createObjectURL(new Blob([`(${cropWorker.toString()})()`]));
                         const worker = new Worker(url);
-                        const dataUrl = canvas.toDataURL('image/png');
+                        const dataUrl = canvas.toDataURL("image/png");
                 
                         if (!dataUrl) {
-                            reject(new Error('Failed to get canvas data URL'));
+                            reject(new Error("Failed to get canvas data URL"));
                             return;
                         }
                         const height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;

@@ -448,7 +448,7 @@ export default class SvgPenSketch {
         // Fill in the path if there are missing nodes
         w.postMessage({ penCoords: penCoords, minDist: this.strokeParam.minDist });
 
-        w.addEventListener('message', (event) => {
+        w.addEventListener("message", (event) => {
             let mapPenCoords = event.data.map(coord => {
                 return { x: coord[0], y: coord[1], pressure: coord[2] };
             });

@@ -1,7 +1,7 @@
 // "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { CirclePicker } from 'react-color';
+import { useEffect, useState } from "react";
+import { CirclePicker } from "react-color";
 import * as d3 from "d3";
 
 import PaletteSVG from "./svg/palette.svg";

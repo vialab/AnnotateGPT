@@ -158,14 +158,14 @@ function getSvgPathFromStroke(points, closed = true) {
     }
 
     if (closed) {
-        result += 'Z';
+        result += "Z";
     }
 
     return result;
 }
 
 function getStrokeFromSvgPath(d) {
-    const parts = d.split(' ');
+    const parts = d.split(" ");
 
     if (parts.length < 3) {
         return [];
@@ -174,7 +174,7 @@ function getStrokeFromSvgPath(d) {
     const points = [];
     let x = 0;
     let y = 0;
-    let prevCommand = 'M';
+    let prevCommand = "M";
 
     for (let i = 0, max = parts.length; i < max; i++) {
         const part = parts[i];
@@ -182,31 +182,31 @@ function getStrokeFromSvgPath(d) {
         
         let x, y;
 
-        if (command !== 'M' && command !== 'Q' && command !== 't' && command !== 'L') {
-            [x, y] = parts[i].split(',').map(parseFloat);
+        if (command !== "M" && command !== "Q" && command !== "t" && command !== "L") {
+            [x, y] = parts[i].split(",").map(parseFloat);
         } else {
-            [x, y] = parts[i].slice(1).split(',').map(parseFloat);
+            [x, y] = parts[i].slice(1).split(",").map(parseFloat);
         }
 
-        if (command === 'M') {
+        if (command === "M") {
             points.push([x, y]);
             prevCommand = command;
-        } else if (command === 'Q') {
+        } else if (command === "Q") {
             points.push([x, y]);
             prevCommand = command;
-        } else if (command === 't') {
+        } else if (command === "t") {
             const prevPoint = points[points.length - 1];
             const dx = x;
             const dy = y;
 
             points.push([prevPoint[0] + dx, prevPoint[1] + dy]);
             prevCommand = command;
-        } else if (command === 'L') {
+        } else if (command === "L") {
             points.push([x, y]);
             prevCommand = command;
-        } else if (command === 'Z') {
+        } else if (command === "Z") {
             break;
-        } else if (prevCommand === 't') {
+        } else if (prevCommand === "t") {
             const prevPoint = points[points.length - 1];
             const dx = x;
             const dy = y;
@@ -231,7 +231,7 @@ function getFlatSvgPathFromStroke(stroke) {
             })
         );
     
-        return d.join(' ');
+        return d.join(" ");
     } catch (e) {
         return getSvgPathFromStroke(stroke);
     }

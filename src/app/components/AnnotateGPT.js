@@ -2358,7 +2358,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         if (node.classList.contains("lineDraw")) {
             return <div
                 style={{
-                    position: 'absolute',
+                    position: "absolute",
                     width: "25%",
                     height: Math.max(2, height),
                     left: handiness === "right" ? 0 : "75%",
@@ -2370,7 +2370,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             return <div
                 className={node.classList.contains("accept") ? "accept" : "highlight"}
                 style={{
-                    position: 'absolute',
+                    position: "absolute",
                     width: "25%",
                     height: Math.max(2, height),
                     left: handiness === "right" ? "75%" : 0,
@@ -2399,7 +2399,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             return <div
                 className={className}
                 style={{
-                    position: 'absolute',
+                    position: "absolute",
                     width: "50%",
                     height: "auto",
                     aspectRatio: 1,

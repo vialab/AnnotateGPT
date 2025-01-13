@@ -116,7 +116,7 @@ function Minimap({ ref, ...props }) {
             }
         }
 
-        if (options && !options.skipChildren || !options)
+        if (options && !options.skipChildren && options.type !== "scroll" || !options)
             init();
     }, [init, miniMapHeight, miniMapWidth]);
 
@@ -216,7 +216,7 @@ function Minimap({ ref, ...props }) {
         return () => {
             window.removeEventListener("resize", resize);
         };
-    }, [childComponent, height, init, keepAspectRatio, onMountCenterOnX, onMountCenterOnY, selector, synchronize, width]);
+    }, [init, onMountCenterOnX, onMountCenterOnY, synchronize]);
 
     useEffect(() => {
         let element = document.querySelector(scrollContainer);

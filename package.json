@@ -20,7 +20,7 @@
     "kld-intersections": "^0.7.0",
     "modern-screenshot": "^4.5.5",
     "next": "15.1.4",
-    "openai": "^4.78.0",
+    "openai": "^4.78.1",
     "perfect-freehand": "^1.2.2",
     "polygon-clipping": "^0.15.7",
     "react": "^19",

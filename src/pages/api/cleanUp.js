@@ -115,11 +115,11 @@ export default async function handler(req, res) {
 //             });
 //         })
 //         .catch((error) => {
-//             console.log('Error deleting users:', error);
+//             console.log("Error deleting users:", error);
 //         });
 //     })
 //     .catch((error) => {
-//         console.log('Error listing users:', error);
+//         console.log("Error listing users:", error);
 //     });
 // };
 

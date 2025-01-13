@@ -21,7 +21,7 @@ function interpolate() {
         return (1 - amnt) * val1 + amnt * val2;
     }
 
-    this.addEventListener('message', e => {
+    this.addEventListener("message", e => {
         let penCoords = e.data.penCoords;
         let minDist = e.data.minDist;
         let newPath = [];

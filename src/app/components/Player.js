@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
 import videojs from "video.js";
-import * as d3 from "d3";
 
 import "video.js/dist/video-js.css";
 import "./css/Player.css";
 
 import { googleSans } from "../page";
 
-const Component = videojs.getComponent('Component');
+const Component = videojs.getComponent("Component");
 
 class Gradient extends Component {
     constructor(player, options = {}) {
@@ -19,13 +18,13 @@ class Gradient extends Component {
     }
 
     createEl() {
-        return videojs.dom.createEl('div', {
-            className: 'vjs-gradient'
+        return videojs.dom.createEl("div", {
+            className: "vjs-gradient"
         });
     }
 }
 
-videojs.registerComponent('Gradient', Gradient);
+videojs.registerComponent("Gradient", Gradient);
 
 export default function Player({ src, track }) {
     const videoRef = useRef(null);

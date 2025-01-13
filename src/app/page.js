@@ -2,8 +2,8 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import localFont from "next/font/local";
-import dynamic from 'next/dynamic';
-import { parse } from 'csv-parse';
+import dynamic from "next/dynamic";
+import { parse } from "csv-parse";
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
 import { initializeApp } from "firebase/app";
@@ -844,18 +844,18 @@ export default function Home() {
         let handleVisibilityChange = async (event) => {
             if (!event.persisted && auth.currentUser) {
                 const headers = {
-                    type: 'application/json',
+                    type: "application/json",
                 };
                 const blob = new Blob([JSON.stringify({id: auth.currentUser.uid})], headers);
                 navigator.sendBeacon("/api/cleanUp", blob);
             }
         };
 
-        window.addEventListener('pagehide', handleVisibilityChange);
+        window.addEventListener("pagehide", handleVisibilityChange);
 
         return () => {
             unsubscribe();
-            window.removeEventListener('pagehide', handleVisibilityChange);
+            window.removeEventListener("pagehide", handleVisibilityChange);
         };
     }, []);
 
