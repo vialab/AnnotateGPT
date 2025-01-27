@@ -70,7 +70,7 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
         let rand = Math.floor(Math.random() * 2);
         let test = rand === 0 ? data.duplicateTest1 : data.duplicateTest3;
 
-        for (let token of data.test21) {
+        for (let token of data.test25) {
             // console.log(token);
             // await new Promise(r => setTimeout(r, 0.1));
             message += token;
@@ -113,7 +113,7 @@ Here is a step-by-step list for annotating a document:
 {{ <explanation and suggestion> }}
 ...
 
-7. For each sentence you can optionally target words in the sentence to annotate. If you do, list the words or phrase to look for in the sentence seperated by commas enclosed by triple quotation marks. For example:
+7. For each sentence, you can optionally target words in the sentence to annotate. If you do, list the words or phrases to look for in the sentence, separated by commas and enclosed by triple quotation marks. For example:
 
 ## Response 1
 
@@ -276,23 +276,23 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
                             "purpose": [
                                 {
                                     "persona": "Persona 1 (Teacher, Corrective)",
-                                    "purpose": "You have circled 'extol' because you are questioning the student's correct usage of the word. The circle and the question mark suggest either a grammatical context or if 'extol' is appropriately used in the sentence.",
-                                    "purposeTitle": "Grammar/Usage Correction: Word-Specific"
+                                    "purpose": "You aim to help student recognize and correct sentence structure errors, improving their writing clarity",
+                                    "purposeTitle": "Highlight grammatical errors"
                                 },
                                 {
                                     "persona": "Persona 2 (Student, Learning)",
-                                    "purpose": "You circled and placed a question mark by 'extol' to highlight the word as unknown to you. This annotation reflects your interest in looking up the definition or confirming the usage for study purposes.",
-                                    "purposeTitle": "Vocabulary Expansion: Word-Specific"
+                                    "purpose": "You focus on enhancing the document's readability by ensuring sentence structures are concise and intelligible.",
+                                    "purposeTitle": "Signal structure improvements"
                                 },
                                 {
                                     "persona": "Persona 1 (Teacher, Corrective)",
-                                    "purpose": "You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly.",
-                                    "purposeTitle": "Grammar/Usage Correction"
+                                    "purpose": "You bracketed the phrase sentence to highlight the improper structure and wrote 'run-on sentence' to communicate the need for sentence boundary clarity.",
+                                    "purposeTitle": "Highlight grammatical errors (word-specific)"
                                 },
                                 {
                                     "persona": "Persona 2 (Student, Learning)",
-                                    "purpose": "You are expanding your vocabulary by marking unfamiliar words for later follow-up, helping to enhance language proficiency generally.",
-                                    "purposeTitle": "Vocabulary Expansion"
+                                    "purpose": "You circled the lengthy sentence to indicate it needs restructuring for better readability and coherence, denoting this by writing 'run-on sentence'.",
+                                    "purposeTitle": "Signal structure improvements (word-specific)"
                                 }
                             ]
                         }`)
@@ -558,6 +558,18 @@ ${criteria}`
                 let match = (text.value).match(regex);
                 console.log(JSON5.parse(match[0]));
 
+                let checkResult = JSON5.parse(match[0]);
+
+                if (!checkResult.annotationDescription || !checkResult.pastAnnotationHistory || !checkResult.purpose || checkResult.purpose.length < 4) {
+                    throw new Error("Missing required fields in the response.");
+                }
+
+                for (let purpose of checkResult.purpose) {
+                    if (!purpose.persona || !purpose.purpose || !purpose.purposeTitle) {
+                        throw new Error("Missing required fields in the response.");
+                    }
+                }
+
                 try {
                     openai.files.del(file1.id)
                     .catch((error) => {
@@ -572,7 +584,7 @@ ${criteria}`
                     console.error(error);
                 }
                 purposeQueue--;
-                resolve({ rawText: text.value, result: JSON5.parse(match[0]) });
+                resolve({ rawText: text.value, result: checkResult });
             } else {
                 throw new Error("No text response found.");
             }
