@@ -40,5 +40,5 @@ next-env.d.ts
 /data
 *.docx
 *.ipynb
-
+*.mkv
 *.json

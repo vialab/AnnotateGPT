@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import SvgPenSketch from "./js/SvgPenSketch";
 import * as d3 from "d3";
-import PenCluster, { calculateMinDistance, Cluster } from "./js/PenCluster";
+import PenCluster, { calculateMinDistance, Cluster, Stroke } from "./js/PenCluster";
 import Tooltip from "./Tooltip.js";
 import "./js/OpenAIUtils";
 
@@ -60,7 +60,7 @@ import { googleSans } from "../page";
 //     return Math.abs(averageX / averageY) > 15;
 // }
 
-function isHorizontalLine(coords, maxYVariance = 5, maxDirectionChanges = 3) {
+function isHorizontalLine(coords, maxYVariance = 7, maxDirectionChanges = 3) {
     // Extract x and y values from coordinates
     if (coords.length < 2) {
         return false;
@@ -266,119 +266,6 @@ function checkEnclosed(coords) {
     return false;
 }
 
-function checkSelfIntersect(coordinates) {
-    function doSegmentsIntersect(p1, q1, p2, q2) {
-        // Check orientation
-        function orientation(p, q, r) {
-            const val = (q[1] - p[1]) * (r[0] - q[0]) - (q[0] - p[0]) * (r[1] - q[1]);
-            if (val === 0) 
-                return 0; // Collinear
-            return val > 0 ? 1 : 2; // Clockwise or Counterclockwise
-        }
-
-        // Check if a point is on a segment
-        function onSegment(p, q, r) {
-            return (
-                q[0] >= Math.min(p[0], r[0]) &&
-                q[0] <= Math.max(p[0], r[0]) &&
-                q[1] >= Math.min(p[1], r[1]) &&
-                q[1] <= Math.max(p[1], r[1])
-            );
-        }
-
-        const o1 = orientation(p1, q1, p2);
-        const o2 = orientation(p1, q1, q2);
-        const o3 = orientation(p2, q2, p1);
-        const o4 = orientation(p2, q2, q1);
-
-        // General case
-        if (o1 !== o2 && o3 !== o4) {
-            return true;
-        }
-
-        // Special cases
-        if (o1 === 0 && onSegment(p1, p2, q1))
-            return true;
-        if (o2 === 0 && onSegment(p1, q2, q1))
-            return true;
-        if (o3 === 0 && onSegment(p2, p1, q2))
-            return true;
-        if (o4 === 0 && onSegment(p2, q1, q2))
-            return true;
-
-        return false;
-    }
-    // Check for self-intersections
-    const n = coordinates.length;
-    let numIntersections = 0;
-
-    for (let i = 0; i < n - 1; i++) {
-        for (let j = i + 2; j < n - 1; j++) {
-            if (doSegmentsIntersect(
-                coordinates[i], coordinates[i + 1],
-                coordinates[j], coordinates[j + 1]
-            )) {
-                // let pt = d3.select(".pen-annotation-container svg").node().createSVGPoint();
-                // pt.x = 0;
-                // pt.y = 0;
-            
-                // let transformedPt = pt.matrixTransform(d3.select(".pen-annotation-container svg").node().getScreenCTM().inverse());
-                // let offset = [transformedPt.x - pt.x, transformedPt.y - pt.y];
-
-                // d3.select("body")
-                // .append("div")
-                // .style("position", "absolute")
-                // .style("top", `${coordinates[i][1] - 5 - offset[1]}px`)
-                // .style("left", `${coordinates[i][0] - 5 - offset[0]}px`)
-                // .style("width", "10px")
-                // .style("height", "10px")
-                // .style("background-color", "red")
-                // .style("border-radius", "50%")
-                // .style("z-index", "1000");
-
-                // d3.select("body")
-                // .append("div")
-                // .style("position", "absolute")
-                // .style("top", `${coordinates[i + 1][1] - 5 - offset[1]}px`)
-                // .style("left", `${coordinates[i + 1][0] - 5 - offset[0]}px`)
-                // .style("width", "10px")
-                // .style("height", "10px")
-                // .style("background-color", "red")
-                // .style("border-radius", "50%")
-                // .style("z-index", "1000");
-
-                // d3.select("body")
-                // .append("div")
-                // .style("position", "absolute")
-                // .style("top", `${coordinates[j][1] - 5 - offset[1]}px`)
-                // .style("left", `${coordinates[j][0] - 5 - offset[0]}px`)
-                // .style("width", "10px")
-                // .style("height", "10px")
-                // .style("background-color", "red")
-                // .style("border-radius", "50%")
-                // .style("z-index", "1000");
-
-                // d3.select("body")
-                // .append("div")
-                // .style("position", "absolute")
-                // .style("top", `${coordinates[j + 1][1] - 5 - offset[1]}px`)
-                // .style("left", `${coordinates[j + 1][0] - 5 - offset[0]}px`)
-                // .style("width", "10px")
-                // .style("height", "10px")
-                // .style("background-color", "red")
-                // .style("border-radius", "50%")
-                // .style("z-index", "1000");
-                numIntersections++;
-
-                if (numIntersections > 1) {
-                    return false;
-                }
-            }
-        }
-    }
-    return true;
-}
-
 function getDistanceFromPointToPath(point, path) {
     return new Promise((resolve, reject) => {
         let pathLength = path.getTotalLength();
@@ -419,7 +306,7 @@ function nearPath(point, path) {
 }
 
 
-function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handiness, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback, ref }) {
+function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handiness, disabled, setUpAnnotations, onNewActiveCluster, onClusterChange, onEraseCallback, penStartCallback, penEndCallback, eraseStartCallback, eraseEndCallback, onInferenceCallback, onEndAnnotateCallback, ref }) {
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
@@ -433,17 +320,20 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
     const hoveredCluster = useRef(null);
     const hoverTimeout = useRef(null);
     const activeCluster = useRef(null);
+    const disabledRef = useRef(disabled);
 
     const handleHover = useCallback(async e => {
-        if (e.buttons === 0 && e.button === -1) {
+        let hasTouchScreen = navigator.maxTouchPoints > 0;
+        
+        if ((e.buttons === 0 && e.button === -1 && !hasTouchScreen) || hasTouchScreen) {
             if (activeCluster.current && d3.select(`g.toolTip[id="toolTip${activeCluster.current?.strokes[activeCluster.current.strokes.length - 1]?.id}"]`).empty()) {
                 activeCluster.current = null;
             }
-
-            let coords = d3.pointer(e);
+            // let coords = d3.pointer(e);
+            let coords = hasTouchScreen ? d3.pointer(e.touches[0], svgRef.current) : d3.pointer(e);
             let [x, y] = coords;
             let closestCluster = null;
-            let distancePromises = [];
+            // let distancePromises = [];
 
             loop1: for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 for (let stroke of cluster.strokes) {
@@ -499,32 +389,34 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             //     return;
                             // }
 
-                            for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                                let clusterBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
+                            if (!hasTouchScreen) {
+                                for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+                                    let clusterBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
 
-                                for (let stroke of cluster.strokes) {
-                                    if (stroke.id !== "initial") {
-                                        let strokeBBox = stroke.bbox;
-                        
-                                        clusterBBox.x1 = Math.min(clusterBBox.x1, strokeBBox.left);
-                                        clusterBBox.y1 = Math.min(clusterBBox.y1, strokeBBox.top);
-                                        clusterBBox.x2 = Math.max(clusterBBox.x2, strokeBBox.right);
-                                        clusterBBox.y2 = Math.max(clusterBBox.y2, strokeBBox.bottom);
+                                    for (let stroke of cluster.strokes) {
+                                        if (stroke.id !== "initial") {
+                                            let strokeBBox = stroke.bbox;
+                            
+                                            clusterBBox.x1 = Math.min(clusterBBox.x1, strokeBBox.left);
+                                            clusterBBox.y1 = Math.min(clusterBBox.y1, strokeBBox.top);
+                                            clusterBBox.x2 = Math.max(clusterBBox.x2, strokeBBox.right);
+                                            clusterBBox.y2 = Math.max(clusterBBox.y2, strokeBBox.bottom);
+                                        }
                                     }
-                                }
-                                let box1 = {x: closestBBox.x1 * window.innerWidth, y: closestBBox.y1 * window.innerHeight, width: closestBBox.x2 * window.innerWidth - closestBBox.x1 * window.innerWidth, height: closestBBox.y2 * window.innerHeight - closestBBox.y1 * window.innerHeight};
-                                let box2 = {x: clusterBBox.x1 * window.innerWidth, y: clusterBBox.y1 * window.innerHeight, width: clusterBBox.x2 * window.innerWidth - clusterBBox.x1 * window.innerWidth, height: clusterBBox.y2 * window.innerHeight - clusterBBox.y1 * window.innerHeight};
+                                    let box1 = {x: closestBBox.x1 * window.innerWidth, y: closestBBox.y1 * window.innerHeight, width: closestBBox.x2 * window.innerWidth - closestBBox.x1 * window.innerWidth, height: closestBBox.y2 * window.innerHeight - closestBBox.y1 * window.innerHeight};
+                                    let box2 = {x: clusterBBox.x1 * window.innerWidth, y: clusterBBox.y1 * window.innerHeight, width: clusterBBox.x2 * window.innerWidth - clusterBBox.x1 * window.innerWidth, height: clusterBBox.y2 * window.innerHeight - clusterBBox.y1 * window.innerHeight};
 
-                                let box1ContainsBox2 = box1.x < box2.x && box1.x + box1.width > box2.x + box2.width && box1.y < box2.y && box1.y + box1.height > box2.y + box2.height;
-                                let box2ContainsBox1 = box2.x < box1.x && box2.x + box2.width > box1.x + box1.width && box2.y < box1.y && box2.y + box2.height > box1.y + box1.height;
-            
-                                if (box1ContainsBox2 || box2ContainsBox1) {
-                                    closeClusters.push(cluster);
-                                } else {
-                                    let distance = calculateMinDistance(box1, box2);
-                                    
-                                    if (distance < 2500) {
+                                    let box1ContainsBox2 = box1.x < box2.x && box1.x + box1.width > box2.x + box2.width && box1.y < box2.y && box1.y + box1.height > box2.y + box2.height;
+                                    let box2ContainsBox1 = box2.x < box1.x && box2.x + box2.width > box1.x + box1.width && box2.y < box1.y && box2.y + box2.height > box1.y + box1.height;
+                
+                                    if (box1ContainsBox2 || box2ContainsBox1) {
                                         closeClusters.push(cluster);
+                                    } else {
+                                        let distance = calculateMinDistance(box1, box2);
+                                        
+                                        if (distance < 2500) {
+                                            closeClusters.push(cluster);
+                                        }
                                     }
                                 }
                             }
@@ -549,13 +441,29 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             }
                             activeCluster.current = closestCluster;
                             setClusters([...clustersRef.current]);
-                            setLockCluster([...lockClusterRef.current]);
-                        }, 1000);
+
+                            if (!hasTouchScreen)
+                                setLockCluster([...lockClusterRef.current]);
+                        }, hasTouchScreen ? 0 : 1000);
                     }
                     hoveredCluster.current = lastStroke.id;
                 } else {
                     clearTimeout(hoverTimeout.current);
                     hoveredCluster.current = null;
+
+                    // if (hasTouchScreen) {
+                    //     activeCluster.current = null;
+                    //     for (let cluster of [...clustersRef.current]) {
+                    //         cluster.disabled = true;
+                    //         cluster.open = false;
+                    //     }
+                        
+                    //     for (let cluster of [...lockClusterRef.current]) {
+                    //         cluster.open = false;
+                    //     }
+                    //     setClusters([...clustersRef.current]);
+                    //     setLockCluster([...lockClusterRef.current]);
+                    // }
                 }
             };
 
@@ -590,19 +498,23 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
     }, []);
     
     useEffect(() => {
+        let hasTouchScreen = navigator.maxTouchPoints > 0;
+
         svgPenSketch.current._element
-        .on("pointermove.hover", (e) => {
-            if (e.buttons === 0 && e.button === -1 && typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("llm")) {
+        // .on("pointermove.hover", (e) => {
+        .on(hasTouchScreen ? "touchstart.hover" : "pointermove.hover", (e) => {
+            if (typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("llm") && !disabledRef.current?.current) {
                 handleHover(e);
             }
-        })
-        .on("pointerleave.hover", () => {
-            clearTimeout(hoverTimeout.current);
-            hoveredCluster.current = null;
         });
+        // .on("pointerleave.hover", () => {
+        //     clearTimeout(hoverTimeout.current);
+        //     hoveredCluster.current = null;
+        // });
 
         return () => {
             svgPenSketch.current._element
+            .on("touchstart.hover", null)
             .on("pointermove.hover", null)
             .on("pointerleave.hover", null);
         };
@@ -614,6 +526,15 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         let navagation = d3.select(".navigateContainer");
 
         svgPenSketch.current.eraseStartCallback = () => {
+            if (disabledRef.current?.current) {
+                for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+                    cluster.disabled = true;
+                    cluster.open = false;
+                    setClusters([...clustersRef.current]);
+                    setLockCluster([...lockClusterRef.current]);
+                }
+                return;
+            }
             toolbar.classed(toolbarStyles.disabled, true);
             toolTip.classed("disabled", true);
             navagation.classed("disabled", true);
@@ -642,6 +563,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
 
     useEffect(() => {
         svgPenSketch.current.eraserDownCallback = (affectedPaths, currPointerEvent, elements, eraserCoords) => {
+            if (disabledRef.current?.current) {
+                return;
+            }
             let newClusters = [...clustersRef.current];
             let newLockCluster = [...lockClusterRef.current];
 
@@ -654,27 +578,24 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 
                 if (findStroke !== -1) {
                     newClusters[findStroke].strokes = [...newClusters[findStroke].strokes.filter(stroke => stroke.id !== path.id)];
-                    clearTimeout(timeout.current);
 
                     if (onEraseCallback instanceof Function) {
                         onEraseCallback(newClusters[findStroke], path.id, index);
                     }
-                    // timeout.current = setTimeout(() => {
-                    setClusters(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
-                    // }, 1000);
+                    newClusters = newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial"));
+                    clustersRef.current = newClusters;
+                    setClusters(newClusters);
                 }
 
                 if (findLockStroke !== -1) {
                     newLockCluster[findLockStroke].strokes = [...newLockCluster[findLockStroke].strokes.filter(stroke => stroke.id !== path.id)];
-                    clearTimeout(timeout.current);
 
                     if (onEraseCallback instanceof Function) {
                         onEraseCallback(newLockCluster[findLockStroke], path.id, index);
                     }
-                    // timeout.current = setTimeout(() => {
                     // setLockCluster(newLockCluster.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
+                    lockClusterRef.current = newLockCluster;
                     setLockCluster(newLockCluster);
-                    // }, 1000);
                 }
                 penCluster.current.remove(path.id);
             }
@@ -693,6 +614,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         let navagation = d3.select(".navigateContainer");
         
         svgPenSketch.current.eraserUpCallback = () => {
+            if (disabledRef.current?.current) {
+                return;
+            }
             toolbar.classed(toolbarStyles.disabled, false);
             toolTip.classed("disabled", false);
             navagation.classed("disabled", false);
@@ -714,6 +638,15 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         };
         
         svgPenSketch.current.penStartCallback = (path) => {
+            if (disabledRef.current?.current) {
+                for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
+                    cluster.disabled = true;
+                    cluster.open = false;
+                    setClusters([...clustersRef.current]);
+                    setLockCluster([...lockClusterRef.current]);
+                }
+                return;
+            }
             // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
             //     cluster.disabled = true;
             //     cluster.open = false;
@@ -741,8 +674,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             navagation.classed("disabled", true);
             
             startTime.current = Date.now();
-            
-            clearTimeout(timeout.current);
             window.getSelection().removeAllRanges();
 
             if (penStartCallback instanceof Function) {
@@ -752,7 +683,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
     }, [tool, colour, penStartCallback]);
 
     let startTime = useRef(null);
-    let timeout = useRef(null);    
 
     let clusterStrokes = async (clusters, stopIteration) => {
         console.log(clusters, stopIteration);
@@ -788,7 +718,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             }
             newClusters.push(c);
         }
-        setClusters(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")).sort((a, b) => a.lastestTimestamp - b.lastestTimestamp));
+        newClusters = newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")).sort((a, b) => a.lastestTimestamp - b.lastestTimestamp);
+        clustersRef.current = newClusters;
+        setClusters(newClusters);
         // onChange(c, index);
     };
 
@@ -798,6 +730,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         let navagation = d3.select(".navigateContainer");
 
         svgPenSketch.current.penUpCallback = (path, e, coords) => {
+            if (disabledRef.current?.current) {
+                return;
+            }
             toolbar.classed(toolbarStyles.disabled, false);
             toolTip.classed("disabled", false);
             navagation.classed("disabled", false);
@@ -818,8 +753,24 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             .style("stroke-width", 30)
             .attr("id", d3.select(path).attr("id") + "Outline");
 
-            let scrollCoords = coords.map(coord => [coord[0], coord[1] - window.scrollY]);
+            let pageTop = d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top;
+            let pathBbox = path.getBoundingClientRect();
+            pathBbox.y -= pageTop;
 
+            let newStroke = new Stroke(path.id,
+                pathBbox,
+                "processing",
+                startTime.current
+            );
+            newStroke.page = index;
+            newStroke.bbox = newStroke.normalizeBoundingBox(pathBbox);
+
+            let endTime = Date.now();
+            let [clusters, stopIteration] = penCluster.current.addNewStroke(newStroke);
+            clusterStrokes(clusters, stopIteration);
+
+            let scrollCoords = coords.map(coord => [coord[0], coord[1] - window.scrollY]);
+            
             let processWords = (wordsOfInterest, type) => {
                 if (paragraphs.current.length === 0) {
                     let words = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.word").nodes().filter(word => {
@@ -911,7 +862,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 let marginalText = [];
                 let textBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
                 let marginalTextBBox = {x1: Infinity, y1: Infinity, x2: -Infinity, y2: -Infinity};
-                let pageTop = d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top;
 
                 words = [...words].sort((a, b) => {
                     if (a.getBoundingClientRect().top === b.getBoundingClientRect().top) {
@@ -1033,26 +983,20 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     type = type.replace("underlined", "highlighted");
                     type = type.replace("crossed", "highlighted");
                 }
-                let [clusters, stopIteration] = penCluster.current.add(
-                    path.id,
-                    pathBbox,
-                    type,
-                    startTime.current,
-                    text,
-                    marginalText,
-                    {x: textBBox.x1, y: textBBox.y1, width: textBBox.x2 - textBBox.x1, height: textBBox.y2 - textBBox.y1},
-                    {x: marginalTextBBox.x1, y: marginalTextBBox.y1, width: marginalTextBBox.x2 - marginalTextBBox.x1, height: marginalTextBBox.y2 - marginalTextBBox.y1},
-                    {x: lineBBox.x1, y: lineBBox.y1, width: lineBBox.x2 - lineBBox.x1, height: lineBBox.y2 - lineBBox.y1},
-                    index
-                );
-                clearTimeout(timeout.current);
-                clusterStrokes(clusters, stopIteration);
+                newStroke.type = type;
+                newStroke.endTime = newStroke.endTime === 0 ? endTime : newStroke.endTime;
+                newStroke.annotatedText = text;
+                newStroke.marginalText = marginalText;
+                newStroke.page = index;
+                newStroke.textBbox = newStroke.normalizeBoundingBox({x: textBBox.x1, y: textBBox.y1, width: textBBox.x2 - textBBox.x1, height: textBBox.y2 - textBBox.y1});
+                newStroke.marginalTextBbox = newStroke.normalizeBoundingBox({x: marginalTextBBox.x1, y: marginalTextBBox.y1, width: marginalTextBBox.x2 - marginalTextBBox.x1, height: marginalTextBBox.y2 - marginalTextBBox.y1});
+                newStroke.lineBbox = newStroke.normalizeBoundingBox({x: lineBBox.x1, y: lineBBox.y1, width: lineBBox.x2 - lineBBox.x1, height: lineBBox.y2 - lineBBox.y1});
 
                 // timeout.current = setTimeout(() => {
                 // }, 1000);
 
                 if (penEndCallback instanceof Function) {
-                    penEndCallback({ path, stroke: penCluster.current.strokes[penCluster.current.strokes.length - 1], page: index });
+                    penEndCallback({ path, stroke: newStroke, page: index });
                 }
                 return words;
             };
@@ -1229,9 +1173,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                         checkLineWords(characters)
                         .then(results => {
                             let [char, type] = results;
-                            let parentNode = new Set(char.map(c => c.element.parentNode));
+                            // let parentNode = new Set(char.map(c => c.element.parentNode));
 
-                            processWords([...parentNode].map(p => { return { element: p }; }), type + "_character");
+                            processWords(char, type + "_character");
                         });
                     } else {
                         processWords(words, type + "_words");
@@ -1239,7 +1183,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 });
             } else {
                 // Distance of the first coord and the last coord
-                let wordsOfInterest = [];
+                let wordsOfInterest = [], annotatedWordsOfInterest = [], boxWordsOfInterest = [];
                 let distance = (coords[0][0] - coords[coords.length - 1][0]) ** 2 + (coords[0][1] - coords[coords.length - 1][1]) ** 2;
                 let type = "annotated";
 
@@ -1248,16 +1192,16 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 let pathBoundingBox = path.getBoundingClientRect();
                 let svgBoundingBox = svgRef.current.getBoundingClientRect();
                             
-                // d3.select("body")
-                // .append("div")
-                // .style("position", "absolute")
-                // .style("top", `${pathBoundingBox.y + window.scrollY}px`)
-                // .style("left", `${pathBoundingBox.x}px`)
-                // .style("width", `${pathBoundingBox.width}px`)
-                // .style("height", `${pathBoundingBox.height}px`)
-                // .style("border", "2px solid blue");
+                // d3.select(svgRef.current)
+                // .append("rect")
+                // .attr("x", pathBoundingBox.left)
+                // .attr("y", pathBoundingBox.top - svgBoundingBox.top)
+                // .attr("width", pathBoundingBox.width)
+                // .attr("height", pathBoundingBox.height)
+                // .attr("fill", "none")
+                // .attr("stroke", "black");
 
-                let checkContainWords = (words, checkCenter = true) => {
+                let checkContainWords = (words) => {
                     let worker = new Worker(new URL("../../workers/checkContain.js", import.meta.url));
                     let done = 0;
 
@@ -1281,11 +1225,12 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             pathBoundingBox: pathBoundingBox,
                             svgBoundingBox: svgBoundingBox,
                             coords: coords,
-                            checkCenter: checkCenter,
+                            // checkCenter: checkCenter,
                             i: i,
                             svgPoint: { x: svgPoint.x, y: svgPoint.y },
                             svgPoint2: { x: svgPoint2.x, y: svgPoint2.y },
                             d: d3.select(path).attr("d"),
+                            pageTop: d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top
                         });
                     }
 
@@ -1293,7 +1238,23 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                         worker.onmessage = (e) => {
                             done++;
 
-                            if (e.data.contain) {
+                            if (e.data.containCenter) {
+                                // let rect = words[e.data.i].getBoundingClientRect();
+                                
+                                // let svgPoint = svgRef.current.createSVGPoint();
+                                // svgPoint.x = rect.left;
+                                // svgPoint.y = rect.top - svgBoundingBox.top;
+                                // svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
+        
+                                // let svgPoint2 = svgRef.current.createSVGPoint();
+                                // svgPoint2.x = rect.right;
+                                // svgPoint2.y = rect.bottom - svgBoundingBox.top;
+                                // svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
+
+                                // let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
+                                // let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
+                                // let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];     
+
                                 // d3.select(svgRef.current)
                                 // .append("rect")
                                 // .attr("x", svgPoint.x)
@@ -1327,6 +1288,14 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                                 wordsOfInterest.push({ element: words[e.data.i] });
                             }
 
+                            if (e.data.contain) {
+                                annotatedWordsOfInterest.push({ element: words[e.data.i] });
+                            }
+
+                            if (e.data.containBox) {
+                                boxWordsOfInterest.push({ element: words[e.data.i] });
+                            }
+
                             if (done === words.length) {
                                 resolve(wordsOfInterest);
                                 worker.terminate();
@@ -1335,7 +1304,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     });
                 };
 
-                if (checkSelfIntersect(coords) && (distance < 300 || checkEnclosed(coords))) {
+                if (distance < 300 || checkEnclosed(coords)) {
                     type = "circled_words";
 
                     checkContainWords(words)
@@ -1348,11 +1317,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             .then(() => {
                                 if (wordsOfInterest.length === 0) {
                                     type = "annotated_words";
-
-                                    checkContainWords(words, false)
-                                    .then(() => {
-                                        processWords(wordsOfInterest, type);
-                                    });
+                                    processWords((annotatedWordsOfInterest.length !== 0 && tool.current !== "highlighter") ? annotatedWordsOfInterest : boxWordsOfInterest, type);
                                 } else {
                                     processWords(wordsOfInterest, type);
                                 }
@@ -1364,9 +1329,13 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 } else {
                     type = "annotated_words";
 
-                    checkContainWords(words, false)
+                    checkContainWords(words)
                     .then(() => {
-                        processWords(wordsOfInterest, type);
+                        if (wordsOfInterest.length === 0) {
+                            processWords((annotatedWordsOfInterest.length !== 0 && tool.current !== "highlighter") ? annotatedWordsOfInterest : boxWordsOfInterest, type);
+                        } else {
+                            processWords(wordsOfInterest, type);
+                        }
                     });
                 }
                 
@@ -1453,7 +1422,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         let firstStroke = cluster.strokes[0].id === "initial" ? cluster.strokes[1] : cluster.strokes[0];
 
         let findCluster = lockClusterRef.current.findIndex(c => c.strokes.find(stroke => {
-            if (!stroke.id || !firstStroke.id || stroke.id === "initial") {
+            if (!stroke.id || !firstStroke?.id || stroke.id === "initial") {
                 return false;
             }
             return stroke.id === firstStroke.id;
@@ -1511,6 +1480,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 index={index}
                 mode={mode}
                 handinessRef={handiness}
+                disabledRef={disabled}
                 onClick={onClick}
                 onNewActiveCluster={onNewActiveCluster}
                 onClusterChange={onClusterChange}

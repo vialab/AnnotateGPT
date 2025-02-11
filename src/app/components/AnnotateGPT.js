@@ -7,7 +7,7 @@ import * as d3 from "d3";
 import { Comment, MagnifyingGlass } from "react-loader-spinner";
 import { pdfjs } from "react-pdf";
 import { Tooltip } from "react-tooltip";
-import {autoPlacement} from "@floating-ui/dom";
+import { autoPlacement } from "@floating-ui/dom";
 // import { RxCheck, RxCross2 } from "react-icons/rx";
 import { FaThumbsUp, FaThumbsDown, FaExclamation  } from "react-icons/fa";
 import { split } from "sentence-splitter";
@@ -35,7 +35,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url,
 ).toString();
 
-export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness }) {
+export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness, disabled }) {
     const defaultColour = "#3f51b5";
 
     // const [numPages, setNumPages] = useState();
@@ -66,6 +66,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     const miniMapRef = useRef(null);
     const handinessRef = useRef(handiness);
     const numPagesRef = useRef(0);
+    const disableRef = useRef(disabled);
 
     if (annotateRef)
         annotateRef.current = {
@@ -228,7 +229,37 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     .attr("id", path.attr("id") + "Outline");
 
                     let bbox = path.node().getBoundingClientRect();
+                    let height = d3.select(".pen-annotation-layer#layer-" + page).node().getBoundingClientRect().height || window.innerHeight;
                     bbox.y -= pageTop;
+
+                    let standardBBox = (bbox) => {
+                        if (!bbox.x) {
+                            bbox.x = Infinity;
+                            bbox.y = Infinity;
+                            bbox.width = -Infinity;
+                            bbox.height = -Infinity;
+                            bbox.top = Infinity;
+                            bbox.right = -Infinity;
+                            bbox.bottom = -Infinity;
+                            bbox.left = Infinity;
+                            return;
+                        }
+                        bbox.x *= window.innerWidth;
+                        bbox.y *= height;
+                        bbox.width *= window.innerWidth;
+                        bbox.height *= height;
+                        bbox.top *= height;
+                        bbox.right *= window.innerWidth;
+                        bbox.bottom *= height;
+                        bbox.left *= window.innerWidth;
+                    };
+
+                    let textBBox = JSON.parse(svg.textBbox);
+                    let marginalTextBbox = JSON.parse(svg.marginalTextBbox);
+                    let lineBbox = JSON.parse(svg.lineBbox);
+                    standardBBox(textBBox);
+                    standardBBox(marginalTextBbox);
+                    standardBBox(lineBbox);
 
                     [clusters, stopIteration] = penAnnnotationRef.current?.penCluster.add(
                         id,
@@ -237,9 +268,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         svg.startTime,
                         svg.annotatedText,
                         svg.marginalText,
-                        JSON.parse(svg.textBbox),
-                        JSON.parse(svg.marginalTextBbox),
-                        JSON.parse(svg.lineBbox),
+                        textBBox,
+                        marginalTextBbox,
+                        lineBbox,
                         page,
                         svg.endTime
                     );
@@ -282,7 +313,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     });
 
     useEffect(() => {
-        if (screen?.width && screen?.height) {
+        if (screen?.width && screen?.height && !loading) {
             let widthOffset = (window.innerWidth - screen.width) / 2;
 
             for (let penAnnnotationRef of penAnnotationRef.current) {
@@ -293,7 +324,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
             initCanvas.current(screen.width);
         }
-    }, [screen]);
+    }, [screen, loading]);
 
     function onLoad(index) {
         // let spanPresentation = d3.select(".react-pdf__Page.page-" + index)
@@ -376,6 +407,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     content={svgContentRef.current[index + 1]}
                     toolTipRef={annotationToolTipRef}
                     handiness={handinessRef}
+                    disabled={disableRef}
                     setUpAnnotations={setUpAnnotations}
                     onNewActiveCluster={onNewActiveCluster}
                     onClusterChange={onClusterChange}
@@ -856,7 +888,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         let p = `${purposeTitle}: "${purpose}"`;
 
         if (purpose.trim() === "") {
-            p = `${annotationDescription}. ${purposeTitle}`;
+            p = `${annotationDescription}${annotationDescription[annotationDescription.length - 1] === "." ? "" : "." } However, the user said "${purposeTitle}" as the purpose of the annotation.`;
         }
         findAnnotations(p, handleToken, handleEnd, (typeof mode === "string" && mode.toLowerCase().includes("practice") ? 1 : 8));
         // }
@@ -1177,7 +1209,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
     
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
                     // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
@@ -1185,10 +1217,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     cluster.open = false;
                     ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
                     let [content, overlappingAnnotations] = generateContent(annotation, annotations);
+                    overlappingAnnotationRef.current = overlappingAnnotations;
     
                     fadeDisplayExplanation(content, annotation, true, overlappingAnnotations);
                 }
                 activeAnnotation.current = annotation;
+                miniMapRef.current?.synchronize();
 
                 if (navigateCallback instanceof Function) {
                     navigateCallback(annotation);
@@ -1200,7 +1234,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             if (cluster.open) {
                 if (cluster.annotationsFound?.length > 0) {
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster filter={filter} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={filter} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
                     // // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, {spans: [ clusterToolTip ]}, false);
@@ -1295,7 +1329,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
 
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
                     // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
@@ -1303,10 +1337,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     cluster.open = false;
                     ref?.current.updateLockCluster([...ref?.current.lockClusters.current]);
                     let [content, overlappingAnnotations] = generateContent(annotation, annotations);
+                    overlappingAnnotationRef.current = overlappingAnnotations;
 
                     fadeDisplayExplanation(content, annotation, true, overlappingAnnotations);
                 }
                 activeAnnotation.current = annotation;
+                miniMapRef.current?.synchronize();
 
                 if (navigateCallback instanceof Function) {
                     navigateCallback(annotation);
@@ -1316,7 +1352,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             let showTooltipContent = () => {
                 if (clusterToolTip){
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                        <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={activeAnnotation.current} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
 
                     let closestTextLayer = d3.select(".textLayer").node();
@@ -1336,7 +1372,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         .style("background", "rgba(34, 38, 43, 0)");
                     }, 10);
                 }
-                
             };
 
             if (cluster.annotationsFound?.length > 0 && activeAnnotation.current) {
@@ -1395,6 +1430,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         
         hoverAnnotation.current = null;
         activeAnnotation.current = null;
+        overlappingAnnotationRef.current = [];
 
         for (let penAnnotation of penAnnotationRef.current) {
             let lockClusters = [...penAnnotation.current.lockClusters.current];
@@ -1430,6 +1466,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
     function penStartCallback() {
         resetToolTips();
+        miniMapRef.current?.synchronize();
     }
 
     function penEndCallback(param) {
@@ -1445,6 +1482,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
     function eraseStartCallback() {
         resetToolTips();
+        miniMapRef.current?.synchronize();
     }
 
     function eraseEndCallback() {
@@ -1668,6 +1706,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 // });
                 hoverAnnotation.current = null;
                 activeAnnotation.current = null;
+                overlappingAnnotationRef.current = [];
             } else {
                 let [content, ] = generateContent(annotation, annotations);
                 let messageContainer = rateContainer.closest(".annotationMessageHeader").parentNode;
@@ -1860,7 +1899,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                                 <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1", marginBottom: "5px" }} onClick={(e) => acceptAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, acceptFilterSpans) } />
                                             </div>
                                             <div className="rateButton" >
-                                                <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, acceptFilterSpans)} />
+                                                <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 192 752" height="30" width="20" xmlns="http://www.w3.org/2000/svg" style={{ color: "rgb(234, 196, 53)", strokeWidth: 1, marginBottom: "5px" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, acceptFilterSpans)}>
+                                                    <path d="m93.489 144.6292c10.3435 5.5885 21.039 10.4645 32.0016 14.7095 5.9986 2.323 12.1322 4.2685 17.6396-.3986 2.0394-1.7284 3.4942-4.1222 5.0213-6.2952 1.7157-2.4406 3.4223-4.8877 5.1202-7.3415 13.2973-19.2186 26.0387-38.8224 38.2-58.7794 6.9002-11.3235 13.6097-22.7616 20.1392-34.3031 2.6225-4.6353-.1204-9.2534-4.606-11.0101-22.3522-8.7539-44.2964-19.4234-65.2243-31.4952-4.571-2.6368-9.3254.121-11.0101 4.606-14.3497 38.1965-27.636 76.787-39.8419 115.7212-2.0148 7.8671-1.137 12.5886 2.5604 14.5864l0 0zm83.815 29.5603c-3.822-2.6968-8.7492-3.1426-11.576-.0935-2.6749 2.8851-3.1362 7.737-.0763 10.6092 7.6256 7.1572 15.2434 14.3226 22.8773 21.4713 4.2742 4.0029 9.3572 7.4439 15.4962 5.6068 4.9748-1.4885 8.736-5.6332 12.4995-8.9948 15.8644-14.1709 31.7294-28.3419 47.5942-42.5125 15.8648-14.1706 31.7294-28.3419 47.5942-42.5125 7.9325-7.0855 15.8644-14.1709 23.7969-21.2564 3.9027-3.4856 8.8843-6.864 11.7341-11.3171 3.3591-5.2492 2.2091-11.3114-1.6419-15.8771-3.491-4.1384-8.7635-7.1011-13.1133-10.2672-4.8262-3.5127-9.6679-7.0038-14.5247-10.4735-9.714-6.9398-19.4908-13.791-29.3239-20.5605-2.5296-1.7416-6.9789-1.1581-9.0161 1.1523-30.1597 34.2041-59.6849 68.9663-88.544 104.2747-8.1559 9.9784-16.2567 20.0013-24.3074 30.0647-2.4402 3.0506-3.2857 7.6339-.0763 10.6092 2.6877 2.4933 7.9868 3.353 10.6075.0769l0 0zm70.8467 57.5819c-7.204-8.5683-12.4795-9.5489-15.7657-7.6761-3.7997 2.1652-4.4743 6.5308-2.8007 10.232 4.8742 10.7787 9.7488 21.5576 14.623 32.3362 1.3114 2.8997 5.5047 4.4425 8.4571 3.5288 20.783-6.4322 41.5663-12.8649 62.3493-19.2972 5.8156-1.7999 6.8694-8.0752 3.4016-12.5108-11.3759-14.5503-19.5134-32.4987-23.4172-51.2313-.9202-4.4151-7.1129-7.2971-10.9603-4.5751-16.4399 11.6308-31.9934 24.4552-46.421 38.5075-2.8086 2.7357-3.034 7.867-.0763 10.6092 2.9979 2.7786 7.6022 3.0068 10.6102.0768l0 0zm-72.1507 430.2286c0 44.112-35.888 80-80 80s-80-35.888-80-80 35.888-80 80-80 80 35.888 80 80zm-150.74-406.801 13.6 272c.639 12.773 11.181 22.801 23.97 22.801h66.34c12.789 0 23.331-10.028 23.97-22.801l13.6-272c.685-13.709-10.244-25.199-23.97-25.199h-93.54c-13.726 0-24.655 11.49-23.97 25.199z"/>
+                                                </svg>
+                                                {/* <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, acceptFilterSpans)} /> */}
                                             </div>
                                             <div className="rateButton" >
                                                 <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1", marginTop: "5px" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, rejectFilterSpans, convertRejectFilterSpans)} />
@@ -1913,16 +1955,19 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             return false;
         });
 
-        let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
+        // let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
         let onNavigateCallback = (annotation) => {
+            let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
+            hoverGroupAnnotationRef.current = annotations;
+
             if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
                 cluster.open = true;
                 annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
-                let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
+                // let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
                 let content = <div className={"annotationMessageContainer " + googleSans.className}>
-                    <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
+                    <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
                 </div>;
                 // explanationToolTipRef.current?.close();
                 fadeDisplayExplanation(content, annotation, false);
@@ -1931,10 +1976,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
                 
                 let [content, overlappingAnnotations] = generateContent(annotation, annotations);
+                overlappingAnnotationRef.current = overlappingAnnotations;
 
                 fadeDisplayExplanation(content, annotation, true, overlappingAnnotations);
             }
             activeAnnotation.current = annotation;
+            miniMapRef.current?.synchronize();
 
             if (navigateCallback instanceof Function) {
                 navigateCallback(annotation);
@@ -1946,7 +1993,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             { annotationMessages }
             { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Reply" /> : null }
             
-            <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={activeAnnotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
+            <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
         </div>;
 
         return [content, overlappingAnnotations];
@@ -1954,8 +2001,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     
     function fadeDisplayExplanation(content, annotation, overrideDisplay = true, overlappingAnnotations = []) {
         let closestTextLayer = d3.select(".textLayer").node();
-
         let highlighAnnotation = annotation.spans.filter(span => span instanceof Element && !span.classList.contains("toolTip"));
+        window.getSelection().removeAllRanges();
 
         if (highlighAnnotation.length === 0) {
             d3.selectAll(".word.highlighted, .space.highlighted")
@@ -2086,23 +2133,36 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         handinessRef.current = handiness;
     }, [handiness]);
 
+    useEffect(() => {
+        disableRef.current = disabled;
+
+        if (disabled) {
+            resetToolTips();
+        }
+    }, [disabled]);
+
     const explainTooltipTimeout = useRef(null);
     const highlightTimeout = useRef(null);
     const hoverAnnotation = useRef(null);
     const hoverGroupAnnotationRef = useRef(null);
+    const overlappingAnnotationRef = useRef(null);
     const activeAnnotation = useRef(null);
     const containerRef = useRef(null);
 
     useEffect(() => {
+        let hasTouchScreen = navigator.maxTouchPoints > 0;
+
         d3.select(".annotateContainer")
-        .on("pointermove", (e) => {
-            if (e.buttons !== 0) {
+        .on(hasTouchScreen ? "touchstart" : "pointermove", (e) => {
+        // .on("pointermove", (e) => {
+            if (e.buttons !== 0 && !hasTouchScreen) {
                 clearTimeout(explainTooltipTimeout.current);
                 clearTimeout(highlightTimeout.current);
                 return;
             }
 
-            let [x, y] = [e.clientX, e.clientY];
+            // let [x, y] = [e.clientX, e.clientY];
+            let [x, y] = hasTouchScreen ? [e.touches[0].clientX, e.touches[0].clientY] : [e.clientX, e.clientY];
             let annotations, annotation;
             let i, j;
             let found = false, hoverFound = false;
@@ -2161,6 +2221,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 clearTimeout(highlightTimeout.current);
                 hoverAnnotation.current = null;
 
+                if (hasTouchScreen) {
+                    if (e.target.parentNode.classList.contains("pen-annotation-layer")) {
+                        resetToolTips();
+                    }
+                }
                 // d3.selectAll(".word.highlighted, .space.highlighted")
                 // .classed("fade", false);
             }
@@ -2207,6 +2272,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                     fadeDisplayExplanation(content, annotation, true, overlappingAnnotations);
                     activeAnnotation.current = annotation;
+                    overlappingAnnotationRef.current = overlappingAnnotations;
                     
                     for (let a of annotatedTokens.current) {
                         if (a.ref?.current.lockClusters.current) {
@@ -2218,17 +2284,19 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
                         }
                     }
+                    miniMapRef.current?.synchronize();
 
                     if (navigateCallback instanceof Function) {
                         navigateCallback(annotation);
                     }
-                }, 500);
+                }, hasTouchScreen ? 0 : 500);
             }
             // explanationToolTipRef.current?.close();
         });
 
         return () => {
             d3.select(".annotateContainer")
+            .on("touchstart", null)
             .on("pointermove", null);
         };
     }, [onReplyCallback, generateContent, navigateCallback]);
@@ -2396,8 +2464,30 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 className = "attention";
             }
 
+            let id = node.parentNode.id.startsWith("toolTip") ? node.parentNode.id.slice(7) : node.parentNode.id;
+            let opacity = className === "done" ? 1 : 0.8;
+            let getActiveCluster = [];
+            let overlappingAnnotations = overlappingAnnotationRef.current.map(a => a.annotation);
+
+            for (let ref of penAnnotationRef.current) {
+                for (let lockCluster of ref.current?.lockClusters.current) {
+                    if (lockCluster.annotationsFound?.includes(activeAnnotation.current) || lockCluster.annotationsFound?.some(a => overlappingAnnotations.includes(a))) {
+                        getActiveCluster.push(lockCluster);
+                    }
+                }
+            }
+            
+            if (getActiveCluster.length > 0) {
+                let found = getActiveCluster.find(cluster => cluster.strokes[cluster.strokes.length - 1].id === id);
+
+                if (!found) {
+                    opacity = 0.2;
+                }
+            }
+
             return <div
                 className={className}
+                id={"marker" + id}
                 style={{
                     position: "absolute",
                     width: "50%",
@@ -2408,7 +2498,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     top,
                     backgroundColor: background,
                     borderRadius: "50%",
-                    opacity: className === "done" ? 1 : 0.8
+                    opacity: opacity,
+                    transition: "opacity 0.5s"
                 }}
             />;
         }

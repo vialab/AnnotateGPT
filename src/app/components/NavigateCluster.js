@@ -35,7 +35,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
     }
 
     const checkDisable = useCallback((animate = true) => {
-        let filteredAnnotations = filterRef.current ? annotationsRef.current.filter(annotation => !annotation.spans[0].classList?.contains("toolTip")) : annotationsRef.current;
+        let filteredAnnotations = filterRef.current ? annotationsRef.current.filter(annotation => !annotation.spans[0]?.classList?.contains("toolTip")) : annotationsRef.current;
         let indexFilter = filterRef.current ? filteredAnnotations.indexOf(annotationsRef.current[index.current]) : index.current;
         
         let firstIndex = 0;
@@ -344,7 +344,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
     }, [filter]);
 
     useEffect(() => {
-        let tAnnotations = [...annotations];
+        let tAnnotations = [...annotations].filter(annotation => annotation.spans?.length > 0);
         let toolTipSpans;
 
         if (cluster && tAnnotations.length > 0) {
@@ -355,9 +355,13 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
                 tAnnotations.push(toolTipSpans);
             }
         }
+        let removeAnnotations = [];
 
         let sortAnnotations = tAnnotations.sort((a, b) => {
             if (a.spans instanceof Array && b.spans instanceof Array) {
+                if ((a.spans.length === b.spans.length && a.spans.every(span => b.spans.includes(span))) || !a.spans) {
+                    removeAnnotations.push(a);
+                }
                 let aY = d3.mean(a.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));
                 let bY = d3.mean(b.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));
                 return aY - bY;
@@ -365,6 +369,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
                 return 0;
             }
         });
+        sortAnnotations = sortAnnotations.filter(annotation => !removeAnnotations.includes(annotation));
         annotationsRef.current = sortAnnotations;
 
         for (let i = 0; i < annotationsRef.current.length; i++) {

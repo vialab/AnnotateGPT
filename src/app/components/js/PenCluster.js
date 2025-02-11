@@ -65,10 +65,8 @@ export class Cluster {
         for (let point1 of this.strokes) {
             for (let point2 of cluster.strokes) {
                 let spatial = calculateMinDistance(point1.bbox, point2.bbox);
-
-                
                 let dt = point2.startTime > point1.startTime ? point2.startTime - point1.endTime : point1.startTime - point2.endTime;
-                let temporal = (dt / 1000 > 60) ? 1 : (dt / 1000 / 60);
+                let temporal = (dt / 1000 > 30) ? 1 : (dt / 1000 / 30);
 
                 let distance = Math.sqrt(spatial + temporal * temporal);
 
@@ -86,24 +84,24 @@ export class Cluster {
     }
 }
 
-class Stroke {
+export class Stroke {
     constructor(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}, page = 0, endTime = 0) {
         this.startTime = time;
         this.type = type;
         this.endTime = id === "initial" ? 0 : Date.now();
         this.endTime = endTime === 0 ? this.endTime : endTime;
         this.id = id;
-        this.bbox = Stroke.normalizeBoundingBox(bbox);
+        this.bbox = this.normalizeBoundingBox(bbox);
         this.annotatedText = text;
         this.marginalText = marginalText;
-        this.textBbox = Stroke.normalizeBoundingBox(textBbox);
-        this.marginalTextBbox = Stroke.normalizeBoundingBox(marginalTextBbox);
-        this.lineBbox = Stroke.normalizeBoundingBox(lineBbox);
+        this.textBbox = this.normalizeBoundingBox(textBbox);
+        this.marginalTextBbox = this.normalizeBoundingBox(marginalTextBbox);
+        this.lineBbox = this.normalizeBoundingBox(lineBbox);
         this.page = page;
     }
 
-    static normalizeBoundingBox(bbox) {
-        let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
+    normalizeBoundingBox(bbox) {
+        let height = document.querySelector(".pen-annotation-layer#layer-" + this.page)?.getBoundingClientRect().height || window.innerHeight;
 
         return {
             x: bbox.x / window.innerWidth,
@@ -120,16 +118,20 @@ class Stroke {
 
 export default class PenCluster {
     constructor() {
-        let height = Number(document.querySelector(".pen-annotation-container")?.style.getPropertyValue("--annotation-height").split("px")[0]) || window.innerHeight;
+        let height = document.querySelector(".pen-annotation-layer#layer-" + this.page)?.getBoundingClientRect().height || window.innerHeight;
 
-        this.strokes = [new Stroke("initial", {x: window.innerWidth / 2, y: height / 2, width: 1, height: 1}, "intital", 0)];
+        this.strokes = [new Stroke("initial", {x: -window.innerWidth / 2, y: -height / 2, width: 1, height: 1}, "intital", 2)];
         this.stopIteration = [];
         this.history = [];
     }
 
     add(id, bbox, type, time, text = [], marginalText = [], textBbox = {}, marginalTextBbox = {}, lineBbox = {}, page = 0, endTime = 0) {
-        // console.clear();
         this.strokes.push(new Stroke(id, bbox, type, time, text, marginalText, textBbox, marginalTextBbox, lineBbox, page, endTime));
+        return this.update();
+    }
+
+    addNewStroke(stroke) {
+        this.strokes.push(stroke);
         return this.update();
     }
 

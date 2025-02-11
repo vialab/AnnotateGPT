@@ -5,6 +5,14 @@ let doneCluster = false;
 let doneOpenAI = false;
 let donePenStroke = false;
 
+export const config = {
+    api: {
+        bodyParser: {
+            sizeLimit: "2mb",
+        },
+    },
+};
+
 export default async function handler(req, res) {
     let action = req.body.action;
     let pid = req.query.pid;

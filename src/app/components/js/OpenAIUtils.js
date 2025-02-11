@@ -14,6 +14,7 @@ const maxAnnotationQueue = 2;
 const maxPurposeQueue = 3;
 let annotationQueue = 0;
 let purposeQueue = 0;
+let iteration = 0;
 
 // makeInference(noNoteTest, noNoteTestCrop, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
 // makeInference(test, cropTest, "circled", "TOUCH FREE CAMERA MENTAL COMMANDS AND HAND GESTURES").catch(console.error);
@@ -23,6 +24,7 @@ let purposeQueue = 0;
 // makeInference(img.img9, img.img10, "underlined", "the prospective cycles of your education life.").catch(console.error).then(console.log);
 // makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true).catch(console.error).then(console.log);
 // makeInference(img.img13, img.img14, ["circled"], ["extol"], true).catch(console.error).then(console.log);
+// makeInference(img.img15, img.img15, ["circled"], ["spiked"], true).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -36,6 +38,7 @@ let purposeQueue = 0;
 // findAnnotations(`"Grammar/Usage Correction: You are analyzing and ensuring correct grammar or appropriate usage of terms within the text. This involves reviewing language and its functionality in sentences broadly."`)
 // findAnnotations(`Ensuring Gender-Inclusive Language (word-specific): You are testing the grammatical appropriateness of using 'he' by suggesting possible corrections to align the pronouns in the text with gender neutrality or specificity, as deemed fitting by the context.`)
 // findAnnotations(`Ensuring Gender-Inclusive Language: You are promoting gender-neutral or inclusive language use in textual representations, enabling broader interpretations and engagement with the text in terms of gender sensitivity.`)
+// findAnnotations(`Highlighting vocabulary misuse deductive: You circle vocabulary misuse for scoring consistently and identify written errors in clear, direct terms to deduct marks where necessary.`)
 
 // openai.files.list().then((files) => {
 //     console.log("Files", files);
@@ -69,8 +72,10 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
         // await new Promise(r => setTimeout(r, 3000));
         let rand = Math.floor(Math.random() * 2);
         let test = rand === 0 ? data.duplicateTest1 : data.duplicateTest3;
+        let dataTest = iteration % 2 === 0 ? data.test26 : data.test25;
+        iteration++;
 
-        for (let token of data.test25) {
+        for (let token of dataTest) {
             // console.log(token);
             // await new Promise(r => setTimeout(r, 0.1));
             message += token;
@@ -107,15 +112,15 @@ Here is a step-by-step list for annotating a document:
 5. Do not include any sentences that need no modification or annotation.
 6. Make a list of sentences for each response using triple asterisks for sentences and double curly braces for the explanation and suggestion. For example:
 
-## Response 1
+## Response <number>
 
 *** <sentence> ***
 {{ <explanation and suggestion> }}
 ...
 
-7. For each sentence, you can optionally target words in the sentence to annotate. If you do, list the words or phrases to look for in the sentence, separated by commas and enclosed by triple quotation marks. For example:
+7. For each sentence, you can optionally target words in the sentence to annotate and give specific feedback to. If you do, list the words or phrases to look for in the sentence, separated by commas and enclosed by triple quotation marks. For example:
 
-## Response 1
+## Response <number>
 
 *** <sentence> ***
 """ <words or phrase to look for (e.g. <word/phrase 1>, <word/phrase 2>)> """
@@ -203,7 +208,7 @@ Make sure you have all the sentences needed to be annotated in the format above.
                             return;
                         } else if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`)) {
                             await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                                `Please proceed marking all ${n} questions without repeating previous sentences. Respond with "yes" if you are done.`
+                                `Please proceed marking all ${n} questions without repeating previous sentences. Make sure all sentences are found for each question. Respond with "yes" if you are done.`
                             });
     
                             executeRun(true);
@@ -212,7 +217,7 @@ Make sure you have all the sentences needed to be annotated in the format above.
                     }
     
                     await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Have you finished marking all ${n} questions? Respond with "yes" if you are done. Otherwise continue marking until all eight questions are marked without repeating previous sentences.`
+                        `Have you finished marking all ${n} questions? Respond with "yes" if you are done. Otherwise continue marking until all ${n} questions are marked without repeating previous sentences. Make sure all sentences are found for each question.`
                     })
                     .catch((error) => {
                         throw error;
@@ -252,8 +257,10 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
         for (let i = 0; i < annotatedText.length; i++) {
             typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
 
-            if (i < annotatedText.length - 1) {
+            if (i === annotatedText.length - 2) {
                 typeAnnotatedText += " and ";
+            } else if (i < annotatedText.length - 2) {
+                typeAnnotatedText += ", ";
             }
         }
     } else {
@@ -271,28 +278,28 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
                     resolve({
                         rawText: "Bla bla bla...",
                         result: JSON.parse(`{
-                            "annotationDescription": "The user has circled the word 'extol' and added a question mark above it. This combination indicates questioning or highlighting a need for clarification.",
-                            "pastAnnotationHistory": "Past annotations involved circling phrases (like 'utilizes') to emphasize or question their use within scholarly or linguistic contexts【8:0†history.txt】.",
+                            "annotationDescription": "The annotation includes a circular mark around the word 'spiked' and handwritten text reading 'incorrect word usage.' It is denoting a specific issue in word choice within the context of an English test.",
+                            "pastAnnotationHistory": "No annotation history exists specifically for the word 'spiked' or other markings of incorrect word usage in English tests. The inferred historical context is tied to educational contexts where such annotations are meant to provide correction and learning guidance.",
                             "purpose": [
                                 {
-                                    "persona": "Persona 1 (Teacher, Corrective)",
-                                    "purpose": "You aim to help student recognize and correct sentence structure errors, improving their writing clarity",
-                                    "purposeTitle": "Highlight grammatical errors"
+                                    "persona": "pedagogical correction-care",
+                                    "purpose": "You focus on pointing out and explaining nuanced word misuse for better student comprehension. Attention is on promoting precise, contextually suitable vocabulary in analytical or creative work.",
+                                    "purposeTitle": "Pointing out precise word misuse"
                                 },
                                 {
-                                    "persona": "Persona 2 (Student, Learning)",
-                                    "purpose": "You focus on enhancing the document's readability by ensuring sentence structures are concise and intelligible.",
-                                    "purposeTitle": "Signal structure improvements"
+                                    "persona": "formal evaluative grading",
+                                    "purpose": "You circle vocabulary misuse for scoring consistently and identify written errors in clear, direct terms to deduct marks where necessary.",
+                                    "purposeTitle": "Highlighting vocabulary misuse deductive"
                                 },
                                 {
-                                    "persona": "Persona 1 (Teacher, Corrective)",
-                                    "purpose": "You bracketed the phrase sentence to highlight the improper structure and wrote 'run-on sentence' to communicate the need for sentence boundary clarity.",
-                                    "purposeTitle": "Highlight grammatical errors (word-specific)"
+                                    "persona": "pedagogical correction-care",
+                                    "purpose": "You point out the issue with 'spiked' to explain that its usage is improper for the context and help students practice accurate vocabulary. The purpose only looks for 'spiked' and encourages correction with comments.",
+                                    "purposeTitle": "Pointing out precise word misuse with 'spiked'"
                                 },
                                 {
-                                    "persona": "Persona 2 (Student, Learning)",
-                                    "purpose": "You circled the lengthy sentence to indicate it needs restructuring for better readability and coherence, denoting this by writing 'run-on sentence'.",
-                                    "purposeTitle": "Signal structure improvements (word-specific)"
+                                    "persona": "formal evaluative grading",
+                                    "purpose": "You highlight 'spiked' as a clear vocabulary mistake and deduct marks for inappropriate usage in an evaluative context. The purpose only looks for 'spiked' to ensure students avoid similar errors.",
+                                    "purposeTitle": "Highlighting vocabulary misuse deductive with 'spiked'"
                                 }
                             ]
                         }`)

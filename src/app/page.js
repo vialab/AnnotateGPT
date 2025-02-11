@@ -63,6 +63,7 @@ export default function Home() {
     const [disableNext, setDisableNext] = useState(true);
     const [toastMessage, setToastMessage] = useState("");
     const [handiness, setHandiness] = useState("right");
+    const [disabled, setDisabled] = useState(false);
 
     const studyModalRef = useRef(null);
     const success = useRef(false);
@@ -71,9 +72,9 @@ export default function Home() {
     const practiceMessage = useRef([
         [
             "Make an annotation",
-            "Activate assistant by hovering over the annotation and tapping on the marker",
-            "Generate annotations using your assistant (You can hover the options for an explanation)",
-            "Navigate annotations by hovering or with the arrows",
+            "Activate assistant by tapping the annotation with your finger",
+            "Generate annotations using your assistant (You can hover the options for an explanation with the pen)",
+            "Tap the annotations with your finger to navigate them or use the arrows",
             "Accept or reject an annotation",
         ],
         [
@@ -309,6 +310,10 @@ export default function Home() {
 
     let onNextTask = (taskNum, nextMode) => {
         moveHistory();
+        setDisabled(false);
+        toast.dismiss({
+            id: "remindMessage"
+        });
         
         if (taskNum >= 0 && taskNum < documents.length) {
             setDocument(documents[taskNum]);
@@ -364,6 +369,10 @@ export default function Home() {
 
     let handinessChange = (handiness) => {
         setHandiness(handiness);
+    };
+
+    let disabledChange = (disabled) => {
+        setDisabled(disabled);
     };
 
     let sendData = (body) => {
@@ -453,8 +462,8 @@ export default function Home() {
     };
 
     let penEndCallback = (param) => {
-        let annotatedText = param.stroke.annotatedText.map( element => element.innerText).join(" ").replace(/"/g, `""`);
-        let marginalText = param.stroke.marginalText.map( element => element.innerText).join(" ").replace(/"/g, `""`);
+        let annotatedText = param.stroke.annotatedText.map(element => element.textContent).join(" ").replace(/"/g, `""`);
+        let marginalText = param.stroke.marginalText.map(element => element.textContent).join(" ").replace(/"/g, `""`);
 
         let strokeData = `${param.path.id},createStroke,${param.page},${param.stroke.startTime},${param.stroke.endTime},${param.stroke.type},"${annotatedText}","${marginalText}","${JSON.stringify(param.stroke.textBbox).replace(/"/g, `""`)}","${JSON.stringify(param.stroke.marginalTextBbox).replace(/"/g, `""`)}","${JSON.stringify(param.stroke.lineBbox).replace(/"/g, `""`)}","${param.path.outerHTML.replace(/"/g, `""`)}"`;
         let bbox = d3.select(".page-container").node().getBoundingClientRect();
@@ -603,6 +612,50 @@ export default function Home() {
             let clusterReader = new FileReader();
             let newClusters = new Map();
             let newPageClusters = new Map();
+
+            let getTargetSpans = (lastToken) => {
+                let targetWords = lastToken.targetWords.split(",").map(r => r.trim());
+                let listOfSpans = [];
+
+                for (let targetWord of targetWords) {
+                    let filterTarget = targetWord.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
+                    let resultContent = lastToken.spans.map(r => r.textContent).join(" ").replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
+                    
+                    if (resultContent.includes(filterTarget)) {
+                        let tempTarget = filterTarget;
+                        let targetSpans = [];
+
+                        for (let span of lastToken.spans) {
+                            let content = span.textContent.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
+                            
+                            if (tempTarget.startsWith(content)) {
+                                targetSpans.push(span);
+                                tempTarget = tempTarget.slice(content.length).trim();
+
+                                if (tempTarget === "") {
+                                    listOfSpans = listOfSpans.concat(targetSpans);
+                                    targetSpans = [];
+                                    tempTarget = filterTarget;
+                                } else {
+                                    let space = d3.select(span).node().nextSibling;
+
+                                    if (!space) {
+                                        space = span.parentNode.nextSibling?.firstChild;
+                                    }
+
+                                    if (space && space.classList.contains("space")) {
+                                        targetSpans.push(space);
+                                    }
+                                }
+                            } else {
+                                targetSpans = [];
+                                tempTarget = filterTarget;
+                            }
+                        }
+                    }
+                }
+                lastToken.targetSpans = listOfSpans;
+            };
 
             clusterReader.onload = async (e) => {
                 let clustersData = JSON.parse(e.target.result);
@@ -783,7 +836,7 @@ export default function Home() {
                                     currentAnnotation.spans = results;
 
                                     if (results instanceof Array && results.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0) {
-                                        if (currentAnnotation.accepted === false || currentAnnotation.accepted === true) {
+                                        if (currentAnnotation.accepted !== false) {
                                             let spaces = [];
 
                                             for (let span of currentAnnotation.spans) {
@@ -798,10 +851,11 @@ export default function Home() {
                                                 }
                                             }
                                             d3.selectAll(spaces.concat(currentAnnotation.spans))
-                                            .classed("highlighted", currentAnnotation.accepted)
+                                            .classed("highlighted", true)
                                             .classed("accept", currentAnnotation.accepted);
                                         }
                                     }
+                                    getTargetSpans(currentAnnotation);
                                 });
                             }
                         }
@@ -924,12 +978,13 @@ export default function Home() {
                         mode={mode}
                         annotateRef={annotationeRef}
                         handiness={handiness}
+                        disabled={disabled}
                     />
                 </> :
                 <>
                     <Header>
                         <div onClick={startStudy}>
-                            Start Study (Under Maintenance)
+                            Start Study
                         </div>
                     </Header>
 
@@ -945,6 +1000,7 @@ export default function Home() {
                         mode={mode}
                         annotateRef={annotationeRef}
                         handiness={handiness}
+                        disabled={disabled}
                     />
                 </>
             }
@@ -957,7 +1013,9 @@ export default function Home() {
                 modeChange={modeChange}
                 documentChange={documentChange}
                 handinessChange={handinessChange}
+                disabledChange={disabledChange}
                 ref={studyModalRef}
+                disabled={disabled}
                 studyState={state}
                 fileHandler={fileHandler}
             />

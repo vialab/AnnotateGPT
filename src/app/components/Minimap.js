@@ -125,11 +125,10 @@ function Minimap({ ref, ...props }) {
             return;
 
         if (e.buttons !== 1 && (e.type.match(/mouse/) || e.pointerType === "mouse")) {
-            up();
+            up(e);
             return;
         }
         let event;
-        e.preventDefault();
 
         if (e.type.match(/touch/)) {
             if (e.touches.length > 1) {
@@ -181,7 +180,8 @@ function Minimap({ ref, ...props }) {
         move(e);
     }, [move]);
 
-    const up = () => {
+    const up = (e) => {
+        e.preventDefault();
         downState.current = false;
     };
 
