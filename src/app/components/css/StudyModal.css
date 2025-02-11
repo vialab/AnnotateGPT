@@ -33,20 +33,22 @@
 .contentContainer {
     width: 80%;
     height: max-content;
+    max-height: 95vh;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    /* justify-content: center; */
     align-items: center;
     border-radius: 10px;
     padding: 30px;
     gap: 15px;
     user-select: none;
-    overflow: hidden;
+    /* overflow: hidden; */
     background-color: rgba(57, 57, 58, 0.8);
     backdrop-filter: saturate(180%) blur(5px);
     /* box-shadow: inset 0 0px 20px 20px hsla(0, 0%, 100%, 0.1); */
     color: white;
     opacity: 0;
+    overflow-y: scroll;
 }
 
 .contentContainer * {
@@ -444,7 +446,6 @@
 }
 
 .contentContainer .field {
-    margin-top: 17px;
     padding-top: 50px;
     position: relative;
     width: 632px;
@@ -702,16 +703,23 @@ input:checked + .slider:before {
     z-index: 4;
     user-select: none;
     pointer-events: none;
+    --toastify-toast-width: 350px;
 }
 
 .Toastify#studyMessage .pop {
     animation: pop 0.7s ease-in-out;
 }
 
-.flipOutX {
-    animation-name: flipOutX;
-    animation-duration: 0.5s;
-    animation-fill-mode: forwards;
+.flip-in-hor-bottom {
+	animation: flip-in-hor-bottom 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+}
+
+.flip-out-hor-top {
+	animation: flip-out-hor-top 0.45s cubic-bezier(0.550, 0.085, 0.680, 0.530) both;
+}
+
+.jello-horizontal {
+	animation: jello-horizontal 0.9s 2 both;
 }
 
 @keyframes pop {
@@ -728,18 +736,48 @@ input:checked + .slider:before {
 	}
 }
 
-@keyframes flipOutX {
-    from {
-        transform: perspective(400px);
+@keyframes flip-in-hor-bottom {
+    0% {
+      transform: rotateX(80deg);
+      opacity: 0;
     }
+    100% {
+      transform: rotateX(0);
+      opacity: 1;
+    }
+}
 
+@keyframes flip-out-hor-top {
+    0% {
+      transform: rotateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: rotateX(70deg);
+      opacity: 0;
+    }
+}
+
+@keyframes jello-horizontal {
+    0% {
+      transform: scale3d(1, 1, 1);
+    }
     30% {
-        transform: perspective(400px) rotate3d(1, 0, 0, -20deg);
-        opacity: 1;
+      transform: scale3d(1.25, 0.75, 1);
     }
-
-    to {
-        transform: perspective(400px) rotate3d(1, 0, 0, 90deg);
-        opacity: 0;
+    40% {
+      transform: scale3d(0.75, 1.25, 1);
+    }
+    50% {
+      transform: scale3d(1.15, 0.85, 1);
+    }
+    65% {
+      transform: scale3d(0.95, 1.05, 1);
+    }
+    75% {
+      transform: scale3d(1.05, 0.95, 1);
+    }
+    100% {
+      transform: scale3d(1, 1, 1);
     }
 }

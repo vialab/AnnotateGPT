@@ -17,7 +17,7 @@ import "./css/StudyModal.css";
 
 Modal.setAppElement("body");
 
-function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange, handinessChange, ref }) {
+function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish, studyState, fileHandler, modeChange, documentChange, handinessChange, disabledChange, disabled, ref }) {
     let [ pid, setPid ] = useState("test");
     let [ modalIsOpen, setModalIsOpen ] = useState(false);
     let [ ifFirst, setIfFirst ] = useState(true);
@@ -29,6 +29,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
     let instructionTaskContent = useRef([]);
     let postTaskContent = useRef([]);
     let postStudyContent = useRef([]);
+    let disabledRef = useRef(disabled);
 
     let onSettings = useRef(false);
     let onConfirm = useRef(false);
@@ -176,7 +177,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
 
         let clicked = false;
 
-        function handleNext() {
+        function handleNext(callback) {
             if (!clicked) {
                 clicked = true;
 
@@ -188,6 +189,10 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                 .on("end", () => {
                     setModalContent({ type: "next" });
                 });
+
+                if (callback instanceof Function) {
+                    callback();
+                }
             }
         }
 
@@ -207,7 +212,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
         }
 
         function generateNextButton(content, index, callback) {
-            return <button className={"round modalButton nextButton" + (content?.disableNext ? " disabled" : "") + (content?.confirm ? " confirm" : "") + (content?.class ? " " + content.class : "")} onClick={callback} key={state.studyState + "next" + index}>
+            return <button className={"round modalButton nextButton" + (content?.disableNext ? " disabled" : "") + (content?.confirm ? " confirm" : "") + (content?.class ? " " + content.class : "")} onClick={callback} key={state.studyState + "next" + index + action.type}>
                 <div id={"cta"}>
                     { content?.confirm ? 
                         <svg className="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
@@ -225,7 +230,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
         }
         
         function generatePrevButton(content, index, callback) {
-            return <button className={"round modalButton prevButton"+ (content?.confirm ? " cancel" : "")} onClick={callback} key={state.studyState + "prev" + index}>
+            return <button className={"round modalButton prevButton"+ (content?.confirm ? " cancel" : "")} onClick={callback} key={state.studyState + "prev" + index + action.type}>
                 <div id={"cta"}>
                     { content?.confirm ?
                         <div className="close-container">
@@ -245,7 +250,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
             case "start": {
                 let content = getContent("preStudy");
 
-                let bottomContent = [generateNextButton(content[0], 0, handleNext)];
+                let bottomContent = [generateNextButton(content[0], 0, () => handleNext(content[0]?.nextCallback))];
 
                 if (content[0]?.prev) {
                     bottomContent.unshift(generatePrevButton(content[0], 0, handlePrev));
@@ -264,7 +269,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                     let modalIndex = state.modalIndex;
                     let content = getContent();
 
-                    let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
+                    let bottomContent = [generateNextButton(content[modalIndex], modalIndex, () => handleNext(content[0]?.nextCallback))];
 
                     if (content[modalIndex]?.prev) {
                         bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
@@ -290,7 +295,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                 let content = getContent();
 
                 if (modalIndex < content.length) {
-                    let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
+                    let bottomContent = [generateNextButton(content[modalIndex], modalIndex, () => handleNext(content[0]?.nextCallback))];
     
                     if (content[modalIndex]?.prev) {
                         bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
@@ -324,7 +329,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                         return {
                             ...state,
                             mainContent: content[0]?.content,
-                            bottomContent: [generateNextButton(content[0], 0, handleNext)],
+                            bottomContent: [generateNextButton(content[0], 0, () => handleNext(content[0]?.nextCallback))],
                             modalIndex: 0,
                             callback: content[0]?.callback,
                             studyState: studyState,
@@ -335,7 +340,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                 let modalIndex = Math.max(state.modalIndex - 1, 0);
 
                 let content = getContent();
-                let bottomContent = [generateNextButton(content[modalIndex], modalIndex, handleNext)];
+                let bottomContent = [generateNextButton(content[modalIndex], modalIndex, () => handleNext(content[0]?.nextCallback))];
 
                 if (content[modalIndex].prev) {
                     bottomContent.unshift(generatePrevButton(content[modalIndex], modalIndex, handlePrev));
@@ -421,18 +426,34 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                                     </div>
                                 </div>
                                 <div className="settingsContainer"> 
-                                    <p>Handiness</p>
-                                    <div className="settings">
-                                        <div style={{ display: "flex", alignItems: "center" }}>
-                                            <p style={{ display: "inline", margin: 0 }}>Left</p>
-                                            <label className="switch" style={{ border: "none", padding: 0 }}>
-                                                <input type="checkbox" defaultChecked={handiness === "right"} onChange={e => {
-                                                    handinessChange(e.target.checked ? "right" : "left");
-                                                    setHandiness(e.target.checked ? "right" : "left");
-                                                }} />
-                                                <span className="slider round"></span>
-                                            </label>
-                                            <p style={{ display: "inline", margin: 0 }}>Right</p>
+                                    <div className="settings" style={{ justifyContent: "space-evenly" }}>
+                                        <div style={{ display: "flex", flexDirection: "column" }}>
+                                            <p>Handiness</p>
+                                            <div style={{ display: "flex", alignItems: "center" }}>
+                                                <p style={{ display: "inline", margin: 0 }}>Left</p>
+                                                <label className="switch" style={{ border: "none", padding: 0 }}>
+                                                    <input type="checkbox" defaultChecked={handiness === "right"} onChange={e => {
+                                                        handinessChange(e.target.checked ? "right" : "left");
+                                                        setHandiness(e.target.checked ? "right" : "left");
+                                                    }} />
+                                                    <span className="slider round"></span>
+                                                </label>
+                                                <p style={{ display: "inline", margin: 0 }}>Right</p>
+                                            </div>
+                                        </div>
+
+                                        <div style={{ display: "flex", flexDirection: "column" }}>
+                                            <p>Enable/Disable</p>
+                                            <div style={{ display: "flex", alignItems: "center" }}>
+                                                <p style={{ display: "inline", margin: 0 }}>Disabled</p>
+                                                <label className="switch" style={{ border: "none", padding: 0 }}>
+                                                    <input type="checkbox" defaultChecked={!disabledRef.current} onChange={e => {
+                                                        disabledChange(!e.target.checked);
+                                                    }} />
+                                                    <span className="slider round"></span>
+                                                </label>
+                                                <p style={{ display: "inline", margin: 0 }}>Enabled</p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -491,19 +512,36 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                                     </div>
                                 </div>
                                 <div className="settingsContainer"> 
-                                    <p>Handiness</p>
-                                    <div className="settings">
-                                        <div style={{ display: "flex", alignItems: "center" }}>
-                                            <p style={{ display: "inline", margin: 0 }}>Left</p>
-                                            <label className="switch" style={{ border: "none", padding: 0 }}>
-                                                <input type="checkbox" defaultChecked={handiness === "right"} onChange={e => {
-                                                    handinessChange(e.target.checked ? "right" : "left");
-                                                    setHandiness(e.target.checked ? "right" : "left");
-                                                }} />
-                                                <span className="slider round"></span>
-                                            </label>
-                                            <p style={{ display: "inline", margin: 0 }}>Right</p>
+                                    <div className="settings" style={{ justifyContent: "space-evenly" }}>
+                                        <div style={{ display: "flex", flexDirection: "column" }}>
+                                            <p>Handiness</p>
+                                            <div style={{ display: "flex", alignItems: "center" }}>
+                                                <p style={{ display: "inline", margin: 0 }}>Left</p>
+                                                <label className="switch" style={{ border: "none", padding: 0 }}>
+                                                    <input type="checkbox" defaultChecked={handiness === "right"} onChange={e => {
+                                                        handinessChange(e.target.checked ? "right" : "left");
+                                                        setHandiness(e.target.checked ? "right" : "left");
+                                                    }} />
+                                                    <span className="slider round"></span>
+                                                </label>
+                                                <p style={{ display: "inline", margin: 0 }}>Right</p>
+                                            </div>
                                         </div>
+
+                                        <div style={{ display: "flex", flexDirection: "column" }}>
+                                            <p>Enable/Disable</p>
+                                            <div style={{ display: "flex", alignItems: "center" }}>
+                                                <p style={{ display: "inline", margin: 0 }}>Disabled</p>
+                                                <label className="switch" style={{ border: "none", padding: 0 }}>
+                                                    <input type="checkbox" defaultChecked={!disabledRef.current} onChange={e => {
+                                                        disabledChange(!e.target.checked);
+                                                    }} />
+                                                    <span className="slider round"></span>
+                                                </label>
+                                                <p style={{ display: "inline", margin: 0 }}>Enabled</p>
+                                            </div>
+                                        </div>
+                                        
                                     </div>
                                 </div>
                             </>
@@ -914,34 +952,108 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                             <>
                                 <li style={{ margin: "30px 0px" }}>You must use the assistance at least once (activating and annotating with marker).</li>
                                 <li style={{ margin: "30px 0px" }}>You must rate all annotations by accepting (
-                                    <div className="rateContainer" style={{ display: "inline-flex" }}>
+                                    <div className="rateContainer" style={{ display: "inline-flex", verticalAlign: "middle" }}>
                                         <div className="rateButton">
-                                            <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1" }} />
+                                            <FaThumbsUp size={20} style={{ color: "#2eb086", strokeWidth: "1", transform: "translateY(-3px)" }} />
                                         </div>
                                     </div>
                                     ) or rejecting (
-                                    <div className="rateContainer" style={{ display: "inline-flex" }} >
+                                    <div className="rateContainer" style={{ display: "inline-flex", verticalAlign: "middle" }} >
                                         <div className="rateButton" >
                                             <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1" }} />
                                         </div>
                                     </div>
-                                    ) the annotations. Alternatively, you can rate it neither (
-                                    <div className="rateContainer" style={{ display: "inline-flex" }} >
+                                    ) the annotations. Alternatively, you can rate it surprising (
+                                    <div className="rateContainer" style={{ display: "inline-flex", verticalAlign: "middle" }} >
                                         <div className="rateButton">
-                                            <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} />
+                                            <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 192 752" height="30" width="20" xmlns="http://www.w3.org/2000/svg" style={{ color: "rgb(234, 196, 53)", strokeWidth: 1, transform: "translateY(-5px)" }}>
+                                                <path d="m93.489 144.6292c10.3435 5.5885 21.039 10.4645 32.0016 14.7095 5.9986 2.323 12.1322 4.2685 17.6396-.3986 2.0394-1.7284 3.4942-4.1222 5.0213-6.2952 1.7157-2.4406 3.4223-4.8877 5.1202-7.3415 13.2973-19.2186 26.0387-38.8224 38.2-58.7794 6.9002-11.3235 13.6097-22.7616 20.1392-34.3031 2.6225-4.6353-.1204-9.2534-4.606-11.0101-22.3522-8.7539-44.2964-19.4234-65.2243-31.4952-4.571-2.6368-9.3254.121-11.0101 4.606-14.3497 38.1965-27.636 76.787-39.8419 115.7212-2.0148 7.8671-1.137 12.5886 2.5604 14.5864l0 0zm83.815 29.5603c-3.822-2.6968-8.7492-3.1426-11.576-.0935-2.6749 2.8851-3.1362 7.737-.0763 10.6092 7.6256 7.1572 15.2434 14.3226 22.8773 21.4713 4.2742 4.0029 9.3572 7.4439 15.4962 5.6068 4.9748-1.4885 8.736-5.6332 12.4995-8.9948 15.8644-14.1709 31.7294-28.3419 47.5942-42.5125 15.8648-14.1706 31.7294-28.3419 47.5942-42.5125 7.9325-7.0855 15.8644-14.1709 23.7969-21.2564 3.9027-3.4856 8.8843-6.864 11.7341-11.3171 3.3591-5.2492 2.2091-11.3114-1.6419-15.8771-3.491-4.1384-8.7635-7.1011-13.1133-10.2672-4.8262-3.5127-9.6679-7.0038-14.5247-10.4735-9.714-6.9398-19.4908-13.791-29.3239-20.5605-2.5296-1.7416-6.9789-1.1581-9.0161 1.1523-30.1597 34.2041-59.6849 68.9663-88.544 104.2747-8.1559 9.9784-16.2567 20.0013-24.3074 30.0647-2.4402 3.0506-3.2857 7.6339-.0763 10.6092 2.6877 2.4933 7.9868 3.353 10.6075.0769l0 0zm70.8467 57.5819c-7.204-8.5683-12.4795-9.5489-15.7657-7.6761-3.7997 2.1652-4.4743 6.5308-2.8007 10.232 4.8742 10.7787 9.7488 21.5576 14.623 32.3362 1.3114 2.8997 5.5047 4.4425 8.4571 3.5288 20.783-6.4322 41.5663-12.8649 62.3493-19.2972 5.8156-1.7999 6.8694-8.0752 3.4016-12.5108-11.3759-14.5503-19.5134-32.4987-23.4172-51.2313-.9202-4.4151-7.1129-7.2971-10.9603-4.5751-16.4399 11.6308-31.9934 24.4552-46.421 38.5075-2.8086 2.7357-3.034 7.867-.0763 10.6092 2.9979 2.7786 7.6022 3.0068 10.6102.0768l0 0zm-72.1507 430.2286c0 44.112-35.888 80-80 80s-80-35.888-80-80 35.888-80 80-80 80 35.888 80 80zm-150.74-406.801 13.6 272c.639 12.773 11.181 22.801 23.97 22.801h66.34c12.789 0 23.331-10.028 23.97-22.801l13.6-272c.685-13.709-10.244-25.199-23.97-25.199h-93.54c-13.726 0-24.655 11.49-23.97 25.199z"/>
+                                            </svg>
+                                            {/* <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} /> */}
                                         </div>
                                     </div>
                                     ) if the annotation does not match your annotation, but provided good feedback.
-                                    
                                 </li>
+                                <li style={{ margin: "30px 0px" }}>You have 30 minutes to complete the tasks. The pen and the assistant will be disabled during the last 5 minutes to finalize your ratings.</li>
                             </>
                             :
                             <>
+                                <li style={{ margin: "30px 0px" }}>You have 30 minutes to complete the tasks.</li>
                             </>
                         }
-                        <li style={{ margin: "30px 0px" }}>You have 30 minutes to complete the tasks.</li>
                     </ul>
                 </div>,
+                "nextCallback": () => {
+                    let sendToast = (message) => {
+                        let options = {
+                            autoClose: false,
+                            // limit={1}
+                            closeButton: true,
+                            closeOnClick: false,
+                            pauseOnFocusLoss: false,
+                            draggable: false,
+                            theme: "dark",
+                            transition: cssTransition({
+                                enter: "jello-horizontal",
+                                exit: "flip-out-hor-top",
+                            }),
+                            style: { pointerEvents: "all" }
+                        };
+
+                        let messageContainer = <div id={"prompt"} style={{ textAlign: "center", width: "100%" }}>
+                            {message}
+                        </div>;
+
+                        if (!toast.isActive("remindMessage")) {
+                            toast(messageContainer, {
+                                containerId: "studyMessage",
+                                toastId: "remindMessage",
+                                ...options,
+                                transition: cssTransition({
+                                    enter: "flip-in-hor-bottom",
+                                    exit: "flip-out-hor-top",
+                                }),
+                            });
+                        } else {
+                            toast.update("remindMessage", {
+                                containerId: "studyMessage",
+                                render: messageContainer,
+                                ...options,
+                            });
+                        }
+                    };
+                    let twentyMinutes = 20 * 60 * 1000;
+                    let twentyFiveMinutes = 25 * 60 * 1000;
+                    let thirtyMinutes = 30 * 60 * 1000;
+
+                    if (currentMode === "LLM") {
+                        setTimeout(() => {
+                            sendToast(<>{"You have 5 minutes left to annotate the document. Afterwards, you will need to rate all annotations."}</>);
+                        }, twentyMinutes);
+                        
+                        setTimeout(() => {
+                            if (disabledChange instanceof Function) {
+                                disabledChange(true);
+                            }
+                            sendToast(<>{"The annotation tool is disabled."} <br /> {"Please rate all annotations."}</>);
+                        }, twentyFiveMinutes);
+
+                        setTimeout(() => {
+                            sendToast(<>{"30 minutes have passed."} <br /> {" Please finish up and proceed by clicking the green arrow."}</>);
+                        }, thirtyMinutes);
+                    } else {
+                        setTimeout(() => {
+                            sendToast("You have 5 minutes left to annotate the document.");
+                        }, twentyFiveMinutes);
+
+                        setTimeout(() => {
+                            if (disabledChange instanceof Function) {
+                                disabledChange(true);
+                            }
+                            sendToast(<>{"30 minutes have passed."} <br /> {"The annotation tool is disabled."} <br /> {"Please proceed by clicking the green arrow."}</>);
+                        }, thirtyMinutes);
+                    }
+                },
             },
         ];
 
@@ -998,7 +1110,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                 },
             },
         ];
-    }, [llmFirst, modalContent.currentTask, pid]);
+    }, [disabledChange, llmFirst, modalContent.currentTask, pid]);
 
     let setUp = useCallback(() => {
         if (modalIsOpen) {
@@ -1185,26 +1297,35 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                 {toastMessage}
             </div>;
 
+            let options = {
+                autoClose: false,
+                // limit={1}
+                closeButton: false,
+                closeOnClick: false,
+                pauseOnFocusLoss: false,
+                draggable: false,
+                theme: "dark",
+                transition: cssTransition({
+                    enter: "jello-horizontal",
+                    exit: "flip-out-hor-top",
+                }),
+            };
+
             if (!toast.isActive("practiceMessage")) {
                 toast(messageContainer, {
                     containerId: "studyMessage",
                     toastId: "practiceMessage",
+                    ...options,
+                    transition: cssTransition({
+                        enter: "flip-in-hor-bottom",
+                        exit: "flip-out-hor-top",
+                    }),
                 });
             } else {
                 toast.update("practiceMessage", {
                     render: messageContainer,
                     containerId: "studyMessage",
-                    autoClose: false,
-                    // limit={1}
-                    closeButton: false,
-                    closeOnClick: false,
-                    pauseOnFocusLoss: false,
-                    draggable: false,
-                    theme: "dark",
-                    transition: cssTransition({
-                        enter: "pop",
-                        exit: "flipOutX",
-                    }),
+                    ...options,
                 });
             }
         } else {
@@ -1213,6 +1334,10 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
             });
         }
     }, [toastMessage, studyState]);
+
+    useEffect(() => {
+        disabledRef.current = disabled;
+    }, [disabled]);
 
     useImperativeHandle(ref, () => ({
         pid: pid,
