@@ -2155,6 +2155,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         d3.select(".annotateContainer")
         .on(hasTouchScreen ? "touchstart" : "pointermove", (e) => {
         // .on("pointermove", (e) => {
+            // if (hasTouchScreen && e.pointerType !== "touch") {
+            //     return;
+            // }
+
             if (e.buttons !== 0 && !hasTouchScreen) {
                 clearTimeout(explainTooltipTimeout.current);
                 clearTimeout(highlightTimeout.current);
@@ -2296,6 +2300,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
         return () => {
             d3.select(".annotateContainer")
+            .on("click", null)
             .on("touchstart", null)
             .on("pointermove", null);
         };

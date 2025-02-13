@@ -329,8 +329,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             if (activeCluster.current && d3.select(`g.toolTip[id="toolTip${activeCluster.current?.strokes[activeCluster.current.strokes.length - 1]?.id}"]`).empty()) {
                 activeCluster.current = null;
             }
-            // let coords = d3.pointer(e);
-            let coords = hasTouchScreen ? d3.pointer(e.touches[0], svgRef.current) : d3.pointer(e);
+            let coords = d3.pointer(e);
             let [x, y] = coords;
             let closestCluster = null;
             // let distancePromises = [];
@@ -502,7 +501,11 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
 
         svgPenSketch.current._element
         // .on("pointermove.hover", (e) => {
-        .on(hasTouchScreen ? "touchstart.hover" : "pointermove.hover", (e) => {
+        .on(hasTouchScreen ? "pointerdown.hover" : "pointermove.hover", (e) => {
+            if (hasTouchScreen && e.pointerType !== "touch") {
+                return;
+            }
+
             if (typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("llm") && !disabledRef.current?.current) {
                 handleHover(e);
             }
@@ -514,7 +517,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
 
         return () => {
             svgPenSketch.current._element
-            .on("touchstart.hover", null)
+            .on("pointerdown.hover", null)
             .on("pointermove.hover", null)
             .on("pointerleave.hover", null);
         };
@@ -1332,7 +1335,21 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     checkContainWords(words)
                     .then(() => {
                         if (wordsOfInterest.length === 0) {
-                            processWords((annotatedWordsOfInterest.length !== 0 && tool.current !== "highlighter") ? annotatedWordsOfInterest : boxWordsOfInterest, type);
+                            if (annotatedWordsOfInterest.length === 0 && boxWordsOfInterest.length === 0) {
+                                let characters = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.character").nodes();
+
+                                checkContainWords(characters)
+                                .then(() => {
+                                    if (wordsOfInterest.length === 0) {
+                                        type = "annotated_words";
+                                        processWords((annotatedWordsOfInterest.length !== 0 && tool.current !== "highlighter") ? annotatedWordsOfInterest : boxWordsOfInterest, type);
+                                    } else {
+                                        processWords(wordsOfInterest, type);
+                                    }
+                                });
+                            } else {
+                                processWords((annotatedWordsOfInterest.length !== 0 && tool.current !== "highlighter") ? annotatedWordsOfInterest : boxWordsOfInterest, type);
+                            }
                         } else {
                             processWords(wordsOfInterest, type);
                         }
