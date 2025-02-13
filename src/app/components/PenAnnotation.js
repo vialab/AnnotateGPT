@@ -1307,7 +1307,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     });
                 };
 
-                if (distance < 300 || checkEnclosed(coords)) {
+                if (distance < 400 || checkEnclosed(coords)) {
                     type = "circled_words";
 
                     checkContainWords(words)

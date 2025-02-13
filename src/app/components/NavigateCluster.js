@@ -359,7 +359,11 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
 
         let sortAnnotations = tAnnotations.sort((a, b) => {
             if (a.spans instanceof Array && b.spans instanceof Array) {
-                if ((a.spans.length === b.spans.length && a.spans.every(span => b.spans.includes(span))) || !a.spans) {
+                if ((a.spans.length === b.spans.length && a.spans.every(span => b.spans.includes(span)))) {
+                    removeAnnotations.push(a.accepted === false ? a : (b.accepted === false ? b : a));
+                }
+
+                if (!a.spans) {
                     removeAnnotations.push(a);
                 }
                 let aY = d3.mean(a.spans.filter(span => span instanceof Element).map(span => span.getBoundingClientRect().top + span.getBoundingClientRect().height / 2 + d3.select("#root").node().scrollTop));

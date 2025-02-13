@@ -50,7 +50,7 @@ let iteration = 0;
 //             });
 //         }
 
-//         if (file.purpose === "vision") {
+//         if (file.purpose === "vision" && file.filename === "image.png") {
 //             openai.files.del(file.id).then((res) => {
 //                 console.log("Deleted file", res);
 //             });

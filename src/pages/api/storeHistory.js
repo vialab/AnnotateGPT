@@ -69,7 +69,8 @@ async function updateHistory(retry = 3) {
             emptyRetry++;
 
             if (emptyRetry > 30) {
-                throw new Error("History empty");
+                console.error("Failed to delete history files");
+                break;
             }
         }
         let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);

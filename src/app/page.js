@@ -854,8 +854,8 @@ export default function Home() {
                                             .classed("highlighted", true)
                                             .classed("accept", currentAnnotation.accepted);
                                         }
+                                        getTargetSpans(currentAnnotation);
                                     }
-                                    getTargetSpans(currentAnnotation);
                                 });
                             }
                         }

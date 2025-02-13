@@ -1236,10 +1236,16 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
                         <NavigateCluster filter={filter} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
-                    // // explanationToolTipRef.current?.close();
+                    // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, {spans: [ clusterToolTip ]}, false);
                 } else {
                     activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+                    
+                    d3.selectAll(".word.highlighted, .space.highlighted")
+                    .classed("target", false)
+                    .classed("fade", false);
+                    
+                    explanationToolTipRef.current?.close();
                 }
                 let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
 
@@ -1297,7 +1303,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
         } else {
             explanationToolTipRef.current?.close();
-            // resetToolTips();
+
+            d3.selectAll(".word.highlighted, .space.highlighted")
+            .classed("target", false)
+            .classed("fade", false);
             // activeClusterRef.current = null;
             // setActiveCluster(null);
             // setGetActiveAnnotations([]);
@@ -1375,13 +1384,25 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             };
 
             if (cluster.annotationsFound?.length > 0 && activeAnnotation.current) {
-                if (cluster.annotationsFound?.find(annotation => annotation === activeAnnotation.current)) {
+                if (cluster.annotationsFound?.find(annotation => annotation === activeAnnotation.current) || cluster.annotationsFound?.some(annotation => annotation.spans?.every(span => activeAnnotation.current.spans?.includes(span)))) {
                     if (activeAnnotation.current.spans[0] instanceof Element && activeAnnotation.current.spans[0].classList.contains("toolTip")) {
                         showTooltipContent();
                     } else if (explanationToolTipRef.current?.isOpen && activeAnnotation.current?.accepted !== false) {
                         let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === activeAnnotation.current));
-                        let [content, ] = generateContent(activeAnnotation.current, annotations);
-
+                        let [content, overlappingAnnotations] = generateContent(activeAnnotation.current, annotations);
+                        overlappingAnnotationRef.current = overlappingAnnotations;
+                        
+                        for (let a of overlappingAnnotations) {
+                            let targetWords = a.annotation.targetSpans.filter(span => span instanceof Element && !span.classList.contains("toolTip"));
+                            let targetSpans = [];
+                
+                            for (let i = 0; i < targetWords.length; i++) {
+                                let span = targetWords[i];
+                                targetSpans.push(span);
+                            }
+                            d3.selectAll(targetSpans)
+                            .classed("target", true);
+                        }
                         explanationToolTipRef.current?.open({
                             anchorSelect: ".explanation-tooltip",
                             content: content,
@@ -1391,6 +1412,17 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 } else if (activeAnnotation.current instanceof Element && activeAnnotation.current.classList.contains("toolTip") && activeAnnotation.current.id === "toolTip" + cluster.strokes[cluster.strokes.length - 1].id) {
                     showTooltipContent();
                 }
+                miniMapRef.current?.synchronize();
+            } else if (explanationToolTipRef.current?.isOpen && activeAnnotation.current === null) {
+                let content = <div className={"annotationMessageContainer " + googleSans.className}>
+                    <NavigateCluster filter={true} handiness={handinessRef.current} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
+                </div>;
+                
+                explanationToolTipRef.current?.open({
+                    anchorSelect: ".explanation-tooltip",
+                    content: content,
+                    place: "left",
+                });
             }
         }
     }
@@ -1640,6 +1672,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
             d3.selectAll(rejectedSpans)
+            .classed("target", false)
             .classed("highlighted", false);
 
             d3.selectAll(acceptedSpans)
@@ -2475,9 +2508,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             let overlappingAnnotations = overlappingAnnotationRef.current.map(a => a.annotation);
 
             for (let ref of penAnnotationRef.current) {
-                for (let lockCluster of ref.current?.lockClusters.current) {
-                    if (lockCluster.annotationsFound?.includes(activeAnnotation.current) || lockCluster.annotationsFound?.some(a => overlappingAnnotations.includes(a))) {
-                        getActiveCluster.push(lockCluster);
+                if (ref.current?.lockClusters.current) {
+                    for (let lockCluster of ref.current.lockClusters.current) {
+                        if (lockCluster.annotationsFound?.includes(activeAnnotation.current) || lockCluster.annotationsFound?.some(a => overlappingAnnotations.includes(a))) {
+                            getActiveCluster.push(lockCluster);
+                        }
                     }
                 }
             }
