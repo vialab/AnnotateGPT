@@ -54,17 +54,11 @@ You can navigate recent annotations using the arrows on the right.
 00:01:16.503 --> 00:01:21.323
 The system will give further explanation on why the sentence was annotated.
 
-00:01:23.538 --> 00:01:25.778
-If you are satisfied with the annotation,
+00:01:23.538 --> 00:01:27.138
+If the sentence matched the purpose of the annotation, you can accept it.
 
-00:01:25.778 --> 00:01:27.378
-you can accept the annotation.
-
-00:01:29.927 --> 00:01:32.107
-If you think the sentence should not be annotated,
-
-00:01:32.107 --> 00:01:34.647
-you can reject the annotation as well.
+00:01:29.927 --> 00:01:33.687
+If the sentence does not match the purpose, you can reject it as well.
 
 00:01:37.870 --> 00:01:42.110
 You can also tap the annotation with your finger to navigate the annotations.
