@@ -191,45 +191,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
         let renderSteps = [
             () => {
                 d3.select(container)
-                .attr("class", "screenshot-container")
-                .style("position", "absolute")
-                .style("top", "0")
-                .style("left", "0")
-                .style("padding-top", -pageTop * height + "px")
-                .style("width", "var(--annotation-width)")
-                .style("height", "var(--annotation-height)")
-                .style("--annotation-width", d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().width + "px")
-                .style("--annotation-height", d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().height + "px")
-                .style("display", "flex")
-                .style("justify-content", "center")
-                .style("align-items", "baseline");
+                .attr("class", "screenshot-container");
 
                 annotationPages
-                .style("position", "absolute")
-                .style("width", "100%")
-                .style("height", d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().height + "px")
-                .style("top", "0")
-                .style("left", "0")
-                .style("overflow", "hidden")
                 .selectAll("#toolTipcanvas")
                 .remove();
-                
-                annotationPages
-                .select(".pageNumber")
-                .style("position", "absolute")
-                .style("left", "0")
-                .style("right", "0")
-                .style("bottom", "24px")
-                .style("font-size", "1rem")
-                .style("color", "black")
-                .style("text-align", "center");
-
-                annotationPages
-                .selectAll("path")
-                .attr("filter", null)
-                .style("fill", "red")
-                .attr("class", null)
-                .attr("opacity", null);
 
                 page.appendChild(canvasPage);
 
@@ -256,6 +222,48 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 let widthContainer = d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().width;
                 let heightContainer = d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().height;
 
+                let onCloneNode = (cloned) => {
+                    d3.select(cloned)
+                    .style("position", "absolute")
+                    .style("top", "0")
+                    .style("left", "0")
+                    .style("padding-top", -pageTop * height + "px")
+                    .style("width", "var(--annotation-width)")
+                    .style("height", "var(--annotation-height)")
+                    .style("--annotation-width", d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().width + "px")
+                    .style("--annotation-height", d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().height + "px")
+                    .style("display", "flex")
+                    .style("justify-content", "center")
+                    .style("align-items", "baseline");
+
+                    let annotationPages = d3.select(cloned).select(".pen-annotation-layer");
+
+                    annotationPages
+                    .style("position", "absolute")
+                    .style("width", "100%")
+                    .style("height", d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().height + "px")
+                    .style("top", "0")
+                    .style("left", "0")
+                    .style("overflow", "hidden");
+                    
+                    annotationPages
+                    .select(".pageNumber")
+                    .style("position", "absolute")
+                    .style("left", "0")
+                    .style("right", "0")
+                    .style("bottom", "24px")
+                    .style("font-size", "1rem")
+                    .style("color", "black")
+                    .style("text-align", "center");
+
+                    annotationPages
+                    .selectAll("path")
+                    .attr("filter", null)
+                    .style("fill", "red")
+                    .attr("class", null)
+                    .attr("opacity", null);
+                };
+
                 const createC1 = createContext(container, {
                     workerUrl: "./Worker.js",
                     workerNumber: 1,
@@ -267,7 +275,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                             return ids.includes(id);
                         }
                         return true;
-                    }
+                    },
+                    onCloneNode: onCloneNode
                 });
 
                 const createC2 = createContext(container, {
@@ -285,7 +294,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                             return ids.includes(id);
                         }
                         return true;
-                    }
+                    },
+                    onCloneNode: onCloneNode
                 });
                 let processing = lastCluster.strokes.find(stroke => stroke.type.startsWith("processing"));
                 let retry = 0;
@@ -1040,6 +1050,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 .attr("id", d => "toolTip" + d.strokes[d.strokes.length - 1].id)
                 .style("will-change", "width, height")
                 .attr("opacity", 0)
+                .on("touchstart", function(e) {
+                    e.preventDefault();
+                }, { passive: false })
                 .on("contextmenu", function(e) {
                     e.preventDefault();
                 });
@@ -1730,6 +1743,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 });
 
                 update
+                .on("touchstart", function(e) {
+                    e.preventDefault();
+                }, { passive: false })
                 .on("contextmenu", function(e) {
                     e.preventDefault();
                 });

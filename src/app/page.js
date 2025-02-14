@@ -73,7 +73,7 @@ export default function Home() {
         [
             "Make an annotation",
             "Activate assistant by tapping the annotation with your finger",
-            "Generate annotations using your assistant (You can hover the options for an explanation with the pen)",
+            "Generate annotations using your assistant (Hover the pen or hold down your finger on each option for explanations.)",
             "Tap the annotations with your finger to navigate them or use the arrows",
             "Accept or reject an annotation",
         ],
