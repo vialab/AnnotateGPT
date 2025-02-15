@@ -168,11 +168,13 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
         let reactPdfPage = d3.select(".react-pdf__Page.page-" + index);
         let layerNode = d3.select("#layer-" + index).node();
 
-        let annotationPage = layerNode.cloneNode(true);
+        let annotationPage1 = layerNode.cloneNode(true);
+        let annotationPage2 = layerNode.cloneNode(true);
         let page = reactPdfPage.node().cloneNode();
         let canvasPage = reactPdfPage.select("canvas").node().cloneNode();
-        let annotationPages = d3.select(annotationPage);
-        let container = document.createElement("div");
+        let annotationPages = d3.selectAll([annotationPage1, annotationPage2]);
+        let container1 = document.createElement("div");
+        let container2 = document.createElement("div");
         const height = d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().height || window.innerHeight;
         let pageTop = (d3.select(".pen-annotation-layer#layer-" + index).node().getBoundingClientRect().top - d3.select(".react-pdf__Page.page-" + index).node().getBoundingClientRect().top) / height;
 
@@ -190,19 +192,23 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
 
         let renderSteps = [
             () => {
-                d3.select(container)
+                d3.selectAll([container1, container2])
                 .attr("class", "screenshot-container");
 
                 annotationPages
                 .selectAll("#toolTipcanvas")
                 .remove();
 
-                page.appendChild(canvasPage);
+                // page.appendChild(canvasPage);
 
-                const fragment = document.createDocumentFragment();
-                fragment.appendChild(page);
-                fragment.appendChild(annotationPage);
-                container.appendChild(fragment);
+                const fragment1 = document.createDocumentFragment();
+                fragment1.appendChild(page);
+                fragment1.appendChild(annotationPage1);
+                container1.appendChild(fragment1);
+                
+                const fragment2 = document.createDocumentFragment();
+                fragment2.appendChild(annotationPage2);
+                container2.appendChild(fragment2);
 
                 let sourceCanvas = reactPdfPage.select("canvas").node();
                 let context = canvasPage.getContext("2d");
@@ -213,6 +219,17 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 
                 context.scale(1 / scale, 1 / scale);
                 context.drawImage(sourceCanvas, 0, 0);
+
+                function getDocument(target) {
+                    const isElementNode = (node) => node.nodeType === 1;
+                    return (target && isElementNode(target) ? target?.ownerDocument : target) ?? window.document;
+                }
+                const img = getDocument(canvasPage.ownerDocument).createElement("img");
+                img.decoding = "sync";
+                img.loading = "eager";
+                img.src = canvasPage.toDataURL();
+
+                page.appendChild(img);
             },
         ];
 
@@ -264,7 +281,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     .attr("opacity", null);
                 };
 
-                const createC1 = createContext(container, {
+                const createC1 = createContext(container1, {
                     workerUrl: "./Worker.js",
                     workerNumber: 1,
                     width: widthContainer,
@@ -279,7 +296,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     onCloneNode: onCloneNode
                 });
 
-                const createC2 = createContext(container, {
+                const createC2 = createContext(container2, {
                     workerUrl: "./Worker.js",
                     workerNumber: 1,
                     width: widthContainer,

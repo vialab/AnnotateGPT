@@ -555,6 +555,7 @@ function cloneCanvas(canvas, context) {
             context.log.warn("Failed to clone canvas", error);
         }
     }
+    return canvas;
     const cloned = canvas.cloneNode(false);
     const ctx = canvas.getContext("2d");
     const clonedCtx = cloned.getContext("2d");
@@ -651,6 +652,7 @@ function cloneElement(node, context) {
     if (isVideoElement(node)) {
         return cloneVideo(node, context);
     }
+    return node;
     return node.cloneNode(false);
 }
 
@@ -967,70 +969,64 @@ async function cloneNode(node, context, isRoot = false, addWordToFontFamilies) {
     }
     if (ownerDocument && ownerWindow && isElementNode(node) && (isHTMLElementNode(node) || isSVGElementNode(node))) {
         const cloned2 = await cloneElement(node, context);
-        if (context.isEnable("removeAbnormalAttributes")) {
-            const names = cloned2.getAttributeNames();
-            for (let len = names.length, i = 0; i < len; i++) {
-                const name = names[i];
-                if (!NORMAL_ATTRIBUTE_RE.test(name)) {
-                    cloned2.removeAttribute(name);
-                }
-            }
-        }
-        const style = context.currentNodeStyle = new Map();
-        if (IN_CHROME) {
-            if (!style.has("font-kerning"))
-                style.set("font-kerning", ["normal", ""]);
-        }
-        if (isRoot) {
-            style.set("box-sizing", ["border-box", ""]);
-            applyCssStyleWithOptions(cloned2, context);
-        }
-        console.log(style);
-        let copyScrollbar = false;
-        if (context.isEnable("copyScrollbar")) {
-            const overflow = [
-                style.get("overflow-x")?.[0],
-                style.get("overflow-y")?.[0]
-            ];
-            copyScrollbar = overflow.includes("scroll") || (overflow.includes("auto") || overflow.includes("overlay")) && (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth);
-        }
-        const textTransform = style.get("text-transform")?.[0];
-        const families = splitFontFamily(style.get("font-family")?.[0]);
-        const addWordToFontFamilies2 = families ? (word) => {
-            if (textTransform === "uppercase") {
-                word = word.toUpperCase();
-            } else if (textTransform === "lowercase") {
-                word = word.toLowerCase();
-            } else if (textTransform === "capitalize") {
-                word = word[0].toUpperCase() + word.substring(1);
-            }
-            families.forEach((family) => {
-                let fontFamily = fontFamilies.get(family);
-                if (!fontFamily) {
-                    fontFamilies.set(family, fontFamily = /* @__PURE__ */ new Set());
-                }
-                word.split("").forEach((text) => fontFamily.add(text));
-            });
-        } : void 0;
-        copyPseudoClass(
-            node,
-            cloned2,
-            copyScrollbar,
-            context,
-            addWordToFontFamilies2
-        );
-        copyInputValue(node, cloned2);
-        if (!isVideoElement(node)) {
-            await cloneChildNodes(
-                node,
-                cloned2,
-                context,
-                addWordToFontFamilies2
-            );
-        }
+        // if (context.isEnable("removeAbnormalAttributes")) {
+        //     const names = cloned2.getAttributeNames();
+        //     for (let len = names.length, i = 0; i < len; i++) {
+        //         const name = names[i];
+        //         if (!NORMAL_ATTRIBUTE_RE.test(name)) {
+        //             cloned2.removeAttribute(name);
+        //         }
+        //     }
+        // }
+        // const style = context.currentNodeStyle = copyCssStyles(node, cloned2, isRoot, context);
+        // if (isRoot)
+        //     applyCssStyleWithOptions(cloned2, context);
+        // let copyScrollbar = false;
+        // if (context.isEnable("copyScrollbar")) {
+        //     const overflow = [
+        //         style.get("overflow-x")?.[0],
+        //         style.get("overflow-y")?.[0]
+        //     ];
+        //     copyScrollbar = overflow.includes("scroll") || (overflow.includes("auto") || overflow.includes("overlay")) && (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth);
+        // }
+        // const textTransform = style.get("text-transform")?.[0];
+        // const families = splitFontFamily(style.get("font-family")?.[0]);
+        // const addWordToFontFamilies2 = families ? (word) => {
+        //     if (textTransform === "uppercase") {
+        //         word = word.toUpperCase();
+        //     } else if (textTransform === "lowercase") {
+        //         word = word.toLowerCase();
+        //     } else if (textTransform === "capitalize") {
+        //         word = word[0].toUpperCase() + word.substring(1);
+        //     }
+        //     families.forEach((family) => {
+        //         let fontFamily = fontFamilies.get(family);
+        //         if (!fontFamily) {
+        //             fontFamilies.set(family, fontFamily = /* @__PURE__ */ new Set());
+        //         }
+        //         word.split("").forEach((text) => fontFamily.add(text));
+        //     });
+        // } : void 0;
+        // copyPseudoClass(
+        //     node,
+        //     cloned2,
+        //     copyScrollbar,
+        //     context,
+        //     addWordToFontFamilies2
+        // );
+        // copyInputValue(node, cloned2);
+        // if (!isVideoElement(node)) {
+        //     await cloneChildNodes(
+        //         node,
+        //         cloned2,
+        //         context,
+        //         addWordToFontFamilies2
+        //     );
+        // }
         return cloned2;
     }
-    const cloned = node.cloneNode(false);
+    // const cloned = node.cloneNode(false);
+    const cloned = node;
     await cloneChildNodes(node, cloned, context);
     return cloned;
 }
@@ -1483,7 +1479,7 @@ async function domToForeignObjectSvg(node, options) {
         log.timeEnd("embed web font");
     }
     log.time("embed node");
-    embedNode(clone, context);
+    // embedNode(clone, context);
     const count = tasks.length;
     let current = 0;
     const runTask = async () => {
