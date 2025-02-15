@@ -1076,10 +1076,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 .classed("inferring", d => d.purpose === false)
                 .attr("id", d => "toolTip" + d.strokes[d.strokes.length - 1].id)
                 .style("will-change", "width, height")
+                .style("touch-action", "none")
                 .attr("opacity", 0)
-                .on("touchstart", function(e) {
-                    e.preventDefault();
-                }, { passive: false })
                 .on("contextmenu", function(e) {
                     e.preventDefault();
                 });
@@ -1770,9 +1768,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 });
 
                 update
-                .on("touchstart", function(e) {
-                    e.preventDefault();
-                }, { passive: false })
+                .style("touch-action", "none")
                 .on("contextmenu", function(e) {
                     e.preventDefault();
                 });
