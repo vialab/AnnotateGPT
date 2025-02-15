@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import * as d3 from "d3";
 
 // use vite
-import { createContext, destroyContext, domToDataUrl } from "./js/Screenshot";
+import { createContext, destroyContext, domToCanvas } from "./js/Screenshot";
 import { makeInference } from "./js/OpenAIUtils";
 import { googleSans } from "../page";
 import { toast } from "react-toastify";
@@ -527,11 +527,12 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
 
                 function cropWorker() {
                     self.onmessage = async function (event) {
-                        const { dataUrl, bbox, dimensions } = event.data;
+                        // const { dataUrl, bbox, dimensions } = event.data;
+                        const { imageBitmap, bbox, dimensions } = event.data;
                         const { width, height } = dimensions;
                     
                         try {
-                            const img = await createImageBitmap(await fetch(dataUrl).then(res => res.blob()));
+                            // const img = await createImageBitmap(await fetch(dataUrl).then(res => res.blob()));
                     
                             const startX = bbox.x1 * width - 10;
                             const startY = (bbox.y1) * height - 10;
@@ -543,7 +544,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                             const ctx = offscreenCanvas.getContext("2d");
 
                             // Draw the cropped image
-                            ctx.drawImage(img, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+                            ctx.drawImage(imageBitmap, startX, startY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
                     
                             // Convert the canvas to a Blob and then to a base64 string
                             const blob = await offscreenCanvas.convertToBlob();
@@ -558,57 +559,66 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     };
                 }
 
-                function cropCanvas(dataUrl, bbox) {
+                function cropCanvas(canvas, bbox) {
                     return new Promise((resolve, reject) => {
                         const url = URL.createObjectURL(new Blob([`(${cropWorker.toString()})()`]));
                         const worker = new Worker(url);
                         // const dataUrl = canvas.toDataURL("image/png");
                 
-                        if (!dataUrl) {
-                            reject(new Error("Failed to get canvas data URL"));
-                            return;
-                        }
+                        // if (!dataUrl) {
+                        //     reject(new Error("Failed to get canvas data URL"));
+                        //     return;
+                        // }
 
-                        const payload = {
-                            dataUrl,
-                            bbox,
-                            dimensions: {
-                                width: window.innerWidth,
-                                height,
-                            },
-                        };
+                        createImageBitmap(canvas)
+                        .then(imageBitmap => {
+                            const payload = {
+                                imageBitmap,
+                                bbox,
+                                dimensions: {
+                                    width: window.innerWidth,
+                                    height,
+                                },
+                            };
 
-                        worker.onmessage = (event) => {
-                            resolve(event.data.croppedBase64);
-                            worker.terminate();
-                            URL.revokeObjectURL(url);
-                        };
+                            worker.onmessage = (event) => {
+                                if (event.data.error) {
+                                    reject(new Error(event.data.error));
+                                } else {
+                                    resolve(event.data.croppedBase64);
+                                }
+                                worker.terminate();
+                                URL.revokeObjectURL(url);
+                            };
 
-                        worker.onerror = (err) => {
+                            worker.onerror = (err) => {
+                                reject(err);
+                                worker.terminate();
+                                URL.revokeObjectURL(url);
+                            };
+                            worker.postMessage(payload, [imageBitmap]);
+                        })
+                        .catch(err => {
                             reject(err);
-                            worker.terminate();
-                            URL.revokeObjectURL(url);
-                        };
-
-                        worker.postMessage(payload);
+                        });
                     });
                 }
 
-                let cropAnnotation = domToDataUrl(c1)
-                .then(url => {
+                let cropAnnotation = domToCanvas(c1)
+                .then(canvas => {
                     c1.workers.forEach(worker => worker.terminate());
                     destroyContext(c1);
-                    return cropCanvas(url, bbox);
+                    return cropCanvas(canvas, bbox);
                 })
                 .then(croppedBase64 => {
                     return croppedBase64;
                 });
 
-                let pageImage = domToDataUrl(c2)
-                .then(url => {
+                let pageImage = domToCanvas(c2)
+                .then(canvas => {
                     c2.workers.forEach(worker => worker.terminate());
                     destroyContext(c2);
-                    return cropCanvas(url, annotationBBox);
+                    return cropCanvas(canvas, annotationBBox);
                 })
                 .then(croppedBase64 => {
                     return croppedBase64;
