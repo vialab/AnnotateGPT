@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import * as d3 from "d3";
 
 // use vite
-import { createContext, destroyContext, domToCanvas } from "modern-screenshot";
+import { createContext, destroyContext, domToDataUrl } from "./js/Screenshot";
 import { makeInference } from "./js/OpenAIUtils";
 import { googleSans } from "../page";
 import { toast } from "react-toastify";
@@ -541,11 +541,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     };
                 }
 
-                function cropCanvas(canvas, bbox) {
+                function cropCanvas(dataUrl, bbox) {
                     return new Promise((resolve, reject) => {
                         const url = URL.createObjectURL(new Blob([`(${cropWorker.toString()})()`]));
                         const worker = new Worker(url);
-                        const dataUrl = canvas.toDataURL("image/png");
+                        // const dataUrl = canvas.toDataURL("image/png");
                 
                         if (!dataUrl) {
                             reject(new Error("Failed to get canvas data URL"));
@@ -577,21 +577,21 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     });
                 }
 
-                let cropAnnotation = domToCanvas(c1)
-                .then(canvas => {
+                let cropAnnotation = domToDataUrl(c1)
+                .then(url => {
                     c1.workers.forEach(worker => worker.terminate());
                     destroyContext(c1);
-                    return cropCanvas(canvas, bbox);
+                    return cropCanvas(url, bbox);
                 })
                 .then(croppedBase64 => {
                     return croppedBase64;
                 });
 
-                let pageImage = domToCanvas(c2)
-                .then(canvas => {
+                let pageImage = domToDataUrl(c2)
+                .then(url => {
                     c2.workers.forEach(worker => worker.terminate());
                     destroyContext(c2);
-                    return cropCanvas(canvas, annotationBBox);
+                    return cropCanvas(url, annotationBBox);
                 })
                 .then(croppedBase64 => {
                     return croppedBase64;
