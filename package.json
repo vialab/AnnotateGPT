@@ -34,7 +34,7 @@
     "react-toastify": "^11.0.3",
     "react-tooltip": "^5.28.0",
     "sentence-splitter": "^5.0.0",
-    "video.js": "^8.21.0"
+    "video.js": "^8.22.0"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",

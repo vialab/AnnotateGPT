@@ -227,7 +227,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 const img = getDocument(canvasPage.ownerDocument).createElement("img");
                 img.decoding = "sync";
                 img.loading = "eager";
-                img.src = canvasPage.toDataURL();
+                img.src = canvasPage.toDataURL("image/png", 1);
 
                 page.appendChild(img);
             },
@@ -603,6 +603,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                         });
                     });
                 }
+                bbox.x1 = isNaN(bbox.x1) ? annotationBBox.x1 : bbox.x1;
+                bbox.y1 = isNaN(bbox.y1) ? annotationBBox.y1 : bbox.y1;
 
                 let cropAnnotation = domToCanvas(c1)
                 .then(canvas => {

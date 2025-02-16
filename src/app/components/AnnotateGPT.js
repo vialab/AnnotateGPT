@@ -2,14 +2,13 @@
 
 import { createRef, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image.js";
-import { Document, Page } from "react-pdf";
+import { pdfjs, Document, Page } from "react-pdf";
 import * as d3 from "d3";
 import { Comment, MagnifyingGlass } from "react-loader-spinner";
-import { pdfjs } from "react-pdf";
 import { Tooltip } from "react-tooltip";
 import { autoPlacement } from "@floating-ui/dom";
 // import { RxCheck, RxCross2 } from "react-icons/rx";
-import { FaThumbsUp, FaThumbsDown, FaExclamation  } from "react-icons/fa";
+import { FaThumbsUp, FaThumbsDown, FaExclamation } from "react-icons/fa";
 import { split } from "sentence-splitter";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -1194,8 +1193,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     }
 
     function onNewActiveCluster(cluster, filter = true) {
-        miniMapRef.current?.synchronize();
-
         if (cluster) {
             let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
             let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
@@ -1238,6 +1235,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     </div>;
                     // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, {spans: [ clusterToolTip ]}, false);
+                    activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
+                    overlappingAnnotationRef.current = [];
                 } else {
                     activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
                     
@@ -1246,6 +1245,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     .classed("fade", false);
                     
                     explanationToolTipRef.current?.close();
+                    overlappingAnnotationRef.current = [];
                 }
                 let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster === cluster));
 
@@ -1300,8 +1300,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     ref.current.updateClusters(clusters);
                 }
                 explanationToolTipRef.current?.close();
+                d3.selectAll(".word.highlighted, .space.highlighted")
+                .classed("target", false)
+                .classed("fade", false);
             }
         } else {
+            activeAnnotation.current = null;
+            overlappingAnnotationRef.current = [];
             explanationToolTipRef.current?.close();
 
             d3.selectAll(".word.highlighted, .space.highlighted")
@@ -1311,6 +1316,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             // setActiveCluster(null);
             // setGetActiveAnnotations([]);
         }
+        miniMapRef.current?.synchronize();
     }
 
     function onClusterChange(cluster) {
@@ -2460,9 +2466,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
     let filterDocument = typeof documentPDF === "string" && documentPDF.startsWith("./public") ? "." + documentPDF.slice(8) : documentPDF;
 
-    let renderChild = ({ width, height, left, top, node }) => {
+    let renderChild = ({ height, top, node, key }) => {
         if (node.classList.contains("lineDraw")) {
             return <div
+                key={"lineDraw" + key}
                 style={{
                     position: "absolute",
                     width: "25%",
@@ -2475,6 +2482,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         } else if (node.classList.contains("word") || node.classList.contains("space")) {
             return <div
                 className={node.classList.contains("accept") ? "accept" : "highlight"}
+                key={(node.classList.contains("accept") ? "accept" : "highlight") + Math.max(2, height) + (handiness === "right" ? "75%" : 0) + top}
                 style={{
                     position: "absolute",
                     width: "25%",
@@ -2482,6 +2490,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     left: handiness === "right" ? "75%" : 0,
                     top,
                     backgroundColor: node.classList.contains("accept") ? "#a7f1a7" : "#fce897",
+                    transition: "background-color 0.5s"
                 }}
             />;
         } else {
@@ -2525,9 +2534,14 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
 
+            if (activeAnnotation.current instanceof Element && activeAnnotation.current.id !== "toolTip" + id) {
+                opacity = 0.2;
+            }
+
             return <div
                 className={className}
                 id={"marker" + id}
+                key={id}
                 style={{
                     position: "absolute",
                     width: "50%",
@@ -2539,7 +2553,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     backgroundColor: background,
                     borderRadius: "50%",
                     opacity: opacity,
-                    transition: "opacity 0.5s"
+                    transition: "opacity 0.5s, background-color 0.5s"
                 }}
             />;
         }

@@ -335,25 +335,27 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             // let distancePromises = [];
 
             loop1: for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-                for (let stroke of cluster.strokes) {
-                    if (stroke.id !== "initial" && stroke.id) {
-                        let path = d3.select(`path[id="${stroke.id}Outline"]`).node();
+                if (!(cluster.purpose || cluster.purpose === false)) {
+                    for (let stroke of cluster.strokes) {
+                        if (stroke.id !== "initial" && stroke.id) {
+                            let path = d3.select(`path[id="${stroke.id}Outline"]`).node();
 
-                        if (path) {
-                            const pointObj = svgPenSketch.current._element.node().createSVGPoint();
-                            pointObj.x = x;
-                            pointObj.y = y;
-                            
-                            if (path.isPointInFill(pointObj) || path.isPointInStroke(pointObj)) {
-                                closestCluster = cluster;
-                                break loop1;
+                            if (path) {
+                                const pointObj = svgPenSketch.current._element.node().createSVGPoint();
+                                pointObj.x = x;
+                                pointObj.y = y;
+                                
+                                if (path.isPointInFill(pointObj) || path.isPointInStroke(pointObj)) {
+                                    closestCluster = cluster;
+                                    break loop1;
+                                }
+                                // else if (nearPath({x: x, y: y}, path)) {
+                                //     distancePromises.push({
+                                //         cluster: cluster,
+                                //         distance: getDistanceFromPointToPath({x: x, y: y}, path)
+                                //     });
+                                // }
                             }
-                            // else if (nearPath({x: x, y: y}, path)) {
-                            //     distancePromises.push({
-                            //         cluster: cluster,
-                            //         distance: getDistanceFromPointToPath({x: x, y: y}, path)
-                            //     });
-                            // }
                         }
                     }
                 }
