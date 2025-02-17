@@ -55,6 +55,7 @@ span[role="presentation"] {
 
 .word.highlighted, .space.highlighted {
     background: rgba(252, 232, 151, 1);
+    will-change: "background";
 }
 
 .word.highlighted.target, .space.highlighted.target {

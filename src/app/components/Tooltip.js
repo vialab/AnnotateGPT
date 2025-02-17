@@ -17,40 +17,42 @@ function wrap(text, width = -1) {
     }
 
     text.each(function() {
-        let text = d3.select(this),
-            words = text.text().split(/\s+/).reverse(),
-            word,
-            line = [],
-            lineNumber = 0,
-            lineHeight = 1.1, // ems
-            y = text.attr("y"),
-            x = text.attr("x"),
-            dy = parseFloat(text.attr("dy")) || 0,
-            tspan = text.text(null).append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
+        requestAnimationFrame(() => {
+            let text = d3.select(this),
+                words = text.text().split(/\s+/).reverse(),
+                word,
+                line = [],
+                lineNumber = 0,
+                lineHeight = 1.1, // ems
+                y = text.attr("y"),
+                x = text.attr("x"),
+                dy = parseFloat(text.attr("dy")) || 0,
+                tspan = text.text("").attr("dominant-baseline", "text-before-edge").append("tspan").attr("x", x).attr("y", y).attr("dy", dy + "em");
 
-        while ((word = words.pop())) {
-            line.push(word);
-            tspan.text(line.join(" "));
-            
-            if (tspan.node().getComputedTextLength() > width - 10) {
-                line.pop();
+            while ((word = words.pop())) {
+                line.push(word);
                 tspan.text(line.join(" "));
+                
+                if (tspan.node().getComputedTextLength() > width - 10) {
+                    line.pop();
+                    tspan.text(line.join(" "));
 
-                if (tspan.text() === "") {
-                    tspan.remove();
-                    lineNumber--;
+                    if (tspan.text() === "") {
+                        tspan.remove();
+                        lineNumber--;
+                    }
+                    line = [word];
+                    tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
                 }
-                line = [word];
-                tspan = text.append("tspan").attr("x", x).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
             }
-        }
-
-        d3.select(this)
-        .selectAll("tspan")
-        .style("pointer-events", "none")
-        .attr("y", function() {
             let height = this.getBBox().height;
-            return y - lineNumber * height / 3;
+
+            d3.select(this)
+            .selectAll("tspan")
+            .style("pointer-events", "none")
+            .attr("y", () => {
+                return y - height / 2;
+            });
         });
     });
 }
@@ -1112,7 +1114,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     .duration(1000)
                     .attr("opacity", 1)
                 )
-                .on("click", function(_, d) {
+                .on("click", async function(_, d) {
                     if (d.open || (disabledRef?.current && d.annotating === undefined)) {
                         return;
                     }
@@ -1160,13 +1162,14 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                         inferPurpose(d)
                         .then((response) => {
                             cluster.purpose = response.result;
-                            updateTooltips();
+                            // updateTooltips();
                             
                             if (onInference instanceof Function) {
                                 onInference(startTimetamp, cluster, response.rawText, response.images);
                             }
                         });
                     }
+                    await globalThis.scheduler?.yield?.();
                     updateTooltips();
 
                     if (onClick instanceof Function) {
@@ -2387,7 +2390,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                                     }
                                 }
                             })
-                            .on("click", function() {            
+                            .on("click", async function() {            
                                 if (d.open || (disabledRef?.current && d.annotating === undefined)) {
                                     return;
                                 }
@@ -2450,13 +2453,14 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                                     inferPurpose(d)
                                     .then((response) => {
                                         cluster.purpose = response.result;
-                                        updateTooltips();
+                                        // updateTooltips();
                                         
                                         if (onInference instanceof Function) {
                                             onInference(startTimetamp, cluster, response.rawText, response.images);
                                         }
                                     });
                                 }
+                                await globalThis.scheduler?.yield?.();
                                 updateTooltips();
                                 
                                 if (onClick instanceof Function) {

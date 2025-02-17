@@ -2611,7 +2611,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                 <Tooltip 
                     id="annotationExplanation"
-                    style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "rgba(34, 38, 43, 1)" }}
+                    style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "rgba(34, 38, 43, 1)", willChange: "opacity" }}
                     place={handiness}
                     ref={explanationToolTipRef}
                     imperativeModeOnly={true}

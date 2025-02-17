@@ -89,7 +89,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         }
     }, []);
 
-    let onPrev = () => {
+    let onPrev = async () => {
         // if (resetIndex.current) {
         //     resetIndex.current = false;
 
@@ -161,13 +161,14 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         // annotationsRef.current = annotationsRef.current.filter(annotation => annotation.accepted !== false || annotation.spans[0].classList.contains("toolTip"));
         filterRef.current = true;
         checkDisable();
+        await globalThis.scheduler?.yield?.();
 
         if (onPrevCallback instanceof Function) {
             onPrevCallback(annotationsRef.current[index.current]);
         }
     };
     
-    let onNext = () => {
+    let onNext = async () => {
         // if (resetIndex.current) {
         //     resetIndex.current = false;
 
@@ -244,6 +245,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
 
         filterRef.current = true;
         checkDisable();
+        await globalThis.scheduler?.yield?.();
 
         if (onNextCallback instanceof Function) {
             // onNextCallback(annotationsRef.current[removedRef.current ? index.current - 1 : index.current]);

@@ -123,7 +123,7 @@ export default class SvgPenSketch {
         // d3.selectAll(".canvasElement").style("pointer-events", "visible");
 
         // Get the paths in the eraser's range        
-        let lineDraw = d3.selectAll("path.lineDraw").nodes();
+        let lineDraw = this._element.selectAll("path.lineDraw").nodes();
         let linePaths = [];
         let strokeWidth = this.strokeStyles["stroke-width"] ? parseFloat(this.strokeStyles["stroke-width"]) : 1;
         
