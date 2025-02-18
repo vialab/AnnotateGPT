@@ -3,6 +3,7 @@
 	box-sizing: border-box;
 	background-color: rgba(255, 255, 255, 0.5);
     will-change: top;
+	pointer-events: none;
 }
 
 .minimap {
@@ -38,10 +39,12 @@
 
 .minimap-container .busy, .minimap-container .accept {
 	z-index: 1;
+	pointer-events: none;
 }
 
 .minimap-container .attention, .minimap-container .highlight {
 	z-index: 2;
+	pointer-events: none;
 }
 
 ::-webkit-scrollbar {

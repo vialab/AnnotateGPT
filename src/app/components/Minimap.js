@@ -146,7 +146,7 @@ function Minimap({ ref, ...props }) {
             return;
 
         if (e.buttons !== 1 && (e.type.match(/mouse/) || e.pointerType === "mouse")) {
-            up(e);
+            up();
             return;
         }
         let event;
@@ -201,8 +201,7 @@ function Minimap({ ref, ...props }) {
         move(e);
     }, [move]);
 
-    const up = (e) => {
-        e.preventDefault();
+    const up = () => {
         downState.current = false;
     };
 
@@ -267,7 +266,7 @@ function Minimap({ ref, ...props }) {
 
     return (
         <div className={`minimap-container ${className}`}>
-            <div className="minimap" style={{ width: `${miniMapWidth}px`, height: `${miniMapHeight}px` }} ref={minimapRef} onMouseDown={down} onTouchStart={down} onTouchMove={move} onMouseMove={move} onTouchEnd={up} onMouseUp={up}>
+            <div className="minimap" style={{ width: `${miniMapWidth}px`, height: `${miniMapHeight}px` }} ref={minimapRef} onContextMenu={(e) => e.preventDefault()} onMouseDown={down} onTouchStart={down} onTouchMove={move} onMouseMove={move} onTouchEnd={up} onMouseUp={up}>
                 <div
                     className="minimap-viewport"
                     ref={viewPortRef}

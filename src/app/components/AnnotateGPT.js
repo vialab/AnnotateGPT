@@ -20,6 +20,7 @@ import Loading from "./Loading.js";
 import { findAnnotations } from "./js/OpenAIUtils.js";
 import { googleSans } from "@/app/page.js";
 import Minimap from "./Minimap.js";
+import { Cluster } from "./js/PenCluster.js";
 
 import "react-tooltip/dist/react-tooltip.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -34,7 +35,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url,
 ).toString();
 
-export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness, disabled }) {
+export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness, disabled, clustersData }) {
     const defaultColour = "#3f51b5";
 
     // const [numPages, setNumPages] = useState();
@@ -66,13 +67,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     const handinessRef = useRef(handiness);
     const numPagesRef = useRef(0);
     const disableRef = useRef(disabled);
-
-    if (annotateRef)
-        annotateRef.current = {
-            penAnnotation: penAnnotationRef.current,
-            annotate: annotate,
-            annotatedTokens: annotatedTokens.current,
-        };
 
     const textRenderer = useCallback((textItem) => {
         let text = textItem.str;
@@ -117,13 +111,14 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         numPagesRef.current = numPages;
         svgContentRef.current = Array(numPages).fill(null);
         textContent.current = Array(numPages).fill(null);
+        screenRef.current = screen;
 
         let pageContent = Array.from(new Array(numPages), (el, index) =>
             <div className="page-container" key={`pageContainer_${index + 1}`} style={{ position: "relative" }}>
                 <Page
                     key={`page_${index + 1}`}
                     pageNumber={index + 1}
-                    width={window.innerWidth - window.innerWidth * 0.45}
+                    width={screen?.width ? screen.width - screen.width * 0.45 : window.innerWidth - window.innerWidth * 0.45}
                     customTextRenderer={textRenderer}
                     onRenderTextLayerSuccess={() => onLoad(index + 1)}
                     className={`page-${index + 1}`}
@@ -166,7 +161,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     }, [mode]);
 
     useEffect(() => {
-        if (svgContent instanceof Array && !loading) {
+        if (svgContent instanceof Array && !loading && !loadingDocument) {
             d3.selectAll(".page-container").style("content-visibility", "visible");
             let newStrokes = new Map();
 
@@ -193,12 +188,19 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             for (let [page, svgContent] of newStrokes) {
                 let penAnnnotationRef = penAnnotationRef.current[page - 1];
-                d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.map((svg) => svg[1].svg).join(""));
+
+                if (penAnnnotationRef.current) {
+                    d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.map((svg) => svg[1].svg).join(""));
+                }
             }
 
             for (let [page, svgContent] of newStrokes) {
                 let clusters, stopIteration, strokeAdded = false;
                 let penAnnnotationRef = penAnnotationRef.current[page - 1];
+
+                if (!penAnnnotationRef.current) {
+                    continue;
+                }
 
                 loop1: for (let [id, svg] of svgContent) {
                     for (let cluster of penAnnnotationRef.current.lockClusters.current) {
@@ -274,7 +276,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         svg.endTime
                     );
 
-                    console.log(penAnnnotationRef.current.penCluster);
+                    // console.log(penAnnnotationRef.current.penCluster);
                 }
 
                 if (strokeAdded) {
@@ -283,13 +285,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
             d3.selectAll(".page-container").style("content-visibility", "auto");
         }
-    }, [svgContent, loading]);
+    }, [svgContent, loading, loadingDocument]);
 
     let initCanvas = useRef(null);
 
     useEffect(() => {
         initCanvas.current = (width) => {
-            svgContentRef.current = Array(numPagesRef.current).fill(null);
             textContent.current = Array(numPagesRef.current).fill(null);
             d3.selectAll(".page-container").style("content-visibility", "visible");
     
@@ -311,8 +312,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         };
     });
 
+    let screenRef = useRef(screen);
+
     useEffect(() => {
-        if (screen?.width && screen?.height && !loading) {
+        if (screen?.width && screen?.height && !loading && !loadingDocument) {
             let widthOffset = (window.innerWidth - screen.width) / 2;
 
             for (let penAnnnotationRef of penAnnotationRef.current) {
@@ -321,9 +324,15 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 .attr("height", screen.height)
                 .attr("viewBox", `${-widthOffset} ${0} ${screen.width} ${screen.height}`);
             }
-            initCanvas.current(screen.width);
+
+            if (screenRef.current?.width !== screen.width || screenRef.current?.height !== screen.height) {
+                setLoading(true);
+                setProgress(0);
+                screenRef.current = screen;
+                initCanvas.current(screen.width);
+            }
         }
-    }, [screen, loading]);
+    }, [screen, loading, loadingDocument]);
 
     function onLoad(index) {
         // let spanPresentation = d3.select(".react-pdf__Page.page-" + index)
@@ -893,7 +902,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         // }
     }
 
-    function annotate(text, callback) {
+    const annotate = useCallback((text, callback) => {
         let sentences = split(text).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
 
         if (sentences.length > 1) {
@@ -1182,7 +1191,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 });
             }
         };
-    }
+    }, []);
 
     function onChange(colour, event) {
         setColour(colour.hex);
@@ -2464,6 +2473,282 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         }
     }, [documentPDF]);
 
+    let clustersDataRef = useRef(clustersData);
+
+    useEffect(() => {
+        if (clustersData instanceof Array && !loading && !loadingDocument && clustersDataRef.current !== clustersData) {
+            clustersDataRef.current = clustersData;
+            let newClusters = new Map();
+            let newPageClusters = new Map();
+            
+            let getTargetSpans = (lastToken) => {
+                let targetWords = lastToken.targetWords.split(",").map(r => r.trim());
+                let listOfSpans = [];
+
+                for (let targetWord of targetWords) {
+                    let filterTarget = targetWord.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
+                    let resultContent = lastToken.spans.map(r => r.textContent).join(" ").replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
+                    
+                    if (resultContent.includes(filterTarget)) {
+                        let tempTarget = filterTarget;
+                        let targetSpans = [];
+
+                        for (let span of lastToken.spans) {
+                            let content = span.textContent.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
+                            
+                            if (tempTarget.startsWith(content)) {
+                                targetSpans.push(span);
+                                tempTarget = tempTarget.slice(content.length).trim();
+
+                                if (tempTarget === "") {
+                                    listOfSpans = listOfSpans.concat(targetSpans);
+                                    targetSpans = [];
+                                    tempTarget = filterTarget;
+                                } else {
+                                    let space = d3.select(span).node().nextSibling;
+
+                                    if (!space) {
+                                        space = span.parentNode.nextSibling?.firstChild;
+                                    }
+
+                                    if (space && space.classList.contains("space")) {
+                                        targetSpans.push(space);
+                                    }
+                                }
+                            } else {
+                                targetSpans = [];
+                                tempTarget = filterTarget;
+                            }
+                        }
+                    }
+                }
+                lastToken.targetSpans = listOfSpans;
+            };
+
+            // for (let clusterData of clustersData) {
+            for (let i = 0; i < clustersData.length; i++) {
+                let clusterData = clustersData[i];
+                let lastStroke = clusterData.strokes[clusterData.strokes.length - 1];
+
+                if (lastStroke.type !== "initial") {
+                    newClusters.set(lastStroke.id, clusterData);
+                    
+                    if (clusterData["actionType"] === "annotate") {
+                        fetch("/api/storeHistory", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                purpose: clusterData.searching.purpose,
+                                purposeTitle: clusterData.searching.purposeTitle,
+                                annotationDescription: clusterData.purpose.annotationDescription,
+                                action: "update2"
+                            })
+                        })
+                        .then(res => {
+                            if (!res.ok)
+                                return res.text().then(text => { throw new Error(text); });
+                            return res.text();
+                        })
+                        .then((data) => {
+                            console.log("Success:", data);
+                        })
+                        .catch((error) => {
+                            console.error("updatePurpose:", error);
+            
+                            toast.error("updatePurpose: " + error.toString().replaceAll("Error: ", ""), {
+                                toastId: "updatePurpose",
+                                containerId: "errorMessage"
+                            });
+                        });
+                    } else if (clusterData["actionType"].includes("comment")) {
+                        let index = clusterData["actionType"].split(" ")[2];
+
+                        if (!clusterData.annotationsFound[index]) {
+                            continue;
+                        }
+                        let reply = clusterData.annotationsFound[index].explanation[clusterData.annotationsFound[index].explanation.length - 1];
+
+                        let annotatedSentence = clusterData.annotationsFound[index].spans;
+                        let annotatorComments = ["- " + clusterData.annotationsFound[index].explanation[0]];
+                        
+                        for (let j = i + 1; j < clustersData.length; j++) {
+                            let nextCluster = clustersData[j];
+
+                            if (nextCluster["actionType"].includes("comment")) {
+                                let nextIndex = nextCluster["actionType"].split(" ")[2];
+                                let nextAnnotatedSentence = nextCluster.annotationsFound[nextIndex].spans;
+
+                                if (annotatedSentence === nextAnnotatedSentence) {
+                                    annotatorComments.push("- " + nextCluster.annotationsFound[nextIndex].explanation[0]);
+                                    i++;
+                                } else {
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        }
+                        
+                        fetch("/api/storeHistory", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                reply: reply,
+                                comment: annotatorComments.join("\n"),
+                                action: "comment2"
+                            })
+                        })
+                        .then(res => {
+                            if (!res.ok)
+                                return res.text().then(text => { throw new Error(text); });
+                            return res.text();
+                        })
+                        .then((data) => {
+                            console.log("Success:", data);
+                        })
+                        .catch((error) => {
+                            console.error("storeCommentHistory:", error);
+
+                            toast.error("storeCommentHistory: " + error.toString().replaceAll("Error: ", ""), {
+                                toastId: "storeCommentHistory",
+                                containerId: "errorMessage"
+                            });
+                        });
+                    }
+                }
+            }
+
+            fetch("/api/storeHistory", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    action: "upload"
+                })
+            })
+            .then(res => {
+                if (!res.ok)
+                    return res.text().then(text => { throw new Error(text); });
+                return res.text();
+            })
+            .then((data) => {
+                console.log("Success:", data);
+            })
+            .catch((error) => {
+                console.error("uploadHistory:", error);
+
+                toast.error("uploadHistory: " + error.toString().replaceAll("Error: ", ""), {
+                    toastId: "uploadHistory",
+                    containerId: "errorMessage"
+                });
+            });
+
+            for (let clusterData of newClusters.values()) {
+                let cluster = new Cluster([]);
+                
+                for (let property in clusterData) {
+                    cluster[property] = clusterData[property];
+                }
+                let lastStroke = cluster.strokes[cluster.strokes.length - 1];
+                let pageNumber = lastStroke.page;
+
+                if (!newPageClusters.has(pageNumber)) {
+                    newPageClusters.set(pageNumber, []);
+                }
+                newPageClusters.get(pageNumber).push(cluster);
+            }
+            let annotationsFound = 0, totalAnnotations = 0;
+
+            for (let [pageNumber, clusters] of newPageClusters) {
+                let mergedClusters = penAnnotationRef.current[pageNumber - 1]?.current?.lockClusters.current.concat(clusters);
+                penAnnotationRef.current[pageNumber - 1].current.lockClusters.current = mergedClusters;
+                penAnnotationRef.current[pageNumber - 1]?.current?.updateLockCluster(mergedClusters);
+
+                for (let cluster of clusters) {
+                    cluster.open = false;
+
+                    for (let lockCluster of penAnnotationRef.current[pageNumber - 1]?.current?.clusters.current) {
+                        let strokeID;
+
+                        if (lockCluster.strokes.some(stroke => cluster.strokes.some(s => {
+                            strokeID = s.id;
+                            return s.id === stroke.id && s.id !== "initial";
+                        }))) {
+                            lockCluster.strokes = [...lockCluster.strokes.filter(stroke => stroke.id !== strokeID)];
+                            penAnnotationRef.current[pageNumber - 1]?.current?.penCluster.remove(strokeID);
+                        }
+                    }
+                    for (let stroke of cluster.strokes) {
+                        if (stroke.id !== "initial") {
+                            penAnnotationRef.current[pageNumber - 1]?.current?.penCluster.remove(stroke.id);
+                        }
+                    }
+                }
+                let [clusters1, stopIteration] = penAnnotationRef.current[pageNumber - 1]?.current?.penCluster.update();
+                penAnnotationRef.current[pageNumber - 1]?.current?.clusterStrokes(clusters1, stopIteration);
+                
+                for (let cluster of clusters) {
+                    if (cluster.annotationsFound) {
+                        annotatedTokens.current?.push({
+                            annotationDescription: cluster.purpose?.annotationDescription, 
+                            purposeTitle: cluster.searching?.purposeTitle,
+                            purpose: cluster.searching?.purpose,
+                            annotations: cluster.annotationsFound,
+                            ref: penAnnotationRef.current[pageNumber - 1]
+                        });
+
+                        for (let annotation of cluster.annotationsFound) {
+                            const currentAnnotation = annotation;
+                            totalAnnotations++;
+
+                            annotate(currentAnnotation.sentence, (results) => {
+                                currentAnnotation.spans = results;
+                                annotationsFound++;
+
+                                if (results instanceof Array && results.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0) {
+                                    if (currentAnnotation.accepted !== false) {
+                                        let spaces = [];
+
+                                        for (let span of currentAnnotation.spans) {
+                                            let space = d3.select(span).node()?.nextSibling;
+                                
+                                            if (!space) {
+                                                space = span.parentNode.nextSibling?.firstChild;
+                                            }
+                                
+                                            if (space && space.classList.contains("space")) {
+                                                spaces.push(space);
+                                            }
+                                        }
+                                        d3.selectAll(spaces.concat(currentAnnotation.spans))
+                                        .classed("highlighted", true)
+                                        .classed("accept", currentAnnotation.accepted);
+                                    }
+                                    getTargetSpans(currentAnnotation);
+
+                                    if (totalAnnotations === annotationsFound) {
+                                        d3.selectAll(".page-container").style("content-visibility", "visible");
+                                        miniMapRef.current?.synchronize();
+                                        d3.selectAll(".page-container").style("content-visibility", "auto");
+
+                                        for (let ref of penAnnotationRef.current) {
+                                            ref.current?.updateClusters([...ref.current.clusters.current]);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }, [annotate, clustersData, loading, loadingDocument]);
+
     let filterDocument = typeof documentPDF === "string" && documentPDF.startsWith("./public") ? "." + documentPDF.slice(8) : documentPDF;
 
     let renderChild = ({ height, top, node, key }) => {
@@ -2558,6 +2843,13 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             />;
         }
     };
+
+    if (annotateRef)
+        annotateRef.current = {
+            penAnnotation: penAnnotationRef.current,
+            annotate: annotate,
+            annotatedTokens: annotatedTokens.current,
+        };
 
     return (
         <>

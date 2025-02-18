@@ -2,7 +2,6 @@
 
 import { useCallback, useState, useRef, useEffect } from "react";
 import localFont from "next/font/local";
-import dynamic from "next/dynamic";
 import { parse } from "csv-parse";
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
@@ -12,11 +11,6 @@ import { getFirestore, addDoc, collection } from "firebase/firestore";
 import AnimatedCursor from "react-animated-cursor";
 import AnnotateGPT from "./components/AnnotateGPT.js";
 
-import { Cluster } from "./components/js/PenCluster.js";
-
-// const AnnotateGPT = dynamic(() => import("../app/components/AnnotateGPT.js"), { ssr: false, });
-
-// import AnnotateGPT from "../app/components/AnnotateGPT.js";
 import Header from "../app/components/Header.js";
 import StudyModal from "../app/components/StudyModal.js";
 
@@ -64,6 +58,7 @@ export default function Home() {
     const [toastMessage, setToastMessage] = useState("");
     const [handiness, setHandiness] = useState("right");
     const [disabled, setDisabled] = useState(false);
+    const [clustersData, setClustersData] = useState(null);
 
     const studyModalRef = useRef(null);
     const success = useRef(false);
@@ -570,6 +565,16 @@ export default function Home() {
     };
 
     let fileHandler = (strokeFile, clusterFile, document) => {
+        let initiateProcessClusters = () => {
+            let clusterReader = new FileReader();
+
+            clusterReader.onload = async (e) => {
+                let clustersData = JSON.parse(e.target.result);
+                setClustersData(clustersData);
+            };
+            clusterReader.readAsText(clusterFile);
+        };
+
         let initiateProcessStrokes = () => {
             let strokeReader = new FileReader();
 
@@ -599,278 +604,23 @@ export default function Home() {
                     }
                     setScreen({ width: width, height: height });
                     setSvgContent(svgContent);
+
+                    if (clusterFile) {
+                        initiateProcessClusters();
+                    }
                 });
             };
             strokeReader.readAsText(strokeFile);
         };
 
-        if (strokeFile && !clusterFile) {
-            initiateProcessStrokes();
-        }
-
-        if (clusterFile) {
-            let clusterReader = new FileReader();
-            let newClusters = new Map();
-            let newPageClusters = new Map();
-
-            let getTargetSpans = (lastToken) => {
-                let targetWords = lastToken.targetWords.split(",").map(r => r.trim());
-                let listOfSpans = [];
-
-                for (let targetWord of targetWords) {
-                    let filterTarget = targetWord.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
-                    let resultContent = lastToken.spans.map(r => r.textContent).join(" ").replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
-                    
-                    if (resultContent.includes(filterTarget)) {
-                        let tempTarget = filterTarget;
-                        let targetSpans = [];
-
-                        for (let span of lastToken.spans) {
-                            let content = span.textContent.replace(/[^a-zA-Z0-9]/g, "").trim().toLowerCase();
-                            
-                            if (tempTarget.startsWith(content)) {
-                                targetSpans.push(span);
-                                tempTarget = tempTarget.slice(content.length).trim();
-
-                                if (tempTarget === "") {
-                                    listOfSpans = listOfSpans.concat(targetSpans);
-                                    targetSpans = [];
-                                    tempTarget = filterTarget;
-                                } else {
-                                    let space = d3.select(span).node().nextSibling;
-
-                                    if (!space) {
-                                        space = span.parentNode.nextSibling?.firstChild;
-                                    }
-
-                                    if (space && space.classList.contains("space")) {
-                                        targetSpans.push(space);
-                                    }
-                                }
-                            } else {
-                                targetSpans = [];
-                                tempTarget = filterTarget;
-                            }
-                        }
-                    }
-                }
-                lastToken.targetSpans = listOfSpans;
-            };
-
-            clusterReader.onload = async (e) => {
-                let clustersData = JSON.parse(e.target.result);
-
-                // for (let clusterData of clustersData) {
-                for (let i = 0; i < clustersData.length; i++) {
-                    let clusterData = clustersData[i];
-                    let lastStroke = clusterData.strokes[clusterData.strokes.length - 1];
-
-                    if (lastStroke.type !== "initial") {
-                        newClusters.set(lastStroke.id, clusterData);
-                        
-                        if (clusterData["actionType"] === "annotate") {
-                            fetch("/api/storeHistory", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    purpose: clusterData.searching.purpose,
-                                    purposeTitle: clusterData.searching.purposeTitle,
-                                    annotationDescription: clusterData.purpose.annotationDescription,
-                                    action: "update2"
-                                })
-                            })
-                            .then(res => {
-                                if (!res.ok)
-                                    return res.text().then(text => { throw new Error(text); });
-                                return res.text();
-                            })
-                            .then((data) => {
-                                console.log("Success:", data);
-                            })
-                            .catch((error) => {
-                                console.error("updatePurpose:", error);
-                
-                                toast.error("updatePurpose: " + error.toString().replaceAll("Error: ", ""), {
-                                    toastId: "updatePurpose",
-                                    containerId: "errorMessage"
-                                });
-                            });
-                        } else if (clusterData["actionType"].includes("comment")) {
-                            let index = clusterData["actionType"].split(" ")[2];
-
-                            if (!clusterData.annotationsFound[index]) {
-                                continue;
-                            }
-                            let reply = clusterData.annotationsFound[index].explanation[clusterData.annotationsFound[index].explanation.length - 1];
-
-                            let annotatedSentence = clusterData.annotationsFound[index].spans;
-                            let annotatorComments = ["- " + clusterData.annotationsFound[index].explanation[0]];
-                            
-                            for (let j = i + 1; j < clustersData.length; j++) {
-                                let nextCluster = clustersData[j];
-
-                                if (nextCluster["actionType"].includes("comment")) {
-                                    let nextIndex = nextCluster["actionType"].split(" ")[2];
-                                    let nextAnnotatedSentence = nextCluster.annotationsFound[nextIndex].spans;
-
-                                    if (annotatedSentence === nextAnnotatedSentence) {
-                                        annotatorComments.push("- " + nextCluster.annotationsFound[nextIndex].explanation[0]);
-                                        i++;
-                                    } else {
-                                        break;
-                                    }
-                                } else {
-                                    break;
-                                }
-                            }
-                            
-                            fetch("/api/storeHistory", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json"
-                                },
-                                body: JSON.stringify({
-                                    reply: reply,
-                                    comment: annotatorComments.join("\n"),
-                                    action: "comment2"
-                                })
-                            })
-                            .then(res => {
-                                if (!res.ok)
-                                    return res.text().then(text => { throw new Error(text); });
-                                return res.text();
-                            })
-                            .then((data) => {
-                                console.log("Success:", data);
-                            })
-                            .catch((error) => {
-                                console.error("storeCommentHistory:", error);
-        
-                                toast.error("storeCommentHistory: " + error.toString().replaceAll("Error: ", ""), {
-                                    toastId: "storeCommentHistory",
-                                    containerId: "errorMessage"
-                                });
-                            });
-                        }
-                    }
-                }
-
-                fetch("/api/storeHistory", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        action: "upload"
-                    })
-                })
-                .then(res => {
-                    if (!res.ok)
-                        return res.text().then(text => { throw new Error(text); });
-                    return res.text();
-                })
-                .then((data) => {
-                    console.log("Success:", data);
-                })
-                .catch((error) => {
-                    console.error("uploadHistory:", error);
-
-                    toast.error("uploadHistory: " + error.toString().replaceAll("Error: ", ""), {
-                        toastId: "uploadHistory",
-                        containerId: "errorMessage"
-                    });
-                });
-
-                for (let clusterData of newClusters.values()) {
-                    let cluster = new Cluster([]);
-                    
-                    for (let property in clusterData) {
-                        cluster[property] = clusterData[property];
-                    }
-                    let lastStroke = cluster.strokes[cluster.strokes.length - 1];
-                    let pageNumber = lastStroke.page;
-
-                    if (!newPageClusters.has(pageNumber)) {
-                        newPageClusters.set(pageNumber, []);
-                    }
-                    newPageClusters.get(pageNumber).push(cluster);
-                }
-
-                for (let [pageNumber, clusters] of newPageClusters) {
-                    let mergedClusters = annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.lockClusters.current.concat(clusters);
-                    annotationeRef.current.penAnnotation[pageNumber - 1].current.lockClusters.current = mergedClusters;
-                    annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.updateLockCluster(mergedClusters);
-
-                    for (let cluster of clusters) {
-                        for (let lockCluster of annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.clusters.current) {
-                            let strokeID;
-
-                            if (lockCluster.strokes.some(stroke => cluster.strokes.some(s => {
-                                strokeID = s.id;
-                                return s.id === stroke.id && s.id !== "initial";
-                            }))) {
-                                lockCluster.strokes = [...lockCluster.strokes.filter(stroke => stroke.id !== strokeID)];                                
-                                annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.penCluster.remove(strokeID);
-                            }
-                        }
-                        let [clusters, stopIteration] = annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.penCluster.update();
-                        annotationeRef.current?.penAnnotation[pageNumber - 1]?.current?.clusterStrokes(clusters, stopIteration);
-                    }
-                    
-                    for (let cluster of clusters) {
-                        if (cluster.annotationsFound) {
-                            annotationeRef.current?.annotatedTokens?.push({
-                                annotationDescription: cluster.purpose?.annotationDescription, 
-                                purposeTitle: cluster.searching?.purposeTitle,
-                                purpose: cluster.searching?.purpose,
-                                annotations: cluster.annotationsFound,
-                                ref: annotationeRef.current?.penAnnotation[pageNumber - 1]
-                            });
-
-                            for (let annotation of cluster.annotationsFound) {
-                                const currentAnnotation = annotation;
-
-                                annotationeRef.current?.annotate(currentAnnotation.sentence, (results) => {
-                                    currentAnnotation.spans = results;
-
-                                    if (results instanceof Array && results.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0) {
-                                        if (currentAnnotation.accepted !== false) {
-                                            let spaces = [];
-
-                                            for (let span of currentAnnotation.spans) {
-                                                let space = d3.select(span).node()?.nextSibling;
-                                    
-                                                if (!space) {
-                                                    space = span.parentNode.nextSibling?.firstChild;
-                                                }
-                                    
-                                                if (space && space.classList.contains("space")) {
-                                                    spaces.push(space);
-                                                }
-                                            }
-                                            d3.selectAll(spaces.concat(currentAnnotation.spans))
-                                            .classed("highlighted", true)
-                                            .classed("accept", currentAnnotation.accepted);
-                                        }
-                                        getTargetSpans(currentAnnotation);
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-
-                if (strokeFile) {
-                    initiateProcessStrokes();
-                }
-            };
-            clusterReader.readAsText(clusterFile);
-        }
-
         if (document)
             setDocument(document);
+
+        if (strokeFile)
+            initiateProcessStrokes();
+
+        if (!strokeFile && clusterFile)
+            initiateProcessClusters();
     };
 
     // console.log(annotationeRef)
@@ -916,6 +666,12 @@ export default function Home() {
     useEffect(() => {
         modeRef.current = mode;
     }, [mode]);
+
+    useEffect(() => {
+        setClustersData(null);
+        setSvgContent([]);
+        setScreen(null);
+    }, [document]);
 
     // let disabled = useRef(false);
 
@@ -1001,6 +757,7 @@ export default function Home() {
                         annotateRef={annotationeRef}
                         handiness={handiness}
                         disabled={disabled}
+                        clustersData={clustersData}
                     />
                 </>
             }
@@ -1018,6 +775,7 @@ export default function Home() {
                 disabled={disabled}
                 studyState={state}
                 fileHandler={fileHandler}
+                clustersData={clustersData}
             />
             {/* <AnimatedCursor 
                 color="193, 11, 111, 1"
