@@ -1162,7 +1162,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                         inferPurpose(d)
                         .then((response) => {
                             cluster.purpose = response.result;
-                            // updateTooltips();
+                            updateTooltips();
                             
                             if (onInference instanceof Function) {
                                 onInference(startTimetamp, cluster, response.rawText, response.images);
@@ -2453,7 +2453,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                                     inferPurpose(d)
                                     .then((response) => {
                                         cluster.purpose = response.result;
-                                        // updateTooltips();
+                                        updateTooltips();
                                         
                                         if (onInference instanceof Function) {
                                             onInference(startTimetamp, cluster, response.rawText, response.images);

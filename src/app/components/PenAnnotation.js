@@ -770,6 +770,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             newStroke.page = index;
             newStroke.bbox = newStroke.normalizeBoundingBox(pathBbox);
 
+            if (eraseEndCallback instanceof Function) {
+                eraseEndCallback();
+            }
             let endTime = Date.now();
             let [clusters, stopIteration] = penCluster.current.addNewStroke(newStroke);
             clusterStrokes(clusters, stopIteration);
@@ -1363,7 +1366,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 // }
             }
         };
-    }, [index, tool, penEndCallback]);
+    }, [index, tool, penEndCallback, eraseEndCallback]);
 
     useEffect(() => {
         d3.select(svgRef.current).html(content);
