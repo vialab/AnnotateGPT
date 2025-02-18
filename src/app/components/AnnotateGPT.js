@@ -2804,7 +2804,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             for (let ref of penAnnotationRef.current) {
                 if (ref.current?.lockClusters.current) {
                     for (let lockCluster of ref.current.lockClusters.current) {
-                        if (lockCluster.annotationsFound?.includes(activeAnnotation.current) || lockCluster.annotationsFound?.some(a => overlappingAnnotations.includes(a))) {
+                        if ((activeAnnotation.current?.accepted !== false && lockCluster.annotationsFound?.includes(activeAnnotation.current)) || lockCluster.annotationsFound?.some(a => overlappingAnnotations.includes(a) && a.accepted !== false)) {
                             getActiveCluster.push(lockCluster);
                         }
                     }

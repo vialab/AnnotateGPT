@@ -8,6 +8,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
     let isScroll = useRef(false);
     let removedRef = useRef(removed);
     let filterRef = useRef(filter);
+    let topDisabledTimeout = useRef(null), bottomDisabledTimeout = useRef(null);
     // let resetIndex = useRef(true);
 
     function scrollTween(offset) {
@@ -60,27 +61,24 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
                 break;
             }
         }
-        // console.log(indexFilter, firstIndex, lastIndex);
+        // console.log(indexFilter, firstIndex, lastIndex, filteredAnnotations[firstIndex]?.accepted);
         let topDisabled = indexFilter === 0 || (filteredAnnotations[firstIndex]?.accepted === false && indexFilter === firstIndex + 1) || indexFilter === firstIndex;
         let bottomDisabled = indexFilter === filteredAnnotations.length - 1 || (filteredAnnotations[lastIndex]?.accepted === false && indexFilter === lastIndex - 1) || indexFilter === lastIndex;
         // console.log(topDisabled, bottomDisabled);
 
+        clearTimeout(topDisabledTimeout.current);
+        clearTimeout(bottomDisabledTimeout.current);
+
         if (animate) {
-            d3.select("#bottomButton")
-            .transition()
-            .duration(1000)
-            .on("end", () => {
+            topDisabledTimeout.current = setTimeout(() => {
                 d3.select("#bottomButton").classed("disabled", bottomDisabled);
                 d3.select("#bottomButton svg").style("pointer-events", "all");
-            });
+            }, 1000);
 
-            d3.select("#topButton")
-            .transition()
-            .duration(1000)
-            .on("end", () => {
+            bottomDisabledTimeout.current = setTimeout(() => {
                 d3.select("#topButton").classed("disabled", topDisabled);
                 d3.select("#topButton svg").style("pointer-events", "all");
-            });
+            }, 1000);
         } else {
             d3.select("#topButton").classed("disabled", topDisabled);
             d3.select("#bottomButton").classed("disabled", bottomDisabled);
@@ -362,7 +360,12 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         let sortAnnotations = tAnnotations.sort((a, b) => {
             if (a.spans instanceof Array && b.spans instanceof Array) {
                 if ((a.spans.length === b.spans.length && a.spans.every(span => b.spans.includes(span)))) {
-                    removeAnnotations.push(a.accepted === false ? a : (b.accepted === false ? b : a));
+                    let removeAnnotation = a.accepted === false ? a : (b.accepted === false ? b : a);
+
+                    if (removeAnnotation === currentAnnotation) {
+                        removeAnnotation = (a === currentAnnotation ? b : a);
+                    }
+                    removeAnnotations.push(removeAnnotation);
                 }
 
                 if (!a.spans) {
@@ -387,8 +390,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         // findIndex();
         
         if (currentAnnotation) {
-            let annotation = annotationsRef.current.find(annotation => annotation === currentAnnotation);
-            let i = annotationsRef.current.indexOf(annotation);
+            let i = annotationsRef.current.indexOf(currentAnnotation);
 
             if (i !== -1) {
                 index.current = i;
@@ -399,7 +401,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         checkDisable(false);
 
         // console.log(index.current, annotationsRef.current.length, firstIndex, lastIndex, topDisabled, bottomDisabled);
-
+        // console.log(annotations);
         // console.log(annotationsRef.current);
         // console.log(currentAnnotation);
         // console.log(index.current, removedRef.current);
