@@ -356,6 +356,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
             }
         }
         let removeAnnotations = [];
+        let removedCurrentAnnotation = null;
 
         let sortAnnotations = tAnnotations.sort((a, b) => {
             if (a.spans instanceof Array && b.spans instanceof Array) {
@@ -363,7 +364,7 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
                     let removeAnnotation = a.accepted === false ? a : (b.accepted === false ? b : a);
 
                     if (removeAnnotation === currentAnnotation) {
-                        removeAnnotation = (a === currentAnnotation ? b : a);
+                        removedCurrentAnnotation = (a === currentAnnotation ? b : a);
                     }
                     removeAnnotations.push(removeAnnotation);
                 }
@@ -391,9 +392,12 @@ export default function NavigateCluster({ handiness, cluster, annotations, curre
         
         if (currentAnnotation) {
             let i = annotationsRef.current.indexOf(currentAnnotation);
+            let i2 = annotationsRef.current.indexOf(removedCurrentAnnotation);
 
             if (i !== -1) {
                 index.current = i;
+            } else if (i2 !== -1) {
+                index.current = i2;
             } else if (toolTipSpans) {
                 index.current = annotationsRef.current.indexOf(toolTipSpans);
             }

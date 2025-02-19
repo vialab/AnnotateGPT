@@ -61,20 +61,13 @@ function Minimap({ ref, ...props }) {
 
         setMiniMapChildren(
             Array.from(nodes)
-            .filter(node => {
-                const { width, height } = node.getBoundingClientRect();
-                return width > 0 && height > 0;
-            })
-            .sort((a, b) => {
-                const aRect = a.getBoundingClientRect();
-                const bRect = b.getBoundingClientRect();
-
-                // Sort by height size
-                return bRect.height - aRect.height;
-            })
-            .map((node, key) => {
+            .map(node => {
                 const { width, height, left, top } = node.getBoundingClientRect();
-
+                return { width, height, left, top, node };
+            })
+            .filter(({ width, height }) => width > 0 && height > 0)
+            .sort((a, b) => b.height - a.height)
+            .map(({ width, height, left, top, node }, key) => {
                 const wM = width * ratioX;
                 const hM = height * ratioY;
                 const xM = (left + scrollLeft - sourceRect.left) * ratioX;
@@ -89,13 +82,7 @@ function Minimap({ ref, ...props }) {
                 return component;
             })
             .sort((a, b) => {
-                if (a?.key < b?.key) {
-                    return -1;
-                }
-                if (a?.key > b?.key) {
-                    return 1;
-                }
-                return 0;
+                return a?.key < b?.key ? -1 : a?.key > b?.key ? 1 : 0;
             })
         );
     }, [childComponent, height, keepAspectRatio, selector, width, scrollContainer]);

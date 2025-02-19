@@ -160,8 +160,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         }
     }, [mode]);
 
+    let svgContentDataRef = useRef(svgContent);
+    
     useEffect(() => {
-        if (svgContent instanceof Array && !loading && !loadingDocument) {
+        if (svgContent instanceof Array && !loading && !loadingDocument && svgContentDataRef.current !== svgContent) {
+            svgContentDataRef.current = svgContent;
             d3.selectAll(".page-container").style("content-visibility", "visible");
             let newStrokes = new Map();
 
@@ -730,7 +733,8 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
         }
 
-        function handleEnd() {
+        async function handleEnd() {
+            await globalThis.scheduler?.yield?.();
             finish = true;
             let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
@@ -1338,7 +1342,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         //         setActiveCluster(cluster);
         //     }
         // }
-        miniMapRef.current?.synchronize();
 
         if (cluster) {
             let ref = penAnnotationRef.current.find(ref => ref.current?.lockClusters.current.find(lockCluster => lockCluster === cluster));
@@ -1427,7 +1430,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 } else if (activeAnnotation.current instanceof Element && activeAnnotation.current.classList.contains("toolTip") && activeAnnotation.current.id === "toolTip" + cluster.strokes[cluster.strokes.length - 1].id) {
                     showTooltipContent();
                 }
-                miniMapRef.current?.synchronize();
             } else if (explanationToolTipRef.current?.isOpen && activeAnnotation.current === null) {
                 let content = <div className={"annotationMessageContainer " + googleSans.className}>
                     <NavigateCluster filter={true} handiness={handinessRef.current} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
@@ -1440,6 +1442,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 });
             }
         }
+        miniMapRef.current?.synchronize();
     }
 
     function onEraseCallback(cluster, pathID, page) {
@@ -2327,7 +2330,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     overlappingAnnotationRef.current = overlappingAnnotations;
                     
                     for (let a of annotatedTokens.current) {
-                        if (a.ref?.current.lockClusters.current) {
+                        if (a.ref?.current?.lockClusters?.current) {
                             for (let cluster of a.ref.current.lockClusters.current) {
                                 if (cluster.open) {
                                     cluster.open = false;

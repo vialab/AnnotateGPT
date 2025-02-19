@@ -735,6 +735,7 @@ export default function Home() {
                         annotateRef={annotationeRef}
                         handiness={handiness}
                         disabled={disabled}
+                        clustersData={clustersData}
                     />
                 </> :
                 <>

@@ -186,8 +186,9 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 return; 
             }
 
-            requestAnimationFrame(() => {
-                steps[index]();
+            requestAnimationFrame(async () => {
+                await globalThis.scheduler?.yield?.();
+                steps[index](); 
                 renderInSteps(steps, onComplete, index + 1);
             });
         }
@@ -221,7 +222,8 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 
                 context.scale(1 / scale, 1 / scale);
                 context.drawImage(sourceCanvas, 0, 0);
-
+            },
+            () => {
                 function getDocument(target) {
                     const isElementNode = (node) => node.nodeType === 1;
                     return (target && isElementNode(target) ? target?.ownerDocument : target) ?? window.document;
@@ -232,7 +234,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 img.src = canvasPage.toDataURL("image/png", 1);
 
                 page.appendChild(img);
-            },
+            }
         ];
 
         return new Promise((resolve) => {
@@ -1171,6 +1173,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     }
                     await globalThis.scheduler?.yield?.();
                     updateTooltips();
+                    await globalThis.scheduler?.yield?.();
 
                     if (onClick instanceof Function) {
                         onClick(d);
@@ -2462,6 +2465,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                                 }
                                 await globalThis.scheduler?.yield?.();
                                 updateTooltips();
+                                await globalThis.scheduler?.yield?.();
                                 
                                 if (onClick instanceof Function) {
                                     onClick(d);
