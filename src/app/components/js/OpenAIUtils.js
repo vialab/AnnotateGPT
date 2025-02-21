@@ -25,6 +25,7 @@ let iteration = 0;
 // makeInference(img.img11, img.img12, ["crossed", "circled"], ["all", "he"], true).catch(console.error).then(console.log);
 // makeInference(img.img13, img.img14, ["circled"], ["extol"], true).catch(console.error).then(console.log);
 // makeInference(img.img15, img.img15, ["circled"], ["spiked"], true).catch(console.error).then(console.log);
+// makeInference(img.img16, img.img17, ["circled"], ["to 18 subjects."], false).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -337,9 +338,9 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
             console.log("Done uploading files");
 
             let criteria = specific
-                ? `4. Give two different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.
-5. For each guess, give two levels of detail: specific and broad. When describing with specific, describe the purpose so it is specific to the words of the annotated text. When describing with broad, use umbrella terms without using the annotated text.`
-                : `4. Give four different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.`;
+                ? `5. Give two different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.
+6. For each guess, give two levels of detail: specific and broad. When describing with specific, describe the purpose so it is specific to the words of the annotated text. When describing with broad, use umbrella terms without using the annotated text.`
+                : `5. Give four different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.`;
 
 
             let formatCriteria = specific
@@ -427,8 +428,9 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 
 Here are the steps:
 1. Describe the annotation by reviewing the list of annotation types for possibilities.
-2. Look at past annotation history in your knowledge base 
-3. Summarize your past findings and relate them to the annotation
+2. Guess the purpose of the annotation based on the context.
+3. Look at past annotation history in your knowledge base.
+4. Summarize your past findings and relate them to the annotation.
 ${criteria}`
                             },
                             {
