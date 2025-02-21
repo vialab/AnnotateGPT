@@ -282,7 +282,11 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     .attr("filter", null)
                     .style("fill", "red")
                     .attr("class", null)
-                    .attr("opacity", null);
+                    .attr("opacity", null)
+                    .filter((d, i, nodes) => {
+                        return !ids.includes(nodes[i].id);
+                    })
+                    .remove();
                 };
 
                 const createC1 = createContext(container1, {
