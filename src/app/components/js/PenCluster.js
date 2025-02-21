@@ -118,9 +118,7 @@ export class Stroke {
 
 export default class PenCluster {
     constructor() {
-        let height = document.querySelector(".pen-annotation-layer#layer-" + this.page)?.getBoundingClientRect().height || window.innerHeight;
-
-        this.strokes = [new Stroke("initial", {x: -window.innerWidth / 2, y: -height / 2, width: 1, height: 1}, "intital", 2)];
+        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 1, height: 1}, "initial", 2)];
         this.stopIteration = [];
         this.history = [];
     }
@@ -192,6 +190,8 @@ export default class PenCluster {
     }
 
     remove(id) {
+        if (id === "initial")
+            return;
         this.strokes = this.strokes.filter(stroke => stroke.id !== id);
         this.history.map(clusters => clusters = clusters.filter(cluster => cluster.strokes = cluster.strokes.filter(stroke => stroke.id !== id)));
     }

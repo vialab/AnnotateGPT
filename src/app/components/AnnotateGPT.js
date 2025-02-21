@@ -2689,6 +2689,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     for (let stroke of cluster.strokes) {
                         if (stroke.id !== "initial") {
                             penAnnotationRef.current[pageNumber - 1]?.current?.penCluster.remove(stroke.id);
+
+                            let findStroke = penAnnotationRef.current[pageNumber - 1].current.clusters.current.findIndex(cluster => cluster.strokes.find(s => s.id === stroke.id));
+                            
+                            if (findStroke !== -1) {
+                                penAnnotationRef.current[pageNumber - 1].current.clusters.current[findStroke].strokes = [...penAnnotationRef.current[pageNumber - 1].current.clusters.current[findStroke].strokes.filter(s => s.id !== stroke.id)];
+                            }
                         }
                     }
                 }
