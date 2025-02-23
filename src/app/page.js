@@ -589,6 +589,7 @@ export default function Home() {
                 }, function(err, records){
                     let headers = records[0];
                     let svgContent = [];
+                    let filterContent = [];
                     
                     for (let i = 1; i < records.length; i++) {
                         let record = records[i];
@@ -600,10 +601,12 @@ export default function Home() {
     
                         if (data.action === "createStroke") {
                             svgContent.push(data);
+                        } else if (data.action === "eraseStroke") {
+                            filterContent.push(data.id);
                         }
                     }
                     setScreen({ width: width, height: height });
-                    setSvgContent(svgContent);
+                    setSvgContent(svgContent.filter(d => !filterContent.includes(d.id)));
 
                     if (clusterFile) {
                         initiateProcessClusters();

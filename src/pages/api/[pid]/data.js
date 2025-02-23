@@ -47,7 +47,7 @@ export default async function handler(req, res) {
             await fsPromises.mkdir(`./data/${pid}`, { recursive: true });
             await fsPromises.writeFile(path, `${req.body.screen.width} ${req.body.screen.height}\nid,action,page,startTime,endTime,type,annotatedText,marginalText,svg\n`);
         }
-        await fsPromises.appendFile(path, data + `,,,,,\n`);
+        await fsPromises.appendFile(path, data + `,,,,,,,,\n`);
         donePenStroke = false;
 
         res.status(200).send("Erase stroke data saved!");
