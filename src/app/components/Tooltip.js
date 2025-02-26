@@ -354,7 +354,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                 let type = [];
 
                 let extractText = (type) => {
-                    return new Set(sortedStrokes.map(stroke => {
+                    return sortedStrokes.map(stroke => {
                         if (stroke.annotatedText?.length <= 2 && stroke.annotatedText?.length > 0) {
                             specific = true;
                         }
@@ -372,12 +372,12 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                         } else {
                             return "";
                         }
-                    }).flat());
+                    });
                 };
 
                 let sortType = (t, label) => {
                     let annotatedTextNodes = extractText(t);
-                    let annotatedTextContent = [...annotatedTextNodes].map(node => typeof node === "string" ? node : node.textContent).join(" ");
+                    let annotatedTextContent = [...annotatedTextNodes].filter(nodesSets => nodesSets !== "").map(nodeSets => nodeSets.map(node => typeof node === "string" ? node : node.textContent).join(" ")).join(`", "`);
                     
                     if (annotatedTextContent.trim() !== "") {
                         type.push(label);
@@ -415,7 +415,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                     sortType("highlighted", word ? "highlighted" : "highlighted characters");
                 }
 
-                if (annotated) {
+                if (annotated && (!circle && !underline && !highlighted && !crossed)) {
                     sortType("annotated", word ? "annotated" : "annotated characters");
                 }
 
@@ -645,7 +645,7 @@ export default function Tooltip({ mode, clusters, index, handinessRef, disabledR
                         typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
 
                         if (i === annotatedText.length - 2) {
-                            typeAnnotatedText += " and ";
+                            typeAnnotatedText += ", and ";
                         } else if (i < annotatedText.length - 2) {
                             typeAnnotatedText += ", ";
                         }

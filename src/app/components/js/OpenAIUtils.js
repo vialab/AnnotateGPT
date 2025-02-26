@@ -259,7 +259,7 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
             typeAnnotatedText += `${type[i]} "${annotatedText[i]}"`;
 
             if (i === annotatedText.length - 2) {
-                typeAnnotatedText += " and ";
+                typeAnnotatedText += ", and ";
             } else if (i < annotatedText.length - 2) {
                 typeAnnotatedText += ", ";
             }
