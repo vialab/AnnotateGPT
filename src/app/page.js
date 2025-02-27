@@ -815,7 +815,7 @@ export default function Home() {
                 pauseOnFocusLoss={false}
                 draggable={false}
                 theme="dark"
-                transition= {Flip}
+                transition={Flip}
             />
 
             <ToastContainer 
