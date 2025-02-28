@@ -26,7 +26,7 @@ let iteration = 0;
 // makeInference(img.img13, img.img14, ["circled"], ["extol"], true).catch(console.error).then(console.log);
 // makeInference(img.img15, img.img15, ["circled"], ["spiked"], true).catch(console.error).then(console.log);
 // makeInference(img.img16, img.img17, ["circled"], ["to 18 subjects."], false).catch(console.error).then(console.log);
-// makeInference(img.img18, img.img19, ["circled"], ["*"], true).catch(console.error).then(console.log);
+// makeInference(img.img18, img.img19, ["circled"], ["*in"], true).catch(console.error).then(console.log);
 
 // "Enhanced Appeal": "A peer reviewer might have indicated the title as 'Better' because it effectively captures interest and reflects the cutting-edge nature of the research, enhancing the document's appeal."
 
@@ -496,7 +496,8 @@ ${criteria}`
                 {
                     assistant_id: assistantPurposeID,
                     tool_choice: { type: "file_search" },
-                    // response_format: { type: "json_object" }
+                    // response_format: { type: "json_object" },
+                    model: "gpt-4o-mini-2024-07-18",
                 }, 
                 { pollIntervalMs: 500 }
             );
