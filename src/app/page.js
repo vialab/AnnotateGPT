@@ -66,14 +66,14 @@ export default function Home() {
     const homeDocument = useRef("./public/Test 1.pdf");
     const practiceMessage = useRef([
         [
-            "Make an annotation",
+            "Make an annotation (using the pen or highlighter)",
             "Activate assistant by tapping the annotation with your finger",
             "Generate annotations using your assistant (Hover the pen or hold down your finger on each option for explanations.)",
             "Tap the annotations with your finger to navigate them or use the arrows",
             "Accept or reject an annotation",
         ],
         [
-            "Make an annotation",
+            "Make an annotation (using the pen or highlighter)",
         ]
     ]);
     const practiceMessageIndex = useRef(0);

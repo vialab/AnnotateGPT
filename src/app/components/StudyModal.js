@@ -972,7 +972,7 @@ function StudyModal({ toastMessage, disableNext, checkTask, onNextTask, onFinish
                                             ) if the annotations does not match the purpose of the annotation.
                                         </li>
                                         <li>
-                                            Surprising (
+                                            Helpful (
                                             <div className="rateContainer" style={{ display: "inline-flex", verticalAlign: "middle" }} >
                                                 <div className="rateButton">
                                                     <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 192 752" height="30" width="20" xmlns="http://www.w3.org/2000/svg" style={{ color: "rgb(234, 196, 53)", strokeWidth: 1, transform: "translateY(-5px)" }}>

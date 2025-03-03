@@ -2042,7 +2042,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         let content = 
         <div className={"annotationMessageContainer " + googleSans.className}>
             { annotationMessages }
-            { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Reply" /> : null }
+            { annotation.explanation[0] !== "Generating explanation..." ? <textarea className={googleSans.className} onInput={auto_grow} onKeyDown={(e) => onKeyDown(e, overlappingAnnotations, annotation)} placeholder="Add Comment" /> : null }
             
             <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined}/>
         </div>;
