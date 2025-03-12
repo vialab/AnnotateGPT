@@ -394,8 +394,9 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
             }
             console.log("Running GPT-4 Vision...");
 
-            let response = await openai.responses.create({
+            let stream = openai.responses.stream({
                 store: false,
+                stream: true,
                 model: "gpt-4o-mini-2024-07-18",
                 tool_choice: "required",
                 truncation: "auto",
@@ -460,30 +461,38 @@ ${criteria}`
                 maxRetries: 3,
             });
 
-            console.log(response);
-        
-            if (response.status === "completed") {
-                let regex = /\{(\s|.)*\}/g;
-        
-                let match = (response.output_text).match(regex);
-                console.log(JSON5.parse(match[0]));
+            let textDeltaArray = [];
 
-                let checkResult = JSON5.parse(match[0]);
+            stream
+            .on("response.output_text.delta", (diff) => {
+                textDeltaArray.push(diff.delta);
+            })
+            .on("response.completed", (event) => {
+                let response = event.response;
 
-                if (!checkResult.annotationDescription || !checkResult.pastAnnotationHistory || !checkResult.purpose || checkResult.purpose.length < 4) {
-                    throw new Error("Missing required fields in the response.");
-                }
+                if (response.status === "completed") {
+                    let regex = /\{(\s|.)*\}/g;
+            
+                    let match = (textDeltaArray.join("")).match(regex);
+                    console.log(JSON5.parse(match[0]));
 
-                for (let purpose of checkResult.purpose) {
-                    if (!purpose.persona || !purpose.purpose || !purpose.purposeTitle) {
+                    let checkResult = JSON5.parse(match[0]);
+
+                    if (!checkResult.annotationDescription || !checkResult.pastAnnotationHistory || !checkResult.purpose || checkResult.purpose.length < 4) {
                         throw new Error("Missing required fields in the response.");
                     }
+
+                    for (let purpose of checkResult.purpose) {
+                        if (!purpose.persona || !purpose.purpose || !purpose.purposeTitle) {
+                            throw new Error("Missing required fields in the response.");
+                        }
+                    }
+                    purposeQueue--;
+                    resolve({ rawText: JSON.stringify(response.output), result: checkResult });
+                } else {
+                    throw new Error("No text response found.");
                 }
-                purposeQueue--;
-                resolve({ rawText: JSON.stringify(response.output), result: checkResult });
-            } else {
-                throw new Error("No text response found.");
-            }
+            });
         } catch (error) {
             console.error(error);
             await new Promise(r => setTimeout(r, 1000));
