@@ -8,8 +8,11 @@ import * as img from "./TestImg";
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY, dangerouslyAllowBrowser: true});
 
-const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
-const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
+// const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
+// const assistantPurposeID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
+const annotateVectorID = process.env.NEXT_PUBLIC_ANNOTATE_VECTOR_STORE;
+const purposeVectorID = process.env.NEXT_PUBLIC_PURPOSE_VECTOR_STORE;
+
 const maxAnnotationQueue = 2;
 const maxPurposeQueue = 3;
 let annotationQueue = 0;
@@ -97,11 +100,50 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
     }
 
     try {
-        const thread = await openai.beta.threads.create();
         let textDeltaArray = [];
+        let totalRuns = 0;
+        let maxRuns = Math.max(3, n);
 
-        await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-`You are an expert in English grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
+        if (annotateVectorID) {
+            let vectorStore = await openai.vectorStores.retrieve(annotateVectorID);
+            console.log("Checking vector store status...", vectorStore.status);
+        
+            while (vectorStore.status !== "completed") {
+                await new Promise(r => setTimeout(r, 1000));
+                vectorStore = await openai.vectorStores.retrieve(annotateVectorID);
+                console.log("Checking vector store status...", vectorStore.status);
+            }
+        } else {
+            console.log("Vector store is not available");
+            return;
+        }
+        console.log("Running GPT-4o...");
+        
+        let executeRun = (prevID = null, followUpPrompt = null) => {
+            let newTextDeltaArray = [];
+            totalRuns++;
+
+            try {
+                let stream = openai.responses.stream({
+                    model: "gpt-4o-2024-11-20",
+                    tool_choice: "auto",
+                    truncation: "auto",
+                    stream: true,
+                    previous_response_id: prevID,
+                    tools: [{
+                        type: "file_search",
+                        vector_store_ids: [annotateVectorID],
+                    }],
+                    instructions: "You are an expert at annotating documents. The user has annotated the document I have given you. Given the purpose of an annotation, you will find all sentences in the document that could be annotated for the same purpose. Do not change the sentence from the document in any way. Give one sentence in one annotation. Describe your steps first. Do not ask follow-up questions.",
+                    input: followUpPrompt ? [
+                        {
+                            role: "user",
+                            content: followUpPrompt
+                        }
+                    ] : 
+                    [{ 
+                        role: "user",
+                        content: `You are an expert in English grading an English test with 8 questions. Read every page and find sentences that could be annotated with:
 
 "${purpose}"
 
@@ -130,62 +172,29 @@ Here is a step-by-step list for annotating a document:
 ...
 
 Make sure you have all the sentences needed to be annotated in the format above.`
-        });
+                    },
+                    { 
+                        role: "user",
+                        content: `Walk me through one question at a time in manageable parts step by step, summarizing and analyzing as we go to make sure we have all the sentences needed to be annotated`
+                    }],
+                }, {
+                    maxRetries: 3,
+                });
 
-        await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-            `Walk me through one question at a time in manageable parts step by step, summarizing and analyzing as we go to make sure we have all the sentences needed to be annotated`
-        });
-
-        let totalRuns = 0;
-        let maxRuns = Math.max(3, n);
-
-        const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
-        const vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
-        
-        if (vectorStoreID) {
-            let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
-            console.log("Checking vector store status...", vectorStore.status);
-        
-            while (vectorStore.status !== "completed") {
-                await new Promise(r => setTimeout(r, 1000));
-                vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
-                console.log("Checking vector store status...", vectorStore.status);
-            }
-        } else {
-            console.log("Vector store is not available");
-            return;
-        }
-        console.log("Running GPT-4o...");
-        // return;
-
-        let runNumber = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
-
-        let executeRun = (checkFinish) => {
-            let newTextDeltaArray = [];
-            totalRuns++;
-
-            try {
-                const run = openai.beta.threads.runs.stream(thread.id, {
-                    assistant_id: assistantAnnotateID,
-                    tool_choice: { type: "file_search" },
-                    max_completion_tokens: 2048
-                    
-                })
+                stream
                 .on("error", (error) => {
                     console.log("error", error);
                     totalRuns--;
-                    setTimeout(() => executeRun(checkFinish), 1000);
+                    setTimeout(() => executeRun(prevID, followUpPrompt), 1000);
                 })
-                // .on('textCreated', (text) => console.log('\nassistant > '))
-                .on("textDelta", (textDelta, snapshot) => {
-                    textDeltaArray.push(textDelta.value);
-                    newTextDeltaArray.push(textDelta.value);
+                .on("response.output_text.delta", (diff) => {
+                    textDeltaArray.push(diff.delta);
+                    newTextDeltaArray.push(diff.delta);
         
                     if (callback instanceof Function)
-                        callback(textDelta.value);
-                    // console.log(textDelta.value)
+                        callback(diff.delta);
                 })
-                .on("end", async () => {
+                .on("response.completed", async (event) => {
                     // console.log(newTextDeltaArray.join(""));
                     // console.log("Stream ended");
                     // console.log(textDeltaArray);
@@ -196,7 +205,7 @@ Make sure you have all the sentences needed to be annotated in the format above.
                     
                     console.log(newTextDeltaArray.join(""));
     
-                    if (checkFinish || totalRuns >= maxRuns) {
+                    if (followUpPrompt || totalRuns >= maxRuns) {
                         if (newTextDeltaArray.join("").toLowerCase().includes(`yes`) || totalRuns >= maxRuns) {
                             console.log("Stream ended");
                             console.log(textDeltaArray);
@@ -209,30 +218,18 @@ Make sure you have all the sentences needed to be annotated in the format above.
                             annotationQueue--;
                             return;
                         } else if (!newTextDeltaArray.join("").toLowerCase().includes(`{{`)) {
-                            await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                                `Please proceed marking all ${n} questions without repeating previous sentences. Make sure all sentences are found for each question. Respond with "yes" if you are done.`
-                            });
-    
-                            executeRun(true);
+                            executeRun(event.response.id, `Please proceed marking all ${n} questions without repeating previous sentences. Make sure all sentences are found for each question. Respond with "yes" if you are done.`);
                             return;
                         }
                     }
-    
-                    await openai.beta.threads.messages.create(thread.id, { role: "user", content: 
-                        `Have you finished marking all ${n} questions? Respond with "yes" if you are done. Otherwise continue marking until all ${n} questions are marked without repeating previous sentences. Make sure all sentences are found for each question.`
-                    })
-                    .catch((error) => {
-                        throw error;
-                    });
-    
-                    executeRun(true);
+                    executeRun(event.response.id, `Have you finished marking all ${n} questions? Respond with "yes" if you are done. Otherwise continue marking until all ${n} questions are marked without repeating previous sentences. Make sure all sentences are found for each question.`);
                 });
             } catch (error) {
                 console.log("error", error);
-                executeRun(checkFinish);
+                executeRun(prevID, followUpPrompt);
             }
         };
-        executeRun(false);
+        executeRun();
     } catch (error) {
         console.log("error", error);
         annotationQueue--;
@@ -248,7 +245,6 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
         await new Promise(r => setTimeout(r, 1000));
         return await makeInference(image1, image2, type, annotatedText, specific);
     }
-    let file1, file2;
     let typeAnnotatedText = "";
     purposeQueue++;
     
@@ -313,36 +309,10 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
     
     return new Promise(async (resolve, reject) => {
         try {
-            async function getFile(image) {
-                function dataURLtoFile(dataurl, filename) {
-                    let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-                        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-                    while (n--) {
-                        u8arr[n] = bstr.charCodeAt(n);
-                    }
-                    return new File([u8arr], filename, {type:mime});
-                }
-        
-                const file = await openai.files.create({
-                    file: dataURLtoFile(image, "image.png"),
-                    purpose: "vision",
-                });
-
-                return file;
-            }
-            console.log("Uploading files...");
-
-            [file1, file2] = await Promise.all([
-                getFile(image1),
-                getFile(image2)
-            ]);
-            console.log("Done uploading files");
-
             let criteria = specific
                 ? `6. Give two different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.
 7. For each guess, give two levels of detail: specific and broad. When describing with specific, describe the purpose so it is specific to the words of the annotated text. When describing with broad, use umbrella terms without using the annotated text.`
                 : `6. Give four different guesses of the purpose using different personas and past annotation history. The purposes should have different themes and relate to the context.`;
-
 
             let formatCriteria = specific
                 ? `{
@@ -410,13 +380,36 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
 <purpose>: is a description of the annotation purpose and annotation type using the <annotation history> as context without using the <annotation description> and any words in the annotated text. Talk in second person (you, your, etc.). Be specific and use as few words as possible.
 <purpose_title>: is a short title for <purpose> without mentioning the persona, be very specific.`;
             
-            const thread = await openai.beta.threads.create({
-                messages: [
+            if (purposeVectorID) {
+                let vectorStore = await openai.vectorStores.retrieve(purposeVectorID);
+                console.log("Checking vector store status...", vectorStore.status);
+
+                while (vectorStore.status !== "completed") {
+                    await new Promise(r => setTimeout(r, 1000));
+                    vectorStore = await openai.vectorStores.retrieve(purposeVectorID);
+                    console.log("Checking vector store status...", vectorStore.status);
+                }
+            } else {
+                console.log("Vector store is not available");
+            }
+            console.log("Running GPT-4 Vision...");
+
+            let response = await openai.responses.create({
+                store: false,
+                model: "gpt-4o-mini-2024-07-18",
+                tool_choice: "required",
+                truncation: "auto",
+                tools: [{
+                    type: "file_search",
+                    vector_store_ids: [purposeVectorID],
+                }],
+                instructions: "You are an expert in describing annotations and determining their purpose. You will be shown two images of annotations from a document a user has personally annotated. The first image shows the annotation with the document, and the second shows the annotation without the document. Do not give vague answers, such as whether the user is interested in or emphasizing the text; be very specific.",
+                input: [
                     {
                         role: "user",
                         content: [
                             {
-                                type: "text",
+                                type: "input_text",
                                 text: `Types of annotation:
 - circles or boxes
 - underlining
@@ -436,16 +429,12 @@ Here are the steps:
 ${criteria}`
                             },
                             {
-                                type: "image_file",
-                                image_file: {
-                                    file_id: file1.id,
-                                }
+                                type: "input_image",
+                                image_url: image1,
                             },
                             {
-                                type: "image_file",
-                                image_file: {
-                                    file_id: file2.id,
-                                }
+                                type: "input_image",
+                                image_url: image2,
                             },
                         ],
                     },
@@ -461,113 +450,22 @@ ${criteria}`
                         role: "user",
                         content: [
                             {
-                                type: "text",
+                                type: "input_text",
                                 text: "Let's work this out in a step by step way to be sure we have described the annotation in the context of past history and determined thematically different purposes that matches the user's context (The user is marking an English test)."
                             }
                         ],
                     }
                 ],
+            }, {
+                maxRetries: 3,
             });
 
-            const purposeAssistant = await openai.beta.assistants.retrieve(assistantPurposeID);
-            const vectorStoreID = purposeAssistant.tool_resources.file_search.vector_store_ids[0];
-            
-            if (vectorStoreID) {
-                let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
-                console.log("Checking vector store status...", vectorStore.status);
-            
-                while (vectorStore.status !== "completed") {
-                    await new Promise(r => setTimeout(r, 1000));
-                    vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
-                    console.log("Checking vector store status...", vectorStore.status);
-                }
-            } else {
-                console.log("Vector store is not available");
-            }
-            console.log("Running GPT-4 Vision...");
-            
-            // const r = await openai.beta.threads.runs.createAndPoll(thread.id, {
-            //     assistant_id: assistantPurposeID,
-            //     tool_choice: { type: "file_search" },
-            //     // response_format: { type: "json_object" }
-            // });
-
-            let run = await openai.beta.threads.runs.createAndPoll(thread.id, 
-                {
-                    assistant_id: assistantPurposeID,
-                    tool_choice: { type: "file_search" },
-                    // response_format: { type: "json_object" },
-                    model: "gpt-4o-mini-2024-07-18",
-                }, 
-                { pollIntervalMs: 500 }
-            );
-
-    //         const m = await openai.beta.threads.messages.list(thread.id, {
-    //             run_id: run.id,
-    //         });
-
-    //         console.log(m);
-
-    //         await openai.beta.threads.messages.create(thread.id, {
-    //             role: "user",
-    //             content: `Parse your response as a JSON object in this format:
-    // {
-    //     "annotationDescription": "<annotation description>",
-    //     "pastAnnotationHistory": "<annotation history>",
-    //     "purpose": [
-    //         {
-    //             "persona": "<persona 1>",
-    //             "purpose": "<purpose 1>",
-    //             "purposeTitle": "<purpose_title 1>"
-    //         },
-    //         {
-    //             "persona": "<persona 2>",
-    //             "purpose": "<purpose 2>",
-    //             "purposeTitle": "<purpose_title 2>"
-    //         },
-    //         {
-    //             "persona": "<persona 3>",
-    //             "purpose": "<purpose 3>",
-    //             "purposeTitle": "<purpose_title 3>"
-    //         },
-    //         {
-    //             "persona": "<persona 4>",
-    //             "purpose": "<purpose 4>",
-    //             "purposeTitle": "<purpose_title 4>"
-    //         },
-    //     ]
-    // }
-
-    // <annotation description>: is a detailed description of the annotation
-    // <annotation history> is a detailed annotation history related to the annotation.
-    // <purpose>: is a concise description of the annotation purpose using the <annotation description> and <annotation history> as context.
-    // <purpose_title>: is a short title for <purpose> without mentioning the persona.`
-    //         });
-
-    //         run = await openai.beta.threads.runs.createAndPoll(thread.id, {
-    //             assistant_id: assistantPurposeID,
-    //         });
-            
-            const messages = await openai.beta.threads.messages.list(thread.id, {
-                run_id: run.id,
-            }, { maxRetries: 3 });
+            console.log(response);
         
-            const message = messages.data.pop();
-            
-            console.log(message);
-
-            if (!message) {
-                openai.beta.threads.runs.retrieve(thread.id, run.id)
-                .then((run) => {
-                    console.log(run);
-                });
-            }
-        
-            if (message.content[0].type === "text") {
-                const { text } = message.content[0];
+            if (response.status === "completed") {
                 let regex = /\{(\s|.)*\}/g;
         
-                let match = (text.value).match(regex);
+                let match = (response.output_text).match(regex);
                 console.log(JSON5.parse(match[0]));
 
                 let checkResult = JSON5.parse(match[0]);
@@ -581,45 +479,13 @@ ${criteria}`
                         throw new Error("Missing required fields in the response.");
                     }
                 }
-
-                try {
-                    openai.files.del(file1.id)
-                    .catch((error) => {
-                        console.error(error.error.message, "in files");
-                    });
-                    
-                    openai.files.del(file2.id)
-                    .catch((error) => {
-                        console.error(error.error.message, "in files");
-                    });
-                } catch (error) {
-                    console.error(error);
-                }
                 purposeQueue--;
-                resolve({ rawText: text.value, result: checkResult });
+                resolve({ rawText: JSON.stringify(response.output), result: checkResult });
             } else {
                 throw new Error("No text response found.");
             }
         } catch (error) {
             console.error(error);
-            
-            try {
-                if (file1.id) {
-                    openai.files.del(file1.id)
-                    .catch((error) => {
-                        console.error(error.error.message, "in files");
-                    });
-                }
-
-                if (file2.id) {
-                    openai.files.del(file2.id)
-                    .catch((error) => {
-                        console.error(error.error.message, "in files");
-                    });
-                }
-            } catch (error) {
-                console.error(error);
-            }
             await new Promise(r => setTimeout(r, 1000));
             purposeQueue--;
             // return await makeInference(image1, image2, type, annotatedText);

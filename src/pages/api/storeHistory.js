@@ -7,34 +7,35 @@ export const config = {
 };
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
-const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
+// const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
+const vectorStoreID = process.env.NEXT_PUBLIC_PURPOSE_VECTOR_STORE;
 
 async function updateHistory(retry = 3) {
     try {
-        const purposeAssistant = await openai.beta.assistants.retrieve(purposeAssistantID);
-        let vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
+        // const purposeAssistant = await openai.beta.assistants.retrieve(purposeAssistantID);
+        // let vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
         
-        if (!vectorStoreID) {
-            console.log("Creating vector store...");
+        // if (!vectorStoreID) {
+        //     console.log("Creating vector store...");
             
-            let vectorStore = await openai.beta.vectorStores.create({
-                name: "Pen Purpose vector store",
-            });
-            vectorStoreID = vectorStore.id;
+        //     let vectorStore = await openai.beta.vectorStores.create({
+        //         name: "Pen Purpose vector store",
+        //     });
+        //     vectorStoreID = vectorStore.id;
 
-            await openai.beta.assistants.update(purposeAssistant.id, {
-                tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
-            });
-        }
+        //     await openai.beta.assistants.update(purposeAssistant.id, {
+        //         tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
+        //     });
+        // }
         const file = new File([history.join("")], "history.txt");
 
         async function deleteFiles() {
             try {
-                const vectorStoreFiles = await openai.beta.vectorStores.files.list(vectorStoreID);
+                const vectorStoreFiles = await openai.vectorStores.files.list(vectorStoreID);
                 const promises = [];
         
                 for (let file of vectorStoreFiles.data) {
-                    let p = openai.beta.vectorStores.files.del(vectorStoreID, file.id)
+                    let p = openai.vectorStores.files.del(vectorStoreID, file.id)
                     .catch((error) => {
                         console.error(error.error.message, "in vector store");
                     });
@@ -58,14 +59,14 @@ async function updateHistory(retry = 3) {
             console.error(error);
         });
 
-        let files = await openai.beta.vectorStores.files.list(vectorStoreID);
+        let files = await openai.vectorStores.files.list(vectorStoreID);
         console.log("# of files in history:", files.data.length);
         let emptyRetry = 0;
 
         while (files.data.length !== 0) {
             console.log("Deleting history...", files.data.length);
             await new Promise(r => setTimeout(r, 1000));
-            files = await openai.beta.vectorStores.files.list(vectorStoreID);
+            files = await openai.vectorStores.files.list(vectorStoreID);
             emptyRetry++;
 
             if (emptyRetry > 30) {
@@ -73,22 +74,22 @@ async function updateHistory(retry = 3) {
                 break;
             }
         }
-        let vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+        let vectorStore = await openai.vectorStores.retrieve(vectorStoreID);
         console.log("Checking history vector store status...", vectorStore.status);
     
         while (vectorStore.status !== "completed") {
             await new Promise(r => setTimeout(r, 1000));
-            vectorStore = await openai.beta.vectorStores.retrieve(vectorStoreID);
+            vectorStore = await openai.vectorStores.retrieve(vectorStoreID);
             console.log("Checking history vector store status...", vectorStore.status);
         }
         console.log("Uploading history...");
     
         const historyFile = await openai.files.create({
             file: file,
-            purpose: "assistants",
+            purpose: "user_data",
         });
     
-        const vfile = await openai.beta.vectorStores.files.createAndPoll(
+        const vfile = await openai.vectorStores.files.createAndPoll(
             vectorStoreID,
             { file_id: historyFile.id },
             { pollIntervalMs: 500 }
@@ -99,7 +100,7 @@ async function updateHistory(retry = 3) {
             throw new Error("History not completed");
         } else {
             setTimeout(() => {
-                openai.beta.vectorStores.files.list(vectorStoreID)
+                openai.vectorStores.files.list(vectorStoreID)
                 .then((files) => {
                     console.log("# of files in history:", files.data.length);
                 });
