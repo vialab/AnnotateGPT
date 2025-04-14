@@ -117,7 +117,7 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
             console.log("Vector store is not available");
             return;
         }
-        console.log("Running GPT-4o...");
+        console.log("Running GPT-4...");
         
         let executeRun = (prevID = null, followUpPrompt = null) => {
             let newTextDeltaArray = [];
@@ -125,7 +125,8 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
 
             try {
                 let stream = openai.responses.stream({
-                    model: "gpt-4o-2024-11-20",
+                    model: "gpt-4.1-2025-04-14",
+                    store: true,
                     tool_choice: "auto",
                     truncation: "auto",
                     stream: true,
@@ -397,7 +398,7 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
             let stream = openai.responses.stream({
                 store: false,
                 stream: true,
-                model: "gpt-4o-mini-2024-07-18",
+                model: "gpt-4.1-mini-2025-04-14",
                 tool_choice: "required",
                 truncation: "auto",
                 tools: [{

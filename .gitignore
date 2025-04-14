@@ -37,9 +37,11 @@ next-env.d.ts
 
 .env
 *.pdf
+*.csv
 /data
 *.docx
 *.ipynb
 *.mkv
 *.json
 OldOpenAIUtils.js
+/study

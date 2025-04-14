@@ -5,7 +5,7 @@ import localFont from "next/font/local";
 
 import { googleSans } from "../page";
 
-import AnnotatePenIcon from "./svg/logoPen.svg";
+import AnnotatePenIcon from "./svg/logoPen2.svg";
 import AnnotateBlobIcon from "./svg/logoBlob.svg";
 import "./css/Header.css";
 
@@ -121,13 +121,13 @@ export default function Header({ children }) {
                             <AnnotateBlobIcon stroke="url(#emeraldGradient)" fill={"none"} strokeWidth={8} />
                         </g>
 
-                        <g id="penIcon">
-                            <AnnotatePenIcon viewBox="1200 -40 800 3500" />
-                        </g>
-
                         <g className="graphic">
                             <text x={30} y={30} fontSize={35} className={mistrully.className} style={{ pointerEvents: "none" }}>Annotate</text>
                             <text x={100} y={50} fontSize={15} className={googleSans.className} style={{ pointerEvents: "none" }}>GPT</text>
+                        </g>
+
+                        <g id="penIcon" transform="translate(-3 -6)">
+                            <AnnotatePenIcon viewBox="900 50 800 800"/>
                         </g>
                     </svg>
                 </div>
