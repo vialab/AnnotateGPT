@@ -7,26 +7,10 @@ export const config = {
 };
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
-// const purposeAssistantID = process.env.NEXT_PUBLIC_ASSISTANT_PURPOSE_ID;
 const vectorStoreID = process.env.NEXT_PUBLIC_PURPOSE_VECTOR_STORE;
 
 async function updateHistory(retry = 3) {
     try {
-        // const purposeAssistant = await openai.beta.assistants.retrieve(purposeAssistantID);
-        // let vectorStoreID = purposeAssistant.tool_resources?.file_search.vector_store_ids[0];
-        
-        // if (!vectorStoreID) {
-        //     console.log("Creating vector store...");
-            
-        //     let vectorStore = await openai.beta.vectorStores.create({
-        //         name: "Pen Purpose vector store",
-        //     });
-        //     vectorStoreID = vectorStore.id;
-
-        //     await openai.beta.assistants.update(purposeAssistant.id, {
-        //         tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
-        //     });
-        // }
         const file = new File([history.join("")], "history.txt");
 
         async function deleteFiles() {
@@ -52,19 +36,15 @@ async function updateHistory(retry = 3) {
                 console.error(error);
             }
         }
-        console.log("Deleting history...");
-
         await deleteFiles()
         .catch((error) => {
             console.error(error);
         });
 
         let files = await openai.vectorStores.files.list(vectorStoreID);
-        console.log("# of files in history:", files.data.length);
         let emptyRetry = 0;
 
         while (files.data.length !== 0) {
-            console.log("Deleting history...", files.data.length);
             await new Promise(r => setTimeout(r, 1000));
             files = await openai.vectorStores.files.list(vectorStoreID);
             emptyRetry++;
@@ -75,14 +55,12 @@ async function updateHistory(retry = 3) {
             }
         }
         let vectorStore = await openai.vectorStores.retrieve(vectorStoreID);
-        console.log("Checking history vector store status...", vectorStore.status);
     
         while (vectorStore.status !== "completed") {
             await new Promise(r => setTimeout(r, 1000));
             vectorStore = await openai.vectorStores.retrieve(vectorStoreID);
             console.log("Checking history vector store status...", vectorStore.status);
         }
-        console.log("Uploading history...");
     
         const historyFile = await openai.files.create({
             file: file,
@@ -94,17 +72,9 @@ async function updateHistory(retry = 3) {
             { file_id: historyFile.id },
             { pollIntervalMs: 500 }
         );
-        console.log("Updated history...");
 
         if (vfile.status !== "completed") {
             throw new Error("History not completed");
-        } else {
-            setTimeout(() => {
-                openai.vectorStores.files.list(vectorStoreID)
-                .then((files) => {
-                    console.log("# of files in history:", files.data.length);
-                });
-            }, 15000);
         }
         return vfile;
     } catch (error) {
@@ -129,7 +99,6 @@ export default async function handler(req, res) {
         let waitInterval = 0;
 
         while (done && waitInterval < 40) {
-            console.log("Waiting...", waitInterval);
             waitInterval++;
             await new Promise(resolve => setTimeout(resolve, 500));
         }
@@ -144,7 +113,6 @@ export default async function handler(req, res) {
                         res.status(200).send("Initial history file already created!");
                     } else {
                         historyStatus = "empty";
-                        // await fsPromises.writeFile(dataFilePath, `No history`);
                         history = ["No history"];
                             
                         await updateHistory();
@@ -155,7 +123,6 @@ export default async function handler(req, res) {
                 }
             } else if (action === "forceClear") {
                 historyStatus = "empty";
-                // await fsPromises.writeFile(dataFilePath, `No history`);
                 history = ["No history"];
                 await updateHistory();
 
@@ -163,7 +130,6 @@ export default async function handler(req, res) {
             
             } else if (action === "update" || action === "update2") {
                 if (historyStatus === "empty") {
-                    // await fsPromises.writeFile(dataFilePath, "");
                     history = [];
                     historyStatus = "full";
                 }
@@ -172,7 +138,6 @@ export default async function handler(req, res) {
                 if (history[0] === "No history") {
                     history.shift();
                 }
-                // await fsPromises.appendFile(dataFilePath, historyEntry);
                 history.push(historyEntry);
 
                 if (action === "update") {
@@ -181,7 +146,6 @@ export default async function handler(req, res) {
                 res.status(200).send("History updated!\n" + history.join(""));
             } else if (action === "comment" || action === "comment2") {
                 if (historyStatus === "empty") {
-                    // await fsPromises.writeFile(dataFilePath, "");
                     history = [];
                     historyStatus = "full";
                 }
@@ -190,7 +154,6 @@ export default async function handler(req, res) {
                 if (history[0] === "No history") {
                     history.shift();
                 }
-                // await fsPromises.appendFile(dataFilePath, historyEntry);
                 history.push(historyEntry);
 
                 if (action === "comment") {
@@ -215,7 +178,6 @@ export default async function handler(req, res) {
                 }
                 const newFilePath = path.join(process.cwd(), `./data/${pid}/${newFileName}.txt`);
                 await fsPromises.writeFile(newFilePath, history.join(""));
-                // await fsPromises.rename(dataFilePath, newFilePath);
     
                 res.status(200).send("History file moved!");
             } else if (action === "upload") {
@@ -226,7 +188,6 @@ export default async function handler(req, res) {
             }
             done = false;
         } catch (error) {
-            console.log(history);
             done = false;
             
             res.status(500).send("Error updating history file: " + error);

@@ -10,58 +10,7 @@ import "./css/PenAnnotation.css";
 import toolbarStyles from "./css/Toolbar.module.css";
 import { googleSans } from "../page";
 
-// function isHorizontalLine(coordinates) {
-//     if (coordinates.length < 2) {
-//         return false;
-//     }
-
-//     // function getDisplacement(point1, point2) {
-//     //     var dx = point2[0] - point1[0];
-//     //     var dy = point2[1] - point1[1];
-//     //     return dx * dx + dy * dy;
-//     // }
-
-//     // let totalDistance = coordinates.reduce((acc, curr, i) => {
-//     //     if (i === 0) {
-//     //         return acc;
-//     //     }
-//     //     return acc + getDisplacement(coordinates[i - 1], curr);
-//     // }, 0);
-//     // let totalDisplacement = getDisplacement(coordinates[0], coordinates[coordinates.length - 1]);
-    
-//     // if (totalDistance >= totalDisplacement * 1.5) {
-//     //     return false;
-//     // }
-//     let y = coordinates[0][1];
-
-//     for (let i = 1; i < coordinates.length; i++) {
-//         if (coordinates[i][1] < y - 20 || coordinates[i][1] > y + 20) {
-//             return false;
-//         }
-//     }
-
-//     let current = coordinates[0];
-//     let averageX = 0;
-//     let averageY = 0;
-
-//     for (let i = 1; i < coordinates.length; i++) {
-//         let next = coordinates[i];
-
-//         averageX += next[0] - current[0];
-//         averageY += next[1] - current[1];
-
-//         current = next;
-//     }
-//     averageX /= coordinates.length - 1;
-//     averageY /= coordinates.length - 1;
-
-//     console.log(averageX, averageY, averageX / averageY);
-
-//     return Math.abs(averageX / averageY) > 15;
-// }
-
 function isHorizontalLine(coords, maxYVariance = 7, maxDirectionChanges = 3) {
-    // Extract x and y values from coordinates
     if (coords.length < 2) {
         return false;
     }
@@ -73,31 +22,13 @@ function isHorizontalLine(coords, maxYVariance = 7, maxDirectionChanges = 3) {
             return false;
         }
     }
-    // const xVals = coords.map(pt => pt[0]);
     const yVals = coords.map(pt => pt[1]);
-
-    // Calculate the variance of y-values
     const meanY = yVals.reduce((a, b) => a + b) / yVals.length;
     const yVariance = yVals.reduce((sum, y) => sum + (y - meanY) ** 2, 0) / yVals.length;
 
-    // console.log(yVariance);
-
     if (yVariance > maxYVariance) {
-        return false; // Too much vertical variation for a horizontal line
+        return false;
     }
-
-    // Check if x-values move predominantly in one direction
-    // let directionChanges = 0;
-    // for (let i = 1; i < xVals.length - 1; i++) {
-    //     if ((xVals[i] - xVals[i - 1]) * (xVals[i + 1] - xVals[i]) < 0) {
-    //         directionChanges++;
-    //     }
-    // }
-
-    // if (directionChanges > maxDirectionChanges) {
-    //     return false; // Too many changes in direction for a straight line
-    // }
-
     return true;
 }
 
@@ -112,7 +43,7 @@ function findClosestLine(lines, point) {
         let len_sq = C * C + D * D;
         let param = -1;
 
-        if (len_sq !== 0) //in case of 0 length line
+        if (len_sq !== 0)
             param = dot / len_sq;
 
         let xx, yy;
@@ -156,7 +87,6 @@ function checkEnclosed(coords) {
         } else {
             lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
             gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
-            // console.log(lambda, gamma);
             return -1 <= lambda && lambda <= 2 && -1 <= gamma && gamma <= 2;
         }
     }
@@ -168,13 +98,6 @@ function checkEnclosed(coords) {
         return a * a + b * b;
     }
 
-    // let pt = d3.select(".pen-annotation-container svg").node().createSVGPoint();
-    // pt.x = 0;
-    // pt.y = 0;
-
-    // let transformedPt = pt.matrixTransform(d3.select(".pen-annotation-container svg").node().getScreenCTM().inverse());
-    // let offset = [transformedPt.x - pt.x, transformedPt.y - pt.y];
-
     loop1: for (let i1 = 0; i1 < coords.length / 3; i1++) {
         let samplePoint1 = 1;
 
@@ -185,14 +108,12 @@ function checkEnclosed(coords) {
 
         while (dist(x1, y1, x2, y2) < 900) {
             samplePoint1++;
-            // i1++;
 
             if (i1 + samplePoint1 >= coords.length / 3)
                 break loop1;
             x2 = coords[i1 + samplePoint1][0];
             y2 = coords[i1 + samplePoint1][1];
         }
-        // i1 += samplePoint1 - 1;
 
         loop2: for (let i2 = coords.length - 1; i2 >= (coords.length / 3) * 2; i2--) {
             let samplePoint2 = 1;
@@ -204,59 +125,12 @@ function checkEnclosed(coords) {
 
             while (dist(x3, y3, x4, y4) < 900) {
                 samplePoint2++;
-                // i2--;
 
                 if (i2 - samplePoint2 <= (coords.length / 3) * 2)
                     break loop2;
                 x4 = coords[i2 - samplePoint2][0];
                 y4 = coords[i2 - samplePoint2][1];
             }
-            // i2 -= samplePoint2 - 1;
-            // let intersect = intersects(x1, y1, x2, y2, x3, y3, x4, y4);
-
-            // d3.select("body")
-            // .append("div")
-            // .style("position", "absolute")
-            // .style("top", `${y1 - 5 - offset[1]}px`)
-            // .style("left", `${x1 - 5 - offset[0]}px`)
-            // .style("width", "10px")
-            // .style("height", "10px")
-            // .style("background-color", intersect ? "#A2FAA3" : "#E86A92")
-            // .style("border-radius", "50%")
-            // .style("z-index", "1000");
-            
-            // d3.select("body")
-            // .append("div")
-            // .style("position", "absolute")
-            // .style("top", `${y2 - 5 - offset[1]}px`)
-            // .style("left", `${x2 - 5 - offset[0]}px`)
-            // .style("width", "10px")
-            // .style("height", "10px")
-            // .style("background-color", intersect ? "#A2FAA3" : "#E86A92")
-            // .style("border-radius", "50%")
-            // .style("z-index", "1000");
-
-            // d3.select("body")
-            // .append("div")
-            // .style("position", "absolute")
-            // .style("top", `${y3 - 5 - offset[1]}px`)
-            // .style("left", `${x3 - 5 - offset[0]}px`)
-            // .style("width", "10px")
-            // .style("height", "10px")
-            // .style("background-color", intersect ? "#A2FAA3" : "#0075F2")
-            // .style("border-radius", "50%")
-            // .style("z-index", "1000");
-
-            // d3.select("body")
-            // .append("div")
-            // .style("position", "absolute")
-            // .style("top", `${y4 - 5 - offset[1]}px`)
-            // .style("left", `${x4 - 5 - offset[0]}px`)
-            // .style("width", "10px")
-            // .style("height", "10px")
-            // .style("background-color", intersect ? "#A2FAA3" : "#0075F2")
-            // .style("border-radius", "50%")
-            // .style("z-index", "1000");
 
             if (intersects(x1, y1, x2, y2, x3, y3, x4, y4)) {
                 return true;
@@ -295,8 +169,6 @@ function getDistanceFromPointToPath(point, path) {
 
 function nearPath(point, path) {
     let bbox = path.getBBox();
-
-    // If it is near 500 pixels of the bbox, return true
     let offset = 25;
 
     if (point.x < bbox.x + bbox.width + offset && point.x > bbox.x - offset && point.y < bbox.y + bbox.height + offset && point.y > bbox.y - offset) {
@@ -310,7 +182,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
     const svgRef = useRef();
     const svgPenSketch = useRef();
     const penCluster = useRef(new PenCluster());
-    // const lastCluster = useRef(null);
     const paragraphs = useRef([]);
     const [clustersState, setClusters] = useState([]);
     const [lockCluster, setLockCluster] = useState([]);
@@ -332,7 +203,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             let coords = d3.pointer(e);
             let [x, y] = coords;
             let closestCluster = null;
-            // let distancePromises = [];
 
             loop1: for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
                 if (!(cluster.purpose || cluster.purpose === false)) {
@@ -349,12 +219,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                                     closestCluster = cluster;
                                     break loop1;
                                 }
-                                // else if (nearPath({x: x, y: y}, path)) {
-                                //     distancePromises.push({
-                                //         cluster: cluster,
-                                //         distance: getDistanceFromPointToPath({x: x, y: y}, path)
-                                //     });
-                                // }
                             }
                         }
                     }
@@ -382,13 +246,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
 
                         hoverTimeout.current = setTimeout(() => {
                             let closeClusters = [];
-                            // let id = closestCluster.strokes[closestCluster.strokes.length - 1].id;
-                            // let findClosestCluster = lockClusterRef.current.find(cluster => cluster.strokes.find(stroke => stroke.id === id));
-                            // let ifOpen = findClosestCluster?.open ? true : false;
-                            // console.log(ifOpen, id);
-                            // if (findClosestCluster?.open) {
-                            //     return;
-                            // }
 
                             if (!hasTouchScreen) {
                                 for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
@@ -434,11 +291,7 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             closestCluster.open = false;
 
                             if (onNewActiveCluster instanceof Function) {
-                                // if (closestCluster.open) {
                                 onNewActiveCluster(closestCluster);
-                                // } else {
-                                //     onNewActiveCluster(null);
-                                // }
                             }
                             activeCluster.current = closestCluster;
                             setClusters([...clustersRef.current]);
@@ -451,36 +304,9 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 } else {
                     clearTimeout(hoverTimeout.current);
                     hoveredCluster.current = null;
-
-                    // if (hasTouchScreen) {
-                    //     activeCluster.current = null;
-                    //     for (let cluster of [...clustersRef.current]) {
-                    //         cluster.disabled = true;
-                    //         cluster.open = false;
-                    //     }
-                        
-                    //     for (let cluster of [...lockClusterRef.current]) {
-                    //         cluster.open = false;
-                    //     }
-                    //     setClusters([...clustersRef.current]);
-                    //     setLockCluster([...lockClusterRef.current]);
-                    // }
                 }
             };
-
-            // if (!closestCluster) {
-            //     Promise.all(distancePromises.map(promise => promise.distance)).then(distances => {
-            //         let minDistance = Math.min(...distances);
-
-            //         if (minDistance < 625) {
-            //             let closestClusterIndex = distances.findIndex(distance => distance === minDistance);
-            //             closestCluster = distancePromises[closestClusterIndex].cluster;
-            //         }
-            //         processClosestCluster(closestCluster);
-            //     });
-            // } else {
             processClosestCluster(closestCluster);
-            // }
         }
     }, [onNewActiveCluster]);
 
@@ -502,7 +328,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         let hasTouchScreen = navigator.maxTouchPoints > 0;
 
         svgPenSketch.current._element
-        // .on("pointermove.hover", (e) => {
         .on(hasTouchScreen ? "pointerdown.hover" : "pointermove.hover", (e) => {
             if (hasTouchScreen && e.pointerType !== "touch") {
                 return;
@@ -512,10 +337,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 handleHover(e);
             }
         });
-        // .on("pointerleave.hover", () => {
-        //     clearTimeout(hoverTimeout.current);
-        //     hoveredCluster.current = null;
-        // });
 
         return () => {
             svgPenSketch.current._element
@@ -548,17 +369,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
             activeCluster.current = null;
 
             window.getSelection().removeAllRanges();
-
-            // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-            //     cluster.disabled = true;
-            //     cluster.open = false;
-            // }
-            // setClusters([...clustersRef.current]);
-            // setLockCluster([...lockClusterRef.current]);
-            // activeCluster.current = null;
-            
-            // if (onNewActiveCluster instanceof Function)
-            //     onNewActiveCluster(null);
 
             if (eraseStartCallback instanceof Function) {
                 eraseStartCallback();
@@ -598,17 +408,11 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     if (onEraseCallback instanceof Function) {
                         onEraseCallback(newLockCluster[findLockStroke], path.id, index);
                     }
-                    // setLockCluster(newLockCluster.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
                     lockClusterRef.current = newLockCluster;
                     setLockCluster(newLockCluster);
                 }
                 penCluster.current.remove(path.id);
             }
-
-            // if (affectedPaths.length !== 0) {
-            // console.log(newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")));
-                
-            // }
         };
     }, [onEraseCallback, index]);
 
@@ -652,17 +456,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 }
                 return;
             }
-            // for (let cluster of [...clustersRef.current].concat([...lockClusterRef.current])) {
-            //     cluster.disabled = true;
-            //     cluster.open = false;
-            // }
-            // activeCluster.current = null;
-
-            // if (onNewActiveCluster instanceof Function)
-            //     onNewActiveCluster(null);
-            
-            // setClusters([...clustersRef.current]);
-            // setLockCluster([...lockClusterRef.current]);
             hoveredCluster.current = null;
             activeCluster.current = null;
             clearTimeout(hoverTimeout.current);
@@ -690,22 +483,8 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
     let startTime = useRef(null);
 
     let clusterStrokes = async (clusters, stopIteration) => {
-        console.log(clusters, stopIteration);
         let newClusterArray = clusters[stopIteration[stopIteration.length - 1]];
-        // let noText = true;
-
-        // loop1: for (let i = stopIteration[stopIteration.length - 1]; i < clusters.length; i++) {
-        //     for (let stroke of clusters[i][clusters[i].length - 1].strokes) {
-        //         lastCluster = clusters[i][clusters[i].length - 1];
-
-        //         if (stroke.annotatedText !== "") {
-        //             console.log(clusters[i]);
-        //             break loop1;
-        //         }
-        //     }
-        // }
         let newClusters = [...clustersRef.current];
-        // lastCluster.current = newClusterArray[newClusterArray.length - 1];
 
         for (let c of newClusterArray) {
             if (c.strokes.length === 0) {
@@ -726,7 +505,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         newClusters = newClusters.filter(cluster => cluster.strokes.length > 0 && !(cluster.strokes.length === 1 && cluster.strokes[0].id === "initial")).sort((a, b) => a.lastestTimestamp - b.lastestTimestamp);
         clustersRef.current = newClusters;
         setClusters(newClusters);
-        // onChange(c, index);
     };
 
     useEffect(() => {
@@ -801,40 +579,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             line.push(word);
                         }
                         lines.push(line);
-                        // console.log(lines);
-
-                        // let newLines = [];
-
-                        // for (let line of lines) {
-                        //     let xDistances = line.map((word, i) => {
-                        //         if (i === 0) {
-                        //             return null;
-                        //         }
-                        //         return line[i].getBoundingClientRect().left - line[i - 1].getBoundingClientRect().right;
-                        //     }
-                        //     );
-                        //     let xDistance = d3.mean(xDistances);
-                        //     let newLine = [];
-
-                        //     for (let word of line) {
-                        //         let closestWordRect = word.getBoundingClientRect();
-
-                        //         if (newLine.length === 0) {
-                        //             newLine.push(word);
-                        //         } else {
-                        //             let prevWordRect = newLine[newLine.length - 1].getBoundingClientRect();
-
-                        //             if (closestWordRect.left - prevWordRect.right - xDistance / 2 <= xDistance) {
-                        //                 newLine.push(word);
-                        //             } else {
-                        //                 newLines.push(newLine);
-                        //                 newLine = [word];
-                        //             }
-                        //         }
-                        //     }
-                        //     newLines.push(newLine);
-                        // }
-                        // console.log(newLines);
                 
                         let yDistances = lines.map((line, i) => {
                             if (i === 0) {
@@ -885,28 +629,15 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                         let closestWordRect = word.getBoundingClientRect();
 
                         if (closestWordRect.top > prevYCoord + 5) {
-                            // text.push("\n");
                             prevYCoord = closestWordRect.top;
                         }
                         text.push(word);
 
-                        // if (type !== "underlined_character") {
-                        //     text.push(" ");
-                        // }
                         textBBox.x1 = Math.min(textBBox.x1, closestWordRect.left);
                         textBBox.y1 = Math.min(textBBox.y1, closestWordRect.top - pageTop);
                         textBBox.x2 = Math.max(textBBox.x2, closestWordRect.right);
                         textBBox.y2 = Math.max(textBBox.y2, closestWordRect.bottom - pageTop);
 
-                        // d3.select("body")
-                        // .append("div")
-                        // .style("position", "absolute")
-                        // .attr("class", "highlighted-word")
-                        // .style("top", `${closestWordRect.top + window.scrollY}px`)
-                        // .style("left", `${closestWordRect.left}px`)
-                        // .style("width", `${closestWordRect.width}px`)
-                        // .style("height", `${closestWordRect.height}px`)
-                        // .style("border", (d3.select(word).attr("class") === "word" ? "2px solid red" : "1px solid green"));
                     }
                 }
                 let pathBbox = path.getBoundingClientRect();
@@ -921,8 +652,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             let y2 = d3.max(line.map(word => word.getBoundingClientRect().bottom - pageTop));
 
                             if ((pathBbox.y < y2 || pathBbox.y + pathBbox.height < y2) && (pathBbox.y > y1 || pathBbox.y + pathBbox.height > y1)) {
-                                // marginalText += paragraph.map(line => line.map(word => word).join(" ")).join(" ") + " ";
-                                
                                 for (let word of line) {
                                     marginalText.push(word);
                                 }
@@ -953,7 +682,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                                 marginalText.push(word);
                             }
                         }
-                        // console.log(closestParagraph);
                         marginalTextBBox.x1 = Math.min(marginalTextBBox.x1, d3.min(closestParagraph.map(line => d3.min(line.map(word => word.getBoundingClientRect().left)))));
                         marginalTextBBox.y1 = Math.min(marginalTextBBox.y1, y1);
                         marginalTextBBox.x2 = Math.max(marginalTextBBox.x2, d3.max(closestParagraph.map(line => d3.max(line.map(word => word.getBoundingClientRect().right)))));
@@ -977,14 +705,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             }
                         }
                     }
-                    // d3.select("body")
-                    // .append("div")
-                    // .style("position", "absolute")
-                    // .style("top", `${lineBBox.y1 + window.scrollY + pageTop}px`)
-                    // .style("left", `${lineBBox.x1}px`)
-                    // .style("width", `${lineBBox.x2 - lineBBox.x1}px`)
-                    // .style("height", `${lineBBox.y2 - lineBBox.y1}px`)
-                    // .style("border", "2px solid red");
                 }
 
                 if (tool.current === "highlighter") {
@@ -999,9 +719,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                 newStroke.textBbox = newStroke.normalizeBoundingBox({x: textBBox.x1, y: textBBox.y1, width: textBBox.x2 - textBBox.x1, height: textBBox.y2 - textBBox.y1});
                 newStroke.marginalTextBbox = newStroke.normalizeBoundingBox({x: marginalTextBBox.x1, y: marginalTextBBox.y1, width: marginalTextBBox.x2 - marginalTextBBox.x1, height: marginalTextBBox.y2 - marginalTextBBox.y1});
                 newStroke.lineBbox = newStroke.normalizeBoundingBox({x: lineBBox.x1, y: lineBBox.y1, width: lineBBox.x2 - lineBBox.x1, height: lineBBox.y2 - lineBBox.y1});
-
-                // timeout.current = setTimeout(() => {
-                // }, 1000);
 
                 if (penEndCallback instanceof Function) {
                     penEndCallback({ path, stroke: newStroke, page: index });
@@ -1083,20 +800,8 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             if (e.data !== undefined && e.data.x1 !== undefined) {
                                 let line = rectLines.find(line => line.x1 === e.data.x1 && line.y1 === e.data.y1 && line.x2 === e.data.x2 && line.y2 === e.data.y2);
 
-                                // d3.select("body")
-                                // .append("div")
-                                // .style("position", "absolute")
-                                // .style("top", `${e.data.coord[1] + window.scrollY}px`)
-                                // .style("left", `${e.data.coord[0]}px`)
-                                // .style("width", "5px")
-                                // .style("height", "5px")
-                                // .style("background-color", line.type === "underlined" ? "#89043D" : "#0075F2")
-                                // .style("border-radius", "50%");
-
                                 if (line !== undefined) {
                                     wordsOfInterest.push({ ...line, coord: e.data.coord, type: line.type });
-                                } else {
-                                    console.log(e.data, line);
                                 }
                             }
                             length++;
@@ -1181,7 +886,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                         checkLineWords(characters)
                         .then(results => {
                             let [char, type] = results;
-                            // let parentNode = new Set(char.map(c => c.element.parentNode));
 
                             processWords(char, type + "_character");
                         });
@@ -1190,24 +894,13 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     }
                 });
             } else {
-                // Distance of the first coord and the last coord
                 let wordsOfInterest = [], annotatedWordsOfInterest = [], boxWordsOfInterest = [];
                 let distance = (coords[0][0] - coords[coords.length - 1][0]) ** 2 + (coords[0][1] - coords[coords.length - 1][1]) ** 2;
                 let type = "annotated";
 
-                // let shape = ShapeInfo.path(d3.select(path).attr("d"));
                 let words = d3.select(".react-pdf__Page.page-" + index).select(".textLayer").selectAll("span.word").nodes();
                 let pathBoundingBox = path.getBoundingClientRect();
                 let svgBoundingBox = svgRef.current.getBoundingClientRect();
-                            
-                // d3.select(svgRef.current)
-                // .append("rect")
-                // .attr("x", pathBoundingBox.left)
-                // .attr("y", pathBoundingBox.top - svgBoundingBox.top)
-                // .attr("width", pathBoundingBox.width)
-                // .attr("height", pathBoundingBox.height)
-                // .attr("fill", "none")
-                // .attr("stroke", "black");
 
                 let checkContainWords = (words) => {
                     let worker = new Worker(new URL("../../workers/checkContain.js", import.meta.url));
@@ -1226,14 +919,11 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                         svgPoint2.y = rect.bottom - svgBoundingBox.top;
                         svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
 
-                        // console.log("Sending message to worker");
-
                         worker.postMessage({ 
                             rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }, 
                             pathBoundingBox: pathBoundingBox,
                             svgBoundingBox: svgBoundingBox,
                             coords: coords,
-                            // checkCenter: checkCenter,
                             i: i,
                             svgPoint: { x: svgPoint.x, y: svgPoint.y },
                             svgPoint2: { x: svgPoint2.x, y: svgPoint2.y },
@@ -1247,52 +937,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                             done++;
 
                             if (e.data.containCenter) {
-                                // let rect = words[e.data.i].getBoundingClientRect();
-                                
-                                // let svgPoint = svgRef.current.createSVGPoint();
-                                // svgPoint.x = rect.left;
-                                // svgPoint.y = rect.top - svgBoundingBox.top;
-                                // svgPoint = svgPoint.matrixTransform(svgRef.current.getScreenCTM());
-        
-                                // let svgPoint2 = svgRef.current.createSVGPoint();
-                                // svgPoint2.x = rect.right;
-                                // svgPoint2.y = rect.bottom - svgBoundingBox.top;
-                                // svgPoint2 = svgPoint2.matrixTransform(svgRef.current.getScreenCTM());
-
-                                // let center = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 2, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2];
-                                // let rightCenter = [svgPoint2.x - (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 2 + (svgPoint2.y - svgPoint.y) / 4];
-                                // let leftCenter = [svgPoint.x + (svgPoint2.x - svgPoint.x) / 4, svgPoint.y - svgBoundingBox.top + (svgPoint2.y - svgPoint.y) / 4];     
-
-                                // d3.select(svgRef.current)
-                                // .append("rect")
-                                // .attr("x", svgPoint.x)
-                                // .attr("y", svgPoint.y - svgBoundingBox.top)
-                                // .attr("width", svgPoint2.x - svgPoint.x)
-                                // .attr("height", svgPoint2.y - svgPoint.y)
-                                // .attr("fill", "none")
-                                // .attr("stroke", "black");
-
-                                // d3.select(svgRef.current)
-                                // .append("circle")
-                                // .attr("cx", center[0])
-                                // .attr("cy", center[1])
-                                // .attr("r", 2)
-                                // .attr("fill", "black");
-
-                                // d3.select(svgRef.current)
-                                // .append("circle")
-                                // .attr("cx", rightCenter[0])
-                                // .attr("cy", rightCenter[1])
-                                // .attr("r", 2)
-                                // .attr("fill", "black");
-
-                                // d3.select(svgRef.current)
-                                // .append("circle")
-                                // .attr("cx", leftCenter[0])
-                                // .attr("cy", leftCenter[1])
-                                // .attr("r", 2)
-                                // .attr("fill", "black");
-
                                 wordsOfInterest.push({ element: words[e.data.i] });
                             }
 
@@ -1360,10 +1004,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                         }
                     });
                 }
-                
-                // if (wordsOfInterest.length === 0) {
-                //     checkContainWords(words, false);
-                // }
             }
         };
     }, [index, tool, penEndCallback, eraseEndCallback]);
@@ -1402,12 +1042,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
                     c.open = false;
                 }
             }
-            // let newCluster = new Cluster(cluster.strokes);
-            // newCluster.lastestTimestamp = cluster.lastestTimestamp;
-            // newCluster.open = true;
-            // newCluster.x = cluster.x;
-            // newCluster.y = cluster.y;
-            // newCluster.purpose = cluster.purpose;
 
             setLockCluster([...lockClusterRef.current, cluster]);
             lockClusterRef.current = [...lockClusterRef.current, cluster];
@@ -1453,7 +1087,6 @@ function PenAnnotation({ mode, content, index, tool, colour, toolTipRef, handine
         if (findCluster !== -1) {
             let newLockCluster = [...lockClusterRef.current];
             newLockCluster[findCluster].purpose = cluster.purpose;
-            // newLockCluster[findCluster].open = cluster.open;
             setLockCluster(newLockCluster);
 
             if (onInferenceCallback instanceof Function) {

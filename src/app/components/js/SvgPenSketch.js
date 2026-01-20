@@ -117,11 +117,6 @@ export default class SvgPenSketch {
         let paths = [];
         let elements = [];
 
-        // let includes = el => {
-        //     return paths.includes(el);
-        // };
-        // d3.selectAll(".canvasElement").style("pointer-events", "visible");
-
         // Get the paths in the eraser's range        
         let lineDraw = this._element.selectAll("path.lineDraw").nodes();
         let linePaths = [];
@@ -180,16 +175,8 @@ export default class SvgPenSketch {
     // Remove a stroke if it's within range and the mouse is over it
     removePaths(x, y, eraserSize = 1) {
         // Prep variables
-        // let removedPathIDs = [];
-
         // Get paths in the eraser's range
         let paths = this.getPathsinRange(x, y, eraserSize);
-
-        // for (let path of paths) {
-        //     removedPathIDs.push(d3.select(path).attr("id"));
-        //     d3.select(path).remove();
-        // }
-
         return paths;
     }
 
@@ -396,7 +383,6 @@ export default class SvgPenSketch {
         for (let styleName in this.strokeStyles) {
             strokePath.style(styleName, this.strokeStyles[styleName]);
         }
-        // strokePath.attr("transform", `translate(${this.transform.x}, ${this.transform.y}) scale(${this.transform.k})`);
 
         return strokePath;
     }
@@ -408,7 +394,6 @@ export default class SvgPenSketch {
         pt.y = event.clientY;
 
         let transformedPt = pt.matrixTransform(this.getElement().getScreenCTM().inverse());
-        // transformedPt = [(transformedPt.x - this.transform.x) / this.transform.k, (transformedPt.y - this.transform.y) / this.transform.k]
         return [transformedPt.x, transformedPt.y];
     }
 
@@ -475,7 +460,6 @@ export default class SvgPenSketch {
         this._element.on("pointerleave", null);
 
         // Interpolate the path if needed
-        // this._interpolateStroke(strokePath, penCoords);
 
         // Call the callback
         if (this.penUpCallback !== undefined) {
@@ -488,7 +472,6 @@ export default class SvgPenSketch {
         if (this._currPointerEvent.pointerType !== "touch") {
             let [mouseX, mouseY] = this._getMousePos(this._currPointerEvent);
             let [x, y] = [this._eraserHandle.attr("cx"), this._eraserHandle.attr("cy")];
-            // console.log(x, y);
             // Add the points
             eraserCoords.push([x, y]);
 

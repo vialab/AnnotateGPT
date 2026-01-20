@@ -70,7 +70,6 @@ parentPort.on("message", (e) => {
         processQueue();
         const distance = e.distance;
         const substring = e.a;
-        // const target = e.data.b;
         
         if (distance < minDistance) {
             minDistance = distance;

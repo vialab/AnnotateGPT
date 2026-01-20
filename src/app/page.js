@@ -8,7 +8,6 @@ import { ToastContainer, toast, Flip } from "react-toastify";
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "firebase/auth";
 import { getFirestore, addDoc, collection } from "firebase/firestore";
-import AnimatedCursor from "react-animated-cursor";
 import AnnotateGPT from "./components/AnnotateGPT.js";
 
 import Header from "../app/components/Header.js";
@@ -98,9 +97,6 @@ export default function Home() {
                 return res.text().then(text => { throw new Error(text); });
             return res.text();
         })
-        .then(data => {
-            console.log(data);
-        })
         .catch(err => {
             console.error("clearStoreHistory:", err);
 
@@ -136,9 +132,6 @@ export default function Home() {
                 return res.text().then(text => { throw new Error(text); });
             return res.text();
         })
-        .then(data => {
-            console.log(data);
-        })
         .catch(err => {
             console.error("clearStoreHistory:", err);
 
@@ -169,9 +162,6 @@ export default function Home() {
                         return res.text().then(text => { throw new Error(text); });
                     return res.text();
                 })
-                .then(data => {
-                    console.log(data);
-                })
                 .catch(err => {
                     console.error("moveHistory:", err);
 
@@ -200,9 +190,6 @@ export default function Home() {
 
                             retry(() => {
                                 addDoc(userDocRef, userData)
-                                .then(() => {
-                                    console.log("User data stored successfully");
-                                })
                                 .catch((err) => {
                                     console.error("sendData:", err);
 
@@ -240,7 +227,6 @@ export default function Home() {
     }, [moveHistory]);
 
     const documents = ["./public/Test 1.pdf", "./public/Test 2.pdf"];
-    // const llmOrder = [true, false];
 
     let checkTask = () => {
         let continueStudy = true;
@@ -317,8 +303,6 @@ export default function Home() {
             setToastMessage(null);
             
             setDisableNext(false);
-            // practiceMessageIndex.current = 0;
-            // console.log("Test")
         } else {
             setDocument("./public/Practice.pdf");
             setMode("practice" + nextMode);
@@ -387,9 +371,6 @@ export default function Home() {
                         return res.text().then(text => { throw new Error(text); });
                     return res.text();
                 })
-                .then(data => {
-                    console.log(data);
-                })
                 .catch(err => {
                     console.error("sendData:", err);
 
@@ -411,9 +392,6 @@ export default function Home() {
 
                         retry(() => {
                             addDoc(userDocRef, userData)
-                            .then(() => {
-                                console.log("User data stored successfully");
-                            })
                             .catch((err) => {
                                 console.error("sendData:", err);
 
@@ -626,13 +604,10 @@ export default function Home() {
             initiateProcessClusters();
     };
 
-    // console.log(annotationeRef)
-
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 userRef.current = user;
-                console.log("Signed in anonymously");
             } else {
                 try {
                     let user = await signInAnonymously(auth);
@@ -675,51 +650,6 @@ export default function Home() {
         setSvgContent([]);
         setScreen(null);
     }, [document]);
-
-    // let disabled = useRef(false);
-
-    // useEffect(() => {
-    //     const handleClick = (e) => {
-    //         if (disabled.current) {
-    //             return;
-    //         }
-
-    //         // Left click
-    //         if (e.button === 0) {
-    //             d3.select(":root").style("--cursor-color-inner", "#fd373732");
-    //             d3.select(":root").style("--cursor-color-outer", "#fd3737");
-    //         } else if (e.button === 2) {
-    //             d3.select(":root").style("--cursor-color-inner", "#3696e232");
-    //             d3.select(":root").style("--cursor-color-outer", "#3696e2");
-    //         }
-    //     };
-        
-    //     const handleMouseUp = () => {
-    //         if (disabled.current) {
-    //             return;
-    //         }
-    //         d3.select(":root").style("--cursor-color-inner", "#ffa00032");
-    //         d3.select(":root").style("--cursor-color-outer", "#ffa000");
-    //     };
-
-    //     const handleKeyDown = (event) => {
-    //         if (event.ctrlKey && event.key === "c") {
-    //             d3.select(":root").style("--cursor-color-inner", d3.select(":root").style("--cursor-color-inner") === "none" ? "#ffa00032" : "none");
-    //             d3.select(":root").style("--cursor-color-outer", d3.select(":root").style("--cursor-color-outer") === "none" ? "#ffa000" : "none");
-    //             disabled.current = !disabled.current;
-    //         }
-    //     };
-        
-    //     window.addEventListener("mousedown", handleClick);
-    //     window.addEventListener("mouseup", handleMouseUp);
-    //     window.addEventListener("keydown", handleKeyDown);
-
-    //     return () => {
-    //         window.removeEventListener("mousedown", handleClick);
-    //         window.removeEventListener("mouseup", handleMouseUp);
-    //         window.removeEventListener("keydown", handleKeyDown);
-    //     };
-    // }, []);
 
     return (
         <>
@@ -781,33 +711,10 @@ export default function Home() {
                 fileHandler={fileHandler}
                 clustersData={clustersData}
             />
-            {/* <AnimatedCursor 
-                color="193, 11, 111, 1"
-                innerSize={30}
-                outerSize={32}
-                innerScale={0.7}
-                outerScale={0.7}
-                outerAlpha={0}
-                trailingSpeed={1}
-                hasBlendMode={true}
-                showSystemCursor={true}
-                innerStyle={{
-                    border: "5px solid var(--cursor-color-inner)",
-                    borderRadius: "40%",
-                    willChange: "top, left"
-                }}
-                outerStyle={{
-                    border: "3px solid var(--cursor-color-outer)",
-                    borderRadius: "40%",
-                    willChange: "top, left"
-                }}
-                clickables={["a"]}
-            /> */}
             <ToastContainer
                 containerId="studyMessage"
                 position="top-center"
                 autoClose={false}
-                // limit={1}
                 closeButton={false}
                 newestOnTop
                 closeOnClick={false}

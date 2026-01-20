@@ -45,17 +45,14 @@ async function runWorker(data) {
             done2++;
             activeMessages--;
             processQueue();
-            // console.log("Distance", distance, e.data.a, e.data.b);
 
             if (distance < substring.length / 2) {
-                // console.log("Cut", lastToken.sentence.trim());
                 resolve({ duplicate: true, distance, substring, i, i2 });
                 worker.terminate();
                 return;
             }
 
             if (done2 === executed2) {
-                // console.log("Annotating", lastToken.sentence.trim());
                 resolve({ duplicate: false, distance, substring, i, i2 });
                 worker.terminate();
             }
@@ -69,14 +66,11 @@ async function runWorker(data) {
         for (let i = 0; i < setUpAnnotatedTokens.length - 1; i++) {
             let sentences = setUpAnnotatedTokens[i].sentence.trim();
             let sentencesSplit = split(sentences).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
-            // console.log("Split", sentencesSplit);
 
             for (let sentence of sentencesSplit) {
                 let sentencesSplit2 = split(lastToken.sentence.trim()).map((sentence) => sentence.raw).filter((sentence) => sentence.trim() !== "");
 
                 for (let sentence2 of sentencesSplit2) {
-                    // console.log("Comparing", sentence, "||", sentence2);
-
                     executed2++;
                     sendMessageToWorker({ a: sentence, b: sentence2, i, i2: setUpAnnotatedTokens.length - 1 });
                 }

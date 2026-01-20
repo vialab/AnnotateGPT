@@ -7,7 +7,6 @@ import * as d3 from "d3";
 import { Comment, MagnifyingGlass } from "react-loader-spinner";
 import { Tooltip } from "react-tooltip";
 import { autoPlacement } from "@floating-ui/dom";
-// import { RxCheck, RxCross2 } from "react-icons/rx";
 import { FaThumbsUp, FaThumbsDown, FaExclamation } from "react-icons/fa";
 import { split } from "sentence-splitter";
 import { toast } from "react-toastify";
@@ -26,9 +25,6 @@ import "react-tooltip/dist/react-tooltip.css";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import "./css/AnnotateGPT.css";
-// import PathExtras from "./js/PathExtras.js";
-
-// pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -38,7 +34,6 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
 export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, onInferenceCallback, onEndAnnotateCallback, navigateCallback, onReplyCallback, svgContent, screen, mode, annotateRef, handiness, disabled, clustersData }) {
     const defaultColour = "#3f51b5";
 
-    // const [numPages, setNumPages] = useState();
     const [colour, setColour] = useState(defaultColour);
     const [pageContent, setPageContent] = useState([]);
     const [penAnnotation, setPenAnnotation] = useState([]);
@@ -77,7 +72,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
         for (let i = 0; i < leadingSpaces; i++) {
             content += `<span class="space"> </span>`;
-            // d3.select(span).append("span").text(" ").attr("class", "space").style("user-select", "none");
         }
 
         words.forEach((word, i) => {
@@ -106,8 +100,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
     async function onDocumentLoadSuccess(pdf) {
         let numPages = pdf.numPages;
-        // numPages = 8;
-        // setNumPages(numPages);
         numPagesRef.current = numPages;
         svgContentRef.current = Array(numPages).fill(null);
         textContent.current = Array(numPages).fill(null);
@@ -149,7 +141,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
     useEffect(() => {
         modeRef.current = mode;
-        // console.log(mode);
 
         for (let penAnnotation of penAnnotationRef.current) {
             penAnnotation.current?.setMode(mode);
@@ -173,13 +164,7 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 let svgContent = svg.svg;
                 let strokeID = svg.id;
 
-                if (page && svgContent && strokeID) {
-                    // let penAnnnotationRef = penAnnotationRef.current[page - 1];
-                    // d3.select(penAnnnotationRef.current.svgRef).html(d3.select(penAnnnotationRef.current.svgRef).html() + svgContent.replace("lineDraw", ""));
-                    // let pathD = svgContent.match(/d="[^"]*"/g);
-                    
-                    // console.log(PathExtras.getStrokeFromSvgPath(pathD));
-                    
+                if (page && svgContent && strokeID) {                    
                     if (newStrokes.has(page)) {
                         newStrokes.get(page).push([strokeID, svg]);
                     } else {
@@ -187,7 +172,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
                 }
             }
-            // console.log(newStrokes);
 
             for (let [page, svgContent] of newStrokes) {
                 let penAnnnotationRef = penAnnotationRef.current[page - 1];
@@ -278,8 +262,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         page,
                         svg.endTime
                     );
-
-                    // console.log(penAnnnotationRef.current.penCluster);
                 }
 
                 if (strokeAdded) {
@@ -338,66 +320,16 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     }, [screen, loading, loadingDocument]);
 
     function onLoad(index) {
-        // let spanPresentation = d3.select(".react-pdf__Page.page-" + index)
-        // .select(".textLayer")
-        // .selectAll("span[role='presentation']")
-        // .nodes();
-
         let text = d3.select(".react-pdf__Page.page-" + index)
         .selectAll("span[role='presentation']")
         .nodes();
 
         let height = d3.select(".page-container").node().getBoundingClientRect().height;
         let width = d3.select(".page-container").node().getBoundingClientRect().width;
-        // let top = d3.select(".annotateContainer").node().getBoundingClientRect().top;
-
-        // if (top >= 0)
         setMinimapHeight(window.innerHeight);
 
         d3.select(".pen-annotation-container").style("--annotation-height", height + "px");
         d3.select(".pen-annotation-container").style("--annotation-width", width + "px");
-
-        // spanPresentation.forEach((span) => {
-        //     let text = span.textContent;
-        //     let leadingSpaces = text.match(/^ */)[0].length;
-        //     let trailingSpaces = text.match(/ *$/)[0].length;
-        //     let words = text.split(" ").filter((word) => word !== "");
-        //     d3.select(span).text("");
-
-        //     for (let i = 0; i < leadingSpaces; i++) {
-        //         d3.select(span).append("span").text(" ").attr("class", "space").style("user-select", "none");
-        //     }
-
-        //     words.forEach((word, i) => {
-        //         let characters = word.split("");
-
-        //         let wordSpan = d3.select(span)
-        //         .append("span")
-        //         .style("position", "relative")
-        //         .style("left", "0px")
-        //         .style("top", "0px")
-        //         .attr("class", "word");
-
-        //         characters.forEach((character, j) => {
-        //             wordSpan.append("span")
-        //             .text(character)
-        //             .style("position", "relative")
-        //             .style("left", "0px")
-        //             .style("top", "0px")
-        //             .attr("class", "character");
-        //         });
-
-        //         if (i !== words.length - 1) {
-        //             d3.select(span).append("span").text(" ").attr("class", "space").style("position", "relative").style("user-select", "none");
-        //         }
-        //     });
-
-        //     if (words.length !== 0) {
-        //         for (let i = 0; i < trailingSpaces; i++) {
-        //             d3.select(span).append("span").text(" ").attr("class", "space").style("user-select", "none");
-        //         }
-        //     }
-        // });
 
         textContent.current[index - 1] = text;
         
@@ -437,20 +369,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             setLoading(false);
 
             d3.selectAll(".page-container").style("content-visibility", "auto");
-            // setUpAnnotations("")
-            // setUpAnnotations("");
-            // setUpAnnotations(""); 
-
-            // annotate("Brain-computer interfaces acquire the wearer’s brain signals and analyze them to execute the desired action")
-            // annotate("As technology becomes more integrated into our lives");
-            // annotate("The optimal method when adding another device is to integrate it with the mounted camera rather than wearing two separate devices.");
-            // annotate("Touch-less gestures were used to interact with the camera minimizing the user touching the device");
-            // annotate("Selecting different objects with just our eyes alone can be difficult as unintentional fixations and arbitrary dwell times can occur when users are engaged in another activity also know as the Midas Touch problem [12]. To remove these false positives a BCI was used to replace dwell times with a mental command. There are three different types of BCIs [12]: Active BCI: Derives its outputs from brain activity that is directly consciously controlled by the user independently from external events for controlling an application. Reactive BCI: Derives its outputs from brain activity arising in reaction to external stimulation which is indirectly modulated by the user for controlling an application. Passive BCI: Derives its outputs from arbitrary brain activity without the purpose of voluntary control for enriching an HCI with implicit information. Active BCIs was used in this work as well combining eye-tracking as the second input modality creating a hybrid BCI [12].");
-            // annotate("The effectivenes of the hybrid BCI has been evaluated by comparing past methods of search and selecting methods [10 12]. Giving voluntary control when the selection happens gives more accurate selections [12]. Although hybrid BCIs performed slower than stand-alone eye-tracking devices [12] hybrid BCIs outperformed in terms of user-friendliness and more users achieved reliable control than pure eye-tracking [10]. This work uses search and select methods proposed by hybrid BCIs to ensure the users have reliable control while maintaining user-friendliness and touch-free interactions with the device");
-            // annotate("Hand gestures have been used to interact with software applications [1 9]. Alkemade Verbeek and Lukosch [1] used hand gestures to select what tools the user wants from the CAD software in a virtual environment. They have also explored in choosing natural gestures to relate with the conceptual design so that it establishes a useful set of gestures to improve the efficiency of the gesture-based interface [1]. Hand gestures are very flexible and can be distinct from each other with little changes to our hands. For example, the number of fingers held up and orientation of the hand [9]. This relates to the work on how gestures were chosen and how they can interact with the camera");
-            // annotate("Audio feedback allows the system to ask users questions about the mode or describe further details about the photo taken");
-            // annotate("The effectivenes of the hybrid BCI has been evaluated by comparing past methods of search and selecting methods [10 12].");
-            // annotate("Although hybrid BCIs performed slower than standalone eye-tracking devices, hybrid BCIs outperformed in terms of user-friendliness and more users achieved reliable control than pure eye-tracking.");
         } else {
             let progress = textContent.current.filter((text) => text !== null).length / textContent.current.length;
             setProgress(Math.floor(progress * 100));
@@ -519,9 +437,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
         let callback = (result, lastToken) => {
             done++;
-            // console.log(result);
-            // console.log("Done", done, cutIndex.length, setUpAnnotatedTokens.length, finish);
-            // console.log(setUpAnnotatedTokens);
 
             if (result instanceof Array && result.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0) {
                 result = result.filter(r => r instanceof Element);
@@ -544,32 +459,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 .classed("fade", activeAnnotation.current && !(activeAnnotation.current instanceof Element) && !activeAnnotation.current.spans.some((r) => result.includes(r)));
 
                 lastToken.spans = result;
-
-                // loop1: for (let i = 0; i < setUpAnnotatedTokens.length; i++) {
-                //     for (let j = i + 1; j < setUpAnnotatedTokens.length; j++) {
-                //         let spans1 = setUpAnnotatedTokens[i].spans;
-                //         let spans2 = setUpAnnotatedTokens[j].spans;
-                        
-                //         for (let span1 of spans1) {
-                //             for (let span2 of spans2) {
-                //                 if (span1 === span2) {
-                //                     let cut = spans1.length > spans2.length ? [j, i] : [i, j];
-                //                     cutIndex.push(cut);
-                //                     setUpAnnotatedTokens[cut[1]].accepted = false;
-                //                     done--;
-                //                     break loop1;
-                //                 }
-                //             }
-                //         }
-                //     }
-                // }
                 getTargetSpans(lastToken);
 
                 if (onDetect instanceof Function) {
                     onDetect([...setUpAnnotatedTokens].filter(annotation => annotation.spans.filter(r => r instanceof Element && r.textContent.replace(/[^a-zA-Z0-9]/g, "").trim() !== "").length !== 0));
                 }
-            } else {
-                console.log(result);
             }
 
             if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
@@ -578,9 +472,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         };
 
         let handleAnnotate = (lastToken) => {
-            // lastToken.state = "end";
-            // console.log(lastToken.sentence.trim().split(" "));
-
             if (lastToken.sentence.trim().split(" ").length <= 2) {
                 setUpAnnotatedTokens.splice(setUpAnnotatedTokens.indexOf(lastToken), 1);
 
@@ -591,7 +482,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             }
 
             if (setUpAnnotatedTokens.length === 1) {
-                console.log("Annotating", lastToken.sentence.trim());
                 annotate(lastToken.sentence.trim(), r => callback(r, lastToken));
 
                 if (done + cutIndex.length === setUpAnnotatedTokens.length && finish) {
@@ -599,27 +489,18 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             } else {
                 axios.post("./api/findDuplicateSentence", {
-                    // method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
                     data: { setUpAnnotatedTokens, lastToken },
                 })
-                // .then((response) => response.json())
                 .then((response) => {
                     let { i, i2, duplicate } = response.data;
                     
                     if (duplicate) {
-                        console.log("Cut", lastToken.sentence.trim());
                         cutIndex.push([i, i2]);
                         setUpAnnotatedTokens[i2].accepted = false;
-
-                        // if (i > i2) {
-                        //     done--;
-                        //     annotate(lastToken.sentence.trim(), r => callback(r, lastToken));
-                        // }
                     } else {
-                        console.log("Annotating", lastToken.sentence.trim());
                         annotate(lastToken.sentence.trim(), r => callback(r, lastToken));
                     }
 
@@ -646,7 +527,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 let lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
                 if (lastToken?.state === "start") {
-                    // handleAnnotate(lastToken);
                     lastToken.state = "end";
                     buffer = "";
                 } else {
@@ -665,7 +545,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (lastToken.state === "start" && lastToken.sentence.replaceAll("[^a-zA-Z0-9]", "").trim() === "") {
                     setUpAnnotatedTokens.splice(setUpAnnotatedTokens.length - 1, 1);
                     setUpAnnotatedTokens.push({ sentence: buffer, state: "end", explanation: ["Generating explanation..."], spans: [], targetWords: "", targetSpans: [] });
-                    // handleAnnotate(setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1]);
                 }
                 lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
@@ -685,7 +564,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         lastToken.explanation[0] = (lastToken.explanation[0] + token).trim().slice(0, -2);
                     }
                     lastToken.explanation[0] = lastToken.explanation[0].trim();
-                    // .replace(/^\"+|\"+$/g, "");
                     handleAnnotate(setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1]);
                 }
 
@@ -701,7 +579,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (lastToken.state === "start" && lastToken.sentence.replaceAll("[^a-zA-Z0-9]", "").trim() === "") {
                     setUpAnnotatedTokens.splice(setUpAnnotatedTokens.length - 1, 1);
                     setUpAnnotatedTokens.push({ sentence: buffer, state: "end", explanation: ["Generating explanation..."], spans: [], targetWords: "", targetSpans: [] });
-                    // handleAnnotate(setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1]);
                 }
                 lastToken = setUpAnnotatedTokens[setUpAnnotatedTokens.length - 1];
 
@@ -793,8 +670,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         }
                     }
                 }
-                // console.log("Cut Elements", cutElements);
-                // console.log("Highlight Elements", highlightElements);
 
                 for (let i = 0; i < annotatedTokens.current.length; i++) {
                     for (let j = 0; j < annotatedTokens.current[i].annotations.length; j++) {
@@ -821,12 +696,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 d3.selectAll(highlightElements)
                 .classed("accept", false)
                 .classed("highlighted", true);
-                // console.log("Cut Index", cutIndex);
 
                 for (let index of cutIndex) {
                     setUpAnnotatedTokens.splice(index[1], 1);
                 }
-                // setUpAnnotatedTokens = setUpAnnotatedTokens.filter(annotation => annotation.spans.filter(r => r instanceof Element).length !== 0);
 
                 for (let i = 0; i < setUpAnnotatedTokens.length; i++) {
                     let annotation = setUpAnnotatedTokens[i];
@@ -849,61 +722,19 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (onDetect instanceof Function) {
                     onDetect([...setUpAnnotatedTokens]);
                 }
-                console.log("Finished annotating", setUpAnnotatedTokens);
 
                 if (onEnd instanceof Function) {
                     let p = `${purposeTitle}: "${purpose}"`;
                     onEnd(p + "\n" + rawAnnotationOutput.current[index].output);
                 }
-                console.log(annotatedTokens.current);
-                // console.log(rawAnnotationOutput.current[index].output);
             }
         }
-
-        // if (typeof mode === "string" && mode.toLowerCase().includes("practice")) {
-        //     await new Promise(r => setTimeout(r, 2000));
-        //     let message = "";
-        //     // let testData = `*** Suspendisse quis lorem sed est blandit sodales. ***
-        //     // {{ Test Explanation }}
-        //     // *** Sed sit amet rutrum metus. Integer in erat tellus. ***
-        //     // {{ Test Explanation }}
-        //     // *** Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. ***
-        //     // {{ Test Explanation }}
-        //     // *** Cras auctor faucibus lectus, a semper enim. Phasellus pellentesque tellus ut neque maximus dictum. ***
-        //     // {{ Test Explanation }}
-        //     // *** Duis molestie velit in auctor interdum. ***
-        //     // {{ Test Explanation }}
-        //     // `;
-            
-        //     let testData = `*** Then you show your little light, ***
-        //     {{ Test Explanation (Results Faked) }}
-        //     *** Then the traveler in the dark ***
-        //     {{ Test Explanation (Results Faked) }}
-        //     *** Often through my curtains peep ***
-        //     {{ Test Explanation (Results Faked) }}
-        //     *** For you never shut your eye ***
-        //     {{ Test Explanation (Results Faked) }}
-        //     *** Like a diamond in the sky ***
-        //     {{ Test Explanation (Results Faked) }}
-        //     `;
-
-        //     for (let token of testData.split(" ")) {
-        //         // console.log(token);
-        //         await new Promise(r => setTimeout(r, 10));
-        //         token = " " + token;
-        //         message += token;
-
-        //         handleToken(token);
-        //     }
-        //     handleEnd();
-        // } else {
         let p = `${purposeTitle}: "${purpose}"`;
 
         if (purpose.trim() === "") {
             p = `${annotationDescription}${annotationDescription[annotationDescription.length - 1] === "." ? "" : "." } However, the user said "${purposeTitle}" as the purpose of the annotation.`;
         }
         findAnnotations(p, handleToken, handleEnd, (typeof mode === "string" && mode.toLowerCase().includes("practice") ? 1 : 8));
-        // }
     }
 
     const annotate = useCallback((text, callback) => {
@@ -950,7 +781,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
         for (let i = 0; i < textContent.current.length; i++) {
             let currPage = textContent.current[i].map((span) => span.textContent).join(" ").replace(/[^a-zA-Z0-9]/g, "").toLowerCase().trim();
-            // console.log(currPage, filterText);
 
             if (currPage !== "") {
                 executed++;
@@ -965,7 +795,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
             if (result) {
                 worker.terminate();
-                // console.log("Found text, page", i);
                 let listOfSpans = [];
                 let wordSpans = textContent.current[i].map((span) => d3.select(span).selectAll(".word").nodes()).flat();
                 let processedText = text.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
@@ -973,8 +802,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 for (let j = 0; j < wordSpans.length; j++) {
                     let span = wordSpans[j];
                     let textContent = span.textContent.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-
-                    // console.log(processedText, textContent);
 
                     if (processedText.startsWith(textContent)) {
                         processedText = processedText.slice(textContent.length);
@@ -999,7 +826,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
                 } else {
                     if (callback instanceof Function) {
-                        console.log("Not found: " + text);
                         callback("Not found: " + text);
                     }
                 }
@@ -1007,7 +833,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 worker.terminate();
                 
                 axios.post("api/findSimilarString", {
-                    // method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                     },
@@ -1016,7 +841,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         textContent: textContent.current.map((page) => page.map((span) => span.textContent).join(" ").toLowerCase().replace(/[^a-zA-Z0-9\s]/g, ""))
                     }
                 })
-                // .then((response) => response.json())
                 .then((response) => {
                     const { substring, minDistance, pageNumber, ifSinglePage } = response.data;
 
@@ -1041,7 +865,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
                         } else {
                             if (callback instanceof Function) {
-                                // console.log("Not found: " + text);
                                 callback("Not found: " + text);
                             }
                         }
@@ -1062,7 +885,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         for (let i = 0; i < wordSpans.length; i++) {
                             let span = wordSpans[i];
                             let textContent = span.textContent.toLowerCase().replace(/[^a-zA-Z0-9]/g, "");
-                            // console.log(textContent, word);
 
                             if (textContent.trim() === "" && listOfSpans.length !== 0) {
                                 listOfSpans.push(span);
@@ -1101,7 +923,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             }
                             word = substringWords[wordIndex].replace(/[^a-zA-Z0-9]/g, "");
                         }
-                        // console.log(listOfSpans);
                         
                         if (callback instanceof Function) {
                             callback(listOfSpans);
@@ -1221,7 +1042,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
                         <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
-                    // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
                 } else {
                     cluster.open = false;
@@ -1238,15 +1058,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     navigateCallback(annotation);
                 }
             };
-            // activeClusterRef.current = cluster;
-            // setActiveCluster(cluster);
-            // setGetActiveAnnotations(cluster.annotationsFound ? [...cluster.annotationsFound] : []);
             if (cluster.open) {
                 if (cluster.annotationsFound?.length > 0) {
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
                         <NavigateCluster filter={filter} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
-                    // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, {spans: [ clusterToolTip ]}, false);
                     activeAnnotation.current = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
                     overlappingAnnotationRef.current = [];
@@ -1325,24 +1141,11 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             d3.selectAll(".word.highlighted, .space.highlighted")
             .classed("target", false)
             .classed("fade", false);
-            // activeClusterRef.current = null;
-            // setActiveCluster(null);
-            // setGetActiveAnnotations([]);
         }
         miniMapRef.current?.synchronize();
     }
 
     function onClusterChange(cluster) {
-        // if (cluster) {
-        //     let activeStrokes = activeClusterRef.current?.strokes.map(stroke => stroke?.id);
-        //     let equal = activeStrokes?.every((stroke, i) => stroke === cluster.strokes[i]?.id);
-
-        //     if (equal) {
-        //         setGetActiveAnnotations(activeClusterRef.current.annotationsFound ? [...activeClusterRef.current.annotationsFound] : []);
-        //         setActiveCluster(cluster);
-        //     }
-        // }
-
         if (cluster) {
             let ref = penAnnotationRef.current.find(ref => ref.current?.lockClusters.current.find(lockCluster => lockCluster === cluster));
             let clusterToolTip = d3.select("#toolTip" + cluster.strokes[cluster.strokes.length - 1].id).node();
@@ -1358,7 +1161,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     let content = <div className={"annotationMessageContainer " + googleSans.className}>
                         <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={clusterToolTip} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={undefined} />
                     </div>;
-                    // explanationToolTipRef.current?.close();
                     fadeDisplayExplanation(content, annotation, false);
                 } else {
                     cluster.open = false;
@@ -1520,9 +1322,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     }
 
     function penEndCallback(param) {
-        // explanationToolTipRef.current?.close();
-        // hoverAnnotation.current = null;
-
         miniMapRef.current?.synchronize();
 
         if (pEndCallback instanceof Function) {
@@ -1536,8 +1335,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     }
 
     function eraseEndCallback() {
-        // explanationToolTipRef.current?.close();
-        // hoverAnnotation.current = null;
         miniMapRef.current?.synchronize();
     }
 
@@ -1605,9 +1402,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
                 miniMapRef.current?.synchronize();
             }
-    
-            // let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a)));
-            // let cluster = ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
             let cluster = null;
 
             penAnnotationRef.current.some(ref => {
@@ -1636,8 +1430,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             a.accepted = false;
             let target = e.target;
             let rateContainer = target.closest(".rateContainer");
-            // let newContent = generateContent(annotation, annotations);
-            // console.log(overlappingAnnotations);
     
             d3.select(rateContainer)
             .selectAll(".rateButton")
@@ -1645,13 +1437,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             .transition()
             .duration(200)
             .style("opacity", 0);
-            // .on("end", () => {
-            //     explanationToolTipRef.current?.open({
-            //         anchorSelect: ".explanation-tooltip",
-            //         content: newContent,
-            //         place: "left",
-            //     });
-            // });
             let acceptedSpans = [];
             let rejectedSpans = [];
     
@@ -1698,16 +1483,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             .classed("accept", true);
 
             miniMapRef.current?.synchronize();
-    
-            // for (let i = 0; i < annotations.annotations.length; i++) {
-            //     if (annotations.annotations[i] === a) {
-            //         annotations.annotations.splice(i, 1);
-            //         break;
-            //     }
-            // }
-
-            // let ref = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(a)));
-            // let cluster = ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(a));
             let cluster = null, clusterRef = null;
 
             penAnnotationRef.current.some(ref => {
@@ -1722,12 +1497,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             });
 
             if (overlappingAnnotations.every(a => a.annotation.accepted === false)) {
-                // let height = d3.select(".react-tooltip#annotationExplanation .annotationMessageContainer").node().getBoundingClientRect().height;
-            
-                // let newContent = <div className={"annotationMessageContainer " + googleSans.className} style={{ height: height + "px", pointerEvents: "none" }}>
-                //     <NavigateCluster filter={true} handiness={handinessRef.current} cluster={cluster} annotations={cluster.annotationsFound} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={true} />
-                // </div>;
-
                 d3.selectAll(".react-tooltip#annotationExplanation .annotationMessageContainer")
                 .selectAll("div:not(.navigateContainer):not(.navigationContainer), textarea")
                 .style("pointer-events", "none")
@@ -1748,13 +1517,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 .transition()
                 .duration(600)
                 .style("background", "rgba(34, 38, 43, 0)");
-                // .on("end", () => {
-                //     explanationToolTipRef.current?.open({
-                //         anchorSelect: ".explanation-tooltip",
-                //         content: newContent,
-                //         place: "left",
-                //     });
-                // });
                 hoverAnnotation.current = null;
                 activeAnnotation.current = null;
                 overlappingAnnotationRef.current = [];
@@ -1804,7 +1566,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     .classed("accept", true);
                 }       
             }
-            // console.log(annotations.ref?.current.lockClusters.current);
     
             clusterRef?.current.updateLockCluster([...clusterRef?.current.lockClusters.current]);
                     
@@ -1871,9 +1632,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             return res.text().then(text => { throw new Error(text); });
                         return res.text();
                     })
-                    .then((data) => {
-                        console.log("Success:", data);
-                    })
                     .catch((error) => {
                         console.error("storeCommentHistory:", error);
 
@@ -1891,8 +1649,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
         let convertRejectFilterSpans = [];
 
         let overlappingAnnotations = [{groupIndex: annotatedTokens.current.findIndex(group => group === annotations), index: annotations.annotations.findIndex(a => a === annotation), annotation: annotation, groupAnnotation: annotations}];
-        // console.log(overlappingAnnotations[0]);
-        // console.log(hoverGroupAnnotationRef.current);
         for (let i = 0; i < annotatedTokens.current.length; i++) {
             let searchAnnotations = annotatedTokens.current[i];
             
@@ -1925,11 +1681,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 }
             }
         }
-        // console.log(acceptFilterSpans);
-        // console.log(rejectFilterSpans);
-        // console.log(convertRejectFilterSpans);
-        // console.log(overlappingAnnotations)
-
         for (let overlappingAnnotation of overlappingAnnotations) {
             let a = overlappingAnnotation.annotation;
 
@@ -1953,7 +1704,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                                 <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 192 752" height="30" width="20" xmlns="http://www.w3.org/2000/svg" style={{ color: "rgb(234, 196, 53)", strokeWidth: 1, marginBottom: "5px" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, acceptFilterSpans)}>
                                                     <path d="m93.489 144.6292c10.3435 5.5885 21.039 10.4645 32.0016 14.7095 5.9986 2.323 12.1322 4.2685 17.6396-.3986 2.0394-1.7284 3.4942-4.1222 5.0213-6.2952 1.7157-2.4406 3.4223-4.8877 5.1202-7.3415 13.2973-19.2186 26.0387-38.8224 38.2-58.7794 6.9002-11.3235 13.6097-22.7616 20.1392-34.3031 2.6225-4.6353-.1204-9.2534-4.606-11.0101-22.3522-8.7539-44.2964-19.4234-65.2243-31.4952-4.571-2.6368-9.3254.121-11.0101 4.606-14.3497 38.1965-27.636 76.787-39.8419 115.7212-2.0148 7.8671-1.137 12.5886 2.5604 14.5864l0 0zm83.815 29.5603c-3.822-2.6968-8.7492-3.1426-11.576-.0935-2.6749 2.8851-3.1362 7.737-.0763 10.6092 7.6256 7.1572 15.2434 14.3226 22.8773 21.4713 4.2742 4.0029 9.3572 7.4439 15.4962 5.6068 4.9748-1.4885 8.736-5.6332 12.4995-8.9948 15.8644-14.1709 31.7294-28.3419 47.5942-42.5125 15.8648-14.1706 31.7294-28.3419 47.5942-42.5125 7.9325-7.0855 15.8644-14.1709 23.7969-21.2564 3.9027-3.4856 8.8843-6.864 11.7341-11.3171 3.3591-5.2492 2.2091-11.3114-1.6419-15.8771-3.491-4.1384-8.7635-7.1011-13.1133-10.2672-4.8262-3.5127-9.6679-7.0038-14.5247-10.4735-9.714-6.9398-19.4908-13.791-29.3239-20.5605-2.5296-1.7416-6.9789-1.1581-9.0161 1.1523-30.1597 34.2041-59.6849 68.9663-88.544 104.2747-8.1559 9.9784-16.2567 20.0013-24.3074 30.0647-2.4402 3.0506-3.2857 7.6339-.0763 10.6092 2.6877 2.4933 7.9868 3.353 10.6075.0769l0 0zm70.8467 57.5819c-7.204-8.5683-12.4795-9.5489-15.7657-7.6761-3.7997 2.1652-4.4743 6.5308-2.8007 10.232 4.8742 10.7787 9.7488 21.5576 14.623 32.3362 1.3114 2.8997 5.5047 4.4425 8.4571 3.5288 20.783-6.4322 41.5663-12.8649 62.3493-19.2972 5.8156-1.7999 6.8694-8.0752 3.4016-12.5108-11.3759-14.5503-19.5134-32.4987-23.4172-51.2313-.9202-4.4151-7.1129-7.2971-10.9603-4.5751-16.4399 11.6308-31.9934 24.4552-46.421 38.5075-2.8086 2.7357-3.034 7.867-.0763 10.6092 2.9979 2.7786 7.6022 3.0068 10.6102.0768l0 0zm-72.1507 430.2286c0 44.112-35.888 80-80 80s-80-35.888-80-80 35.888-80 80-80 80 35.888 80 80zm-150.74-406.801 13.6 272c.639 12.773 11.181 22.801 23.97 22.801h66.34c12.789 0 23.331-10.028 23.97-22.801l13.6-272c.685-13.709-10.244-25.199-23.97-25.199h-93.54c-13.726 0-24.655 11.49-23.97 25.199z"/>
                                                 </svg>
-                                                {/* <FaExclamation size={20} style={{ color: "#eac435", strokeWidth: "1" }} onClick={(e) => eitherAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, acceptFilterSpans)} /> */}
                                             </div>
                                             <div className="rateButton" >
                                                 <FaThumbsDown size={20} style={{ color: "#b8405e", strokeWidth: "1", marginTop: "5px" }} onClick={(e) => rejectAnnotation(e, a, overlappingAnnotation.index, overlappingAnnotations, rejectFilterSpans, convertRejectFilterSpans)} />
@@ -1972,7 +1722,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 );
             }
         }
-        // console.log(overlappingAnnotations);
 
         let a = overlappingAnnotations[0].annotation;
 
@@ -1991,9 +1740,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 </div>
             );
         }
-        
-        // let cluster = penAnnotationRef.current.find(ref => ref.current.lockClusters.current.find(lockCluster => lockCluster.annotationsFound?.includes(annotation)));
-        // let cluster = annotations.ref?.current.lockClusters.current.find(cluster => cluster.annotationsFound?.includes(annotation));
         let cluster = null;
 
         penAnnotationRef.current.some(ref => {
@@ -2006,8 +1752,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             return false;
         });
 
-        // let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
-
         let onNavigateCallback = (annotation) => {
             let annotations = annotatedTokens.current.find(groupAnnotations => groupAnnotations.annotations.find(annotated => annotated === annotation));
             hoverGroupAnnotationRef.current = annotations;
@@ -2015,12 +1759,10 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
             if (annotation.spans[0] instanceof Element && annotation.spans[0].classList.contains("toolTip")) {
                 cluster.open = true;
                 annotations.ref?.current.updateLockCluster([...annotations.ref?.current.lockClusters.current]);
-                // let activeAnnotationsFound = cluster?.annotationsFound ? [...cluster.annotationsFound] : [];
 
                 let content = <div className={"annotationMessageContainer " + googleSans.className}>
                     <NavigateCluster filter={false} handiness={handinessRef.current} cluster={cluster} annotations={annotatedTokens.current.map(groupAnnotations => groupAnnotations.annotations).flat()} currentAnnotation={annotation} onPrevCallback={onNavigateCallback} onNextCallback={onNavigateCallback} removed={false} />
                 </div>;
-                // explanationToolTipRef.current?.close();
                 fadeDisplayExplanation(content, annotation, false);
             } else {
                 cluster.open = false;
@@ -2205,18 +1947,12 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
 
         d3.select(".annotateContainer")
         .on(hasTouchScreen ? "touchstart" : "pointermove", (e) => {
-        // .on("pointermove", (e) => {
-            // if (hasTouchScreen && e.pointerType !== "touch") {
-            //     return;
-            // }
-
             if (e.buttons !== 0 && !hasTouchScreen) {
                 clearTimeout(explainTooltipTimeout.current);
                 clearTimeout(highlightTimeout.current);
                 return;
             }
 
-            // let [x, y] = [e.clientX, e.clientY];
             let [x, y] = hasTouchScreen ? [e.touches[0].clientX, e.touches[0].clientY] : [e.clientX, e.clientY];
             let annotations, annotation;
             let i, j;
@@ -2232,7 +1968,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         continue;
                     }
 
-                    // console.log(annotation.spans);
                     if (annotation.spans) {
                         for (let span of annotation.spans) {
                             if (span instanceof Element) {
@@ -2281,47 +2016,9 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                         resetToolTips();
                     }
                 }
-                // d3.selectAll(".word.highlighted, .space.highlighted")
-                // .classed("fade", false);
             }
 
             if (found) {
-                // highlightTimeout.current = setTimeout(() => {
-                //     d3.selectAll(".word.highlighted, .space.highlighted")
-                //     .classed("target", false)
-                //     .classed("fade", true);
-
-                //     let spans = [];
-
-                //     for (let i = 0; i < annotation.spans.length; i++) {
-                //         let span = annotation.spans[i];
-                //         spans.push(span);
-
-                //         let space = d3.select(span).node().nextSibling;
-
-                //         if (!space) {
-                //             space = span.parentNode.nextSibling?.firstChild;
-                //         }
-    
-                //         if (space && space.classList.contains("space") && i !== annotation.spans.length - 1) {
-                //             spans.push(space);
-                //         }
-                //     }
-                //     d3.selectAll(spans)
-                //     .classed("highlighted", true)
-                //     .classed("fade", false);
-
-                //     let targetWords = annotation.targetSpans.filter(span => span instanceof Element && !span.classList.contains("toolTip"));
-                //     let targetSpans = [];
-
-                //     for (let i = 0; i < targetWords.length; i++) {
-                //         let span = targetWords[i];
-                //         targetSpans.push(span);
-                //     }
-                //     d3.selectAll(targetSpans)
-                //     .classed("target", true);
-                // }, 1000);
-
                 explainTooltipTimeout.current = setTimeout(() => {
                     let [content, overlappingAnnotations] = generateContent(annotation, annotations);
 
@@ -2346,7 +2043,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                     }
                 }, hasTouchScreen ? 0 : 500);
             }
-            // explanationToolTipRef.current?.close();
         });
 
         return () => {
@@ -2363,11 +2059,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
     useEffect(() => {
         setLoading(true);
         setProgress(0);
-
-        // if (typeof modeRef.current === "string" && modeRef.current.toLowerCase().includes("practice")) {
-        //     setLoadingDocument(false);
-        //     return;
-        // }
         setLoadingDocument(true);
 
         let payload;
@@ -2385,7 +2076,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 return res.text();
             })
             .then((data) => {
-                console.log("Success:", data);
                 setLoadingDocument(false);
             })
             .catch((error) => {
@@ -2528,7 +2218,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 lastToken.targetSpans = listOfSpans;
             };
 
-            // for (let clusterData of clustersData) {
             for (let i = 0; i < clustersData.length; i++) {
                 let clusterData = clustersData[i];
                 let lastStroke = clusterData.strokes[clusterData.strokes.length - 1];
@@ -2553,9 +2242,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                             if (!res.ok)
                                 return res.text().then(text => { throw new Error(text); });
                             return res.text();
-                        })
-                        .then((data) => {
-                            console.log("Success:", data);
                         })
                         .catch((error) => {
                             console.error("updatePurpose:", error);
@@ -2610,9 +2296,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                                 return res.text().then(text => { throw new Error(text); });
                             return res.text();
                         })
-                        .then((data) => {
-                            console.log("Success:", data);
-                        })
                         .catch((error) => {
                             console.error("storeCommentHistory:", error);
 
@@ -2638,9 +2321,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 if (!res.ok)
                     return res.text().then(text => { throw new Error(text); });
                 return res.text();
-            })
-            .then((data) => {
-                console.log("Success:", data);
             })
             .catch((error) => {
                 console.error("uploadHistory:", error);
@@ -2900,7 +2580,6 @@ export default function AnnotateGPT({ documentPDF, pEndCallback, onECallback, on
                 <Toolbar tool={tool} onToolChange={onToolChange} onColourChange={onChange} defaultColour={defaultColour} handiness={handiness} />
 
                 <Tooltip 
-                    // id="annotationDescription"
                     style={{ zIndex: "5", padding: "16px", borderRadius: "8px", background: "#22262b" }}
                     place={"top"}
                     ref={annotationToolTipRef}

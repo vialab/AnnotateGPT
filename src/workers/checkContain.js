@@ -13,31 +13,24 @@ function intersect(p1, p2, boundary, orientation) {
     }
 }
 
-// Sutherland-Hodgman clipping function.
 function clipPolygonToRect(polygon, rect) {
-    // rect is defined by two points: [ [x0, y0], [x1, y1] ]
     let [x0, y0] = rect[0],
         [x1, y1] = rect[1];
 
-    // Define the four clipping boundaries.
     const clipEdges = [
         {
-            // Left edge: x must be >= x0.
             inside: p => p[0] >= x0,
             intersect: (p1, p2) => intersect(p1, p2, x0, "vertical"),
         },
         {
-            // Top edge: y must be >= y0.
             inside: p => p[1] >= y0,
             intersect: (p1, p2) => intersect(p1, p2, y0, "horizontal"),
         },
         {
-            // Right edge: x must be <= x1.
             inside: p => p[0] <= x1,
             intersect: (p1, p2) => intersect(p1, p2, x1, "vertical"),
         },
         {
-            // Bottom edge: y must be <= y1.
             inside: p => p[1] <= y1,
             intersect: (p1, p2) => intersect(p1, p2, y1, "horizontal"),
         },
@@ -56,16 +49,12 @@ function clipPolygonToRect(polygon, rect) {
 
             if (currentInside) {
                 if (!previousInside) {
-                    // Coming from outside -> add intersection point.
                     outputList.push(edge.intersect(previous, current));
                 }
-                // Add current point.
                 outputList.push(current);
             } else if (previousInside) {
-                // Leaving the clipping region -> add intersection.
                 outputList.push(edge.intersect(previous, current));
             }
-            // If both are outside, add nothing.
         }
     });
     return outputList;
@@ -76,7 +65,6 @@ addEventListener("message", (e) => {
     let pathBoundingBox = e.data.pathBoundingBox;
     let svgBoundingBox = e.data.svgBoundingBox;
     let coords = e.data.coords;
-    // let checkCenter = e.data.checkCenter;
     let svgPoint = e.data.svgPoint;
     let svgPoint2 = e.data.svgPoint2;
     let pageTop = e.data.pageTop;
@@ -85,7 +73,6 @@ addEventListener("message", (e) => {
     if (rect.left > pathBoundingBox.x + pathBoundingBox.width || rect.right < pathBoundingBox.x || rect.top > pathBoundingBox.y + pathBoundingBox.height || rect.bottom < pathBoundingBox.y) {
         postMessage({ contain: false, i: e.data.i, containCenter: false });
     } else if (rect.left > pathBoundingBox.x && rect.right < pathBoundingBox.x + pathBoundingBox.width && rect.top > pathBoundingBox.y && rect.bottom < pathBoundingBox.y + pathBoundingBox.height) {
-        // wordsOfInterest.push({ element: word });
         let clipped = clipPolygonToRect(coords, [[rect.left, rect.top - pageTop], [rect.right, rect.bottom - pageTop]]);
         const overlappedArea = Math.abs(d3.polygonArea(clipped)) / ((rect.right - rect.left) * (rect.bottom - rect.top));
 

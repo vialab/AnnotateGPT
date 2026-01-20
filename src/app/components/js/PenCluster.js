@@ -1,29 +1,5 @@
 export function checkBoundingBoxes(box1, box2) {
-    // if (isEmpty() || w <= 0 || h <= 0) {
-    //     return false;
-    // }
-    // double x0 = getX();
-    // double y0 = getY();
-    // return (x + w > x0 &&
-    //         y + h > y0 &&
-    //         x < x0 + getWidth() &&
-    //         y < y0 + getHeight());
-
     return (box2.x + box2.width > box1.x && box2.y + box2.height > box1.y && box2.x < box1.x + box1.width && box2.y < box1.y + box1.height);
-
-    // let left1 = box1.x;
-    // let right1 = box1.x + box1.width;
-    // let top1 = box1.y;
-    // let bottom1 = box1.y + box1.height;
-
-    // let left2 = box2.x;
-    // let right2 = box2.x + box2.width;
-    // let top2 = box2.y;
-    // let bottom2 = box2.y + box2.height;
-
-    // let intersect = !(box1.x > right2 || right1 < left2 || top1 > bottom2 || bottom1 < top2);
-
-    // return intersect;
 }
 
 
@@ -31,12 +7,8 @@ export function calculateMinDistance(box1, box2) {
     let dx2 = 0, dy2 = 0;
     let box1ContainsBox2 = box1.x < box2.x && box1.x + box1.width > box2.x + box2.width && box1.y < box2.y && box1.y + box1.height > box2.y + box2.height;
     let box2ContainsBox1 = box2.x < box1.x && box2.x + box2.width > box1.x + box1.width && box2.y < box1.y && box2.y + box2.height > box1.y + box1.height;
-    // console.log(box1, box2, checkBoundingBoxes(box1, box2), box1ContainsBox2, box2ContainsBox1);
-    // console.log((!checkBoundingBoxes(box1, box2) && !box1ContainsBox2) || box2ContainsBox1);
 
     if (box1ContainsBox2 || box2ContainsBox1) {
-        // dx2 = Math.min(Math.pow(box1.x - (box2.x + box2.width), 2), Math.pow((box1.x + box1.width - box2.x), 2));
-        // dy2 = Math.min(Math.pow(box1.y - (box2.y + box2.height), 2), Math.pow((box1.y + box1.height - box2.y), 2));
         dx2 = Math.min(Math.pow(box2.x - (box1.x + box1.width), 2), Math.pow(box1.x - (box2.x + box2.width), 2));
         dy2 = Math.min(Math.pow(box2.y - (box1.y + box1.height), 2), Math.pow(box1.y - (box2.y + box2.height), 2));
         return dx2 + dy2;
@@ -157,7 +129,6 @@ export default class PenCluster {
 
             let newCluster = new Cluster(clusters[pair[0]].strokes.concat(clusters[pair[1]].strokes));
 
-            // clusters[pair[0]].merge(clusters[pair[1]]);
             clusters[pair[0]] = newCluster;
             clusters.splice(pair[1], 1);
             history.push([...clusters]);
@@ -182,8 +153,6 @@ export default class PenCluster {
                 }
             }
         }
-        // console.log(history);
-        // console.log(history[stopIteration[stopIteration.length - 1]]);
         this.history = history;
         this.stopIteration = stopIteration;
         return [history, stopIteration];

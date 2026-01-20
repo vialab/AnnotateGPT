@@ -3,7 +3,6 @@
     inset: 0;
     background-color: rgba(57, 57, 58, 0.5);
     backdrop-filter: saturate(180%) blur(5px);
-    /* box-shadow: 0 0px 1px 1px hsla(0, 0%, 100%, .1); */
 }
 
 .ReactModal__Overlay {
@@ -36,16 +35,13 @@
     max-height: 95vh;
     display: flex;
     flex-direction: column;
-    /* justify-content: center; */
     align-items: center;
     border-radius: 10px;
     padding: 30px;
     gap: 15px;
     user-select: none;
-    /* overflow: hidden; */
     background-color: rgba(57, 57, 58, 0.8);
     backdrop-filter: saturate(180%) blur(5px);
-    /* box-shadow: inset 0 0px 20px 20px hsla(0, 0%, 100%, 0.1); */
     color: white;
     opacity: 0;
     overflow-y: scroll;
@@ -134,30 +130,6 @@
     cursor: pointer;
 }
 
-/* .contentContainer .modalButton.disabled::before, .continue.disabled::before {
-    width: 100%;
-    top: 50%;
-    left: 0em;
-    content: "";
-    height: .2em;
-    border-radius: 3px;
-    background: rgb(184, 64, 94);
-    position: absolute;
-    transform: rotate(-45deg);
-}
-
-.contentContainer .modalButton.disabled::after, .continue.disabled::after {
-    width: 100%;
-    top: 50%;
-    left: 0em;
-    content: "";
-    height: .2em;
-    border-radius: 3px;
-    background: rgb(184, 64, 94);
-    position: absolute;
-    transform: rotate(45deg);
-} */
-
 .contentContainer .modalButton.disabled.enable::before,
 .contentContainer .modalButton.disabled.enable::after,
 .continue.disabled.enable::before, .continue.disabled.enable::after {
@@ -186,8 +158,6 @@
     transform-origin: center;
     stroke-linejoin: round;
     stroke-linecap: round;
-    
-    /* animation: strokeCircleReverse 0s cubic-bezier(0.65, 0, 0.45, 1) forwards; */
 }
 
 .modalButton.animated .checkmark .checkmark__circle {
@@ -454,7 +424,6 @@
 .contentContainer .field input,
 .contentContainer .field label {
     bottom: 0;
-    /* font: 1em Raleway; */
     height: 50px;
     position: absolute;
     top: 0;

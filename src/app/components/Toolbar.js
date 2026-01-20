@@ -66,12 +66,10 @@ export default function Toolbar({ tool, onToolChange, defaultColour, onColourCha
     return (
         <div className={toolbarStyles.toolbar + " toolbar-container " + (handiness === "left" ? toolbarStyles.left : toolbarStyles.right)}>
             <div className={toolbarStyles["svg-container"]}>
-                {/* <Image src={PenIcon} id="pen" className={tool === "pen" ? "active" : null} /> */}
                 <PenIcon id={toolbarStyles.pen} className={tool === "pen" ? toolbarStyles.active : null} />
             </div>
 
             <div className={toolbarStyles["svg-container"]}>
-                {/* <Image src={HighlighterIcon} id="highlighter" className={tool === "highlighter" ? "active" : null} /> */}
                 <HighlighterIcon id={toolbarStyles.highlighter} className={tool === "highlighter" ? toolbarStyles.active : null} />
             </div>
 

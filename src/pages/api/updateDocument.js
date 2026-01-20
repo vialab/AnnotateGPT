@@ -3,7 +3,6 @@ import OpenAI from "openai";
 import path from "path";
 
 const openai = new OpenAI({apiKey: process.env.NEXT_PUBLIC_OPEN_AI_KEY});
-// const assistantAnnotateID = process.env.NEXT_PUBLIC_ASSISTANT_ANNOTATE_ID;
 const vectorStoreID = process.env.NEXT_PUBLIC_ANNOTATE_VECTOR_STORE;
 let document1ID = process.env.NEXT_PUBLIC_DOCUMENT_ONE_ID, document2ID = process.env.NEXT_PUBLIC_DOCUMENT_TWO_ID, practiceDocumentID = process.env.NEXT_PUBLIC_PRACTICE_DOCUMENT_ID;
 
@@ -26,30 +25,12 @@ export default async function handler(req, res) {
             let waitInterval = 0;
 
             while (loading && waitInterval < 40) {
-                console.log("Waiting...", waitInterval);
                 waitInterval++;
                 await new Promise(r => setTimeout(r, 500));
             }
             loading = true;
             
             try {
-                // const annotateAssistant = await openai.beta.assistants.retrieve(assistantAnnotateID);
-                // let vectorStoreID = annotateAssistant.tool_resources.file_search.vector_store_ids[0];
-                
-                // if (!vectorStoreID) {
-                //     console.log("Creating vector store...");
-    
-                //     let vectorStore = await openai.beta.vectorStores.create({
-                //         name: "Pen Annotation vector store",
-                //     });
-                //     vectorStoreID = vectorStore.id;
-    
-                //     await openai.beta.assistants.update(annotateAssistant.id, {
-                //         tool_resources: { file_search: { vector_store_ids: [vectorStore.id] } },
-                //     });
-                // }
-                console.log("Deleting document...");
-    
                 const vectorStoreFiles = await openai.vectorStores.files.list(vectorStoreID);
                 const promises = [];
         
@@ -78,20 +59,16 @@ export default async function handler(req, res) {
                 }
                 await Promise.all(promises);
                 let vectorStore = await openai.vectorStores.retrieve(vectorStoreID);
-                console.log("Checking document vector store status...", vectorStore.status);
             
                 while (vectorStore.status !== "completed") {
                     await new Promise(r => setTimeout(r, 1000));
                     vectorStore = await openai.vectorStores.retrieve(vectorStoreID);
-                    console.log("Checking document vector store status...", vectorStore.status);
                 }
                 let fileID;
                 
                 if (documentID) {
-                    console.log("Swapping document...");
                     fileID = documentID;
                 } else {
-                    console.log("Indexing document...");
                     const file = await openai.files.create({
                         file: processDocument,
                         purpose: "user_data",
@@ -104,7 +81,6 @@ export default async function handler(req, res) {
                     { file_id: fileID },
                     { pollIntervalMs: 500 }
                 );
-                console.log("Done creating document...");
                 loading = false;
     
                 if (processedFile.status !== "completed") {
@@ -112,16 +88,13 @@ export default async function handler(req, res) {
                 } else {
                     let files = await openai.vectorStores.files.list(vectorStoreID);
                     let emptyRetry = 0;
-                    console.log("# of files in vector store:", files.data.length);
 
                     while (files.data.length !== 1) {
-                        console.log("Deleting files...", files.data.length);
                         await new Promise(r => setTimeout(r, 1000));
                         files = await openai.vectorStores.files.list(vectorStoreID);
                         emptyRetry++;
             
                         if (emptyRetry > 30) {
-                            console.log("Vector store not empty");
                             break;
                         }
 
@@ -130,20 +103,12 @@ export default async function handler(req, res) {
                         }
                     }
                     res.status(200).send("Updated document!");
-
-                    setTimeout(() => {
-                        openai.vectorStores.files.list(vectorStoreID)
-                        .then((files) => {
-                            console.log("# of files in vector store:", files.data.length);
-                        });
-                    }, 15000);
                 }
                 return fileID;
             } catch (error) {
                 loading = false;
 
                 if (retry > 0) {
-                    console.error("Retrying updateDocument...", retry);
                     console.error(error.toString());
                     return uploadFile(documentID, retry - 1);
                 } else {
