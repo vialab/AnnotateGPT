@@ -125,7 +125,7 @@ export async function findAnnotations(purpose, callback, endCallback, n=8) {
 
             try {
                 let stream = openai.responses.stream({
-                    model: "gpt-4.1-2025-04-14",
+                    model: "gpt-4o-2024-11-20",
                     store: true,
                     tool_choice: "auto",
                     truncation: "auto",
@@ -398,7 +398,7 @@ export async function makeInference(image1, image2, type, annotatedText, specifi
             let stream = openai.responses.stream({
                 store: false,
                 stream: true,
-                model: "gpt-4.1-mini-2025-04-14",
+                model: "gpt-4o-mini-2024-07-18",
                 tool_choice: "required",
                 truncation: "auto",
                 tools: [{

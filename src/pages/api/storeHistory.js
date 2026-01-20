@@ -35,13 +35,13 @@ async function updateHistory(retry = 3) {
                 const promises = [];
         
                 for (let file of vectorStoreFiles.data) {
-                    let p = openai.vectorStores.files.del(vectorStoreID, file.id)
+                    let p = openai.vectorStores.files.delete(file.id, { vector_store_id: vectorStoreID })
                     .catch((error) => {
                         console.error(error.error.message, "in vector store");
                     });
                     promises.push(p);
 
-                    p = openai.files.del(file.id)
+                    p = openai.files.delete(file.id)
                     .catch((error) => {
                         console.error(error.error.message, "in files");
                     });

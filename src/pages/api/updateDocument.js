@@ -58,15 +58,15 @@ export default async function handler(req, res) {
 
                     if ((document1ID && file.id === document1ID) || (document2ID && file.id === document2ID) || (practiceDocumentID && file.id === practiceDocumentID)) {
                         if (documentID !== file.id) {
-                            p = openai.vectorStores.files.del(vectorStoreID, file.id)
+                            p = openai.vectorStores.files.delete(file.id, { vector_store_id: vectorStoreID })
                             .catch((error) => {
                                 console.error(error.error.message, "in vector store");
                             });
                         }
                     } else {
-                        openai.files.del(file.id)
+                        openai.files.delete(file.id)
                         .catch((error) => {
-                            p = openai.vectorStores.files.del(vectorStoreID, file.id)
+                            p = openai.vectorStores.files.delete(file.id, { vector_store_id: vectorStoreID })
                             .catch((error) => {
                                 console.error(error.error.message, "in vector store");
                             });

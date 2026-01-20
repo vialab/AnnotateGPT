@@ -118,7 +118,7 @@ export class Stroke {
 
 export default class PenCluster {
     constructor() {
-        this.strokes = [new Stroke("initial", {x: 0, y: 0, width: 1, height: 1}, "initial", 2)];
+        this.strokes = [new Stroke("initial", {x: 2250 / 2, y: 1623 / 2, width: 1, height: 1}, "initial", 2)];
         this.stopIteration = [];
         this.history = [];
     }

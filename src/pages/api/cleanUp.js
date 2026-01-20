@@ -3,18 +3,18 @@ import { getAuth } from "firebase-admin/auth";
 import * as admin from "firebase-admin";
 import fs from "fs";
 
-const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+const credentials = process.env.GOOGLE_APPLICATION_CREDENTIALS ? JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS) : null;
     
-const app = admin.apps.length ? admin.apps[0] : admin.initializeApp({
+const app = credentials ? (admin.apps.length ? admin.apps[0] : admin.initializeApp({
     credential: admin.credential.cert({
         projectId: credentials.project_id,
         client_email: credentials.client_email,
         private_key: credentials.private_key,
     }),
-}, "service");
+}, "service")) : null;
 
-const auth = getAuth(app);
-const db = admin.firestore(app);
+const auth = app ? getAuth(app) : null;
+const db = app ? admin.firestore(app) : null;
 
 async function getAllCollectionsAndDocuments(db) {
     const result = {};
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     if (uid) {
         const retry = async (retriesLeft = 3, interval = 500) => {
             try {
-                return await auth.deleteUser(uid);
+                return await auth?.deleteUser(uid);
             } catch (error) {
                 if (retriesLeft === 0) 
                     throw error;
