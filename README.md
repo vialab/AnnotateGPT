@@ -44,3 +44,4 @@ Or in development
 ```
 npm run dev
 ```
+Once you access `http://localhost:3000/`, you can use `Ctrl+y` to open settings and upload your document to annotate or use the default documents provided.
