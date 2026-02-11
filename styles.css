@@ -1204,13 +1204,27 @@ a {
 .comparison-visual {
     background: var(--white);
     border-radius: var(--radius-xl);
-    /* overflow: hidden; */
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--gray-200);
 }
 
+/* Containers without margin notes get overflow hidden directly */
+.beyond-figure {
+    overflow: visible;
+}
+
+/* Containers with margin notes stay overflow visible;
+   the canvas self-clips its corners instead */
+.system-figure,
+.results-figure,
+.comparison-visual {
+    overflow: visible;
+}
+
 .figure-image {
     width: 100%;
+    display: block;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .figure-caption {
@@ -1263,6 +1277,10 @@ a {
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     border: 1px solid var(--gray-200);
+}
+
+.interface-img-wrapper .figure-image {
+    border-radius: var(--radius-lg);
 }
 
 .interface-img-wrapper img {
@@ -2274,14 +2292,59 @@ a {
 .interface-img-wrapper::before {
     content: '';
     position: absolute;
-    top: -16px;
+    top: -14px;
     left: 50%;
-    transform: translateX(-50%) rotate(1deg);
-    width: 80px;
-    height: 28px;
-    background: rgba(250,204,21,0.3);
-    border-radius: 2px;
+    transform: translateX(-50%) rotate(1.5deg);
+    width: 90px;
+    height: 26px;
+    background:
+        /* Frosted semi-transparent tape body */
+        linear-gradient(
+            180deg,
+            rgba(255,255,240,0.55) 0%,
+            rgba(250,245,215,0.45) 40%,
+            rgba(245,240,200,0.5) 100%
+        );
+    /* Tape edges: soft top/bottom with slightly rough left/right */
+    border-top: 1px solid rgba(255,255,255,0.6);
+    border-bottom: 1px solid rgba(210,195,140,0.3);
+    border-left: 1px solid rgba(230,220,170,0.25);
+    border-right: 1px solid rgba(230,220,170,0.25);
+    border-radius: 1px;
+    box-shadow:
+        0 1px 3px rgba(180,160,100,0.15),
+        inset 0 0 8px rgba(255,255,230,0.3);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
     z-index: 2;
+    pointer-events: none;
+}
+
+/* Slight shine / crease across the tape */
+.teaser-wrapper::after,
+.demo-video-wrapper::after,
+.system-figure::after,
+.results-figure::after,
+.beyond-figure::after,
+.comparison-visual::after,
+.workflow-figure::after,
+.interface-img-wrapper::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(1.5deg);
+    width: 86px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.7) 20%,
+        rgba(255,255,255,0.5) 50%,
+        rgba(255,255,255,0.7) 80%,
+        transparent 100%
+    );
+    z-index: 3;
     pointer-events: none;
 }
 

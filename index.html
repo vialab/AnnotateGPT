@@ -160,35 +160,69 @@
             <div class="section-header reveal">
                 <span class="section-label"><i class="fas fa-pen"></i> Motivation</span>
                 <h2 class="section-title">Why AnnotateGPT?</h2>
-                <p class="section-desc">Teachers value handwritten feedback for its personal tone, but face persistent challenges.</p>
+                <p class="section-desc">Existing annotation tools fall short of supporting real feedback workflows. Teachers value handwritten feedback for its personal tone, but face persistent challenges &mdash; and students struggle to benefit from current practices.</p>
             </div>
+
+            <!-- Limitations of Prior Tools -->
+            <div class="challenge-grid" style="position:relative;margin-bottom:2.5rem;">
+                <div class="margin-note" aria-hidden="true" style="right:-60px;top:10px;transform:rotate(3deg);">
+                    <span class="margin-note-arrow">&larr;</span>
+                    <span class="margin-note-text">tool gaps!</span>
+                </div>
+                <h3 class="challenge-grid-heading reveal" style="grid-column:1/-1;text-align:center;font-size:1.15rem;color:var(--text-secondary);margin-bottom:0.5rem;"><i class="fas fa-tools" style="margin-right:0.4rem;color:var(--primary);"></i> Limitations of Prior Annotation Tools</h3>
+                <div class="challenge-card reveal">
+                    <div class="challenge-icon">
+                        <i class="fas fa-sticky-note"></i>
+                    </div>
+                    <h3>Static Marks Only</h3>
+                    <p>Digital tools like Adobe Acrobat reduce annotations to highlights and sticky notes &mdash; treating them as final outputs rather than interactive, actionable inputs.</p>
+                </div>
+                <div class="challenge-card reveal">
+                    <div class="challenge-icon">
+                        <i class="fas fa-spell-check"></i>
+                    </div>
+                    <h3>Sentence-Level Corrections</h3>
+                    <p>AI tools like Grammarly provide grammar and style suggestions, but prioritize correctness over capturing a reviewer&rsquo;s intent or integrating with annotation workflows.</p>
+                </div>
+                <div class="challenge-card reveal">
+                    <div class="challenge-icon">
+                        <i class="fas fa-puzzle-piece"></i>
+                    </div>
+                    <h3>Domain-Specific &amp; Rigid</h3>
+                    <p>Prior pen-based systems like XLibris and Metatation rely on heuristic pattern matching and cannot infer annotation purpose beyond predefined, narrow contexts.</p>
+                </div>
+            </div>
+
+            <!-- Teacher Challenges -->
             <div class="challenge-grid" style="position:relative;">
                 <div class="margin-note" aria-hidden="true" style="right:-60px;top:10px;transform:rotate(3deg);">
                     <span class="margin-note-arrow">&larr;</span>
                     <span class="margin-note-text">real pain points!</span>
                 </div>
+                <h3 class="challenge-grid-heading reveal" style="grid-column:1/-1;text-align:center;font-size:1.15rem;color:var(--text-secondary);margin-bottom:0.5rem;"><i class="fas fa-chalkboard-teacher" style="margin-right:0.4rem;color:var(--primary);"></i> Challenges in Providing Feedback to Students</h3>
                 <div class="challenge-card reveal">
                     <div class="challenge-icon">
                         <i class="fas fa-eye-slash"></i>
                     </div>
                     <h3>Poor Legibility</h3>
-                    <p>Physical and temporal constraints degrade the readability of handwritten annotations, making them difficult for students to interpret.</p>
+                    <p>Physical and temporal constraints degrade the readability of handwritten annotations. Students struggle to interpret feedback due to poor readability and lack of clarity.</p>
                 </div>
                 <div class="challenge-card reveal">
                     <div class="challenge-icon">
                         <i class="fas fa-clock"></i>
                     </div>
                     <h3>Time Pressure</h3>
-                    <p>Teachers are unable to provide detailed, thoughtful feedback due to time constraints and the need for prompt return to students.</p>
+                    <p>Teachers are unable to provide detailed, thoughtful feedback due to time constraints and the need for prompt return to students, affecting the quality of feedback they receive.</p>
                 </div>
                 <div class="challenge-card reveal">
                     <div class="challenge-icon">
                         <i class="fas fa-balance-scale-left"></i>
                     </div>
                     <h3>Inconsistent Quality</h3>
-                    <p>Feedback tends to fixate on surface-level errors rather than providing balanced guidance across all aspects of writing.</p>
+                    <p>Feedback tends to fixate on surface-level errors rather than providing balanced guidance, leaving students without constructive direction on organization, coherence, or argumentation.</p>
                 </div>
             </div>
+
             <div class="motivation-solution reveal">
                 <div class="solution-arrow">
                     <i class="fas fa-arrow-down"></i>
@@ -198,10 +232,11 @@
                         <span class="margin-note-text margin-note-star">this!</span>
                     </div>
                     <h3><i class="fas fa-lightbulb"></i> Our Approach</h3>
-                    <p>AnnotateGPT treats handwritten marks not only as feedback in themselves but as <strong>clues for AI collaboration</strong>. 
-                    It interprets clusters of pen strokes, infers their likely purpose, and generates contextually relevant feedback 
-                    across the document &mdash; positioning annotations as a form of <em>implicit interaction</em> that balances human judgment 
-                    with AI scalability.</p>
+                    <p>Where prior tools stop at static marks or sentence-level corrections, AnnotateGPT treats handwritten marks 
+                    as <strong>clues for AI collaboration</strong>. It interprets clusters of pen strokes, infers their likely purpose, 
+                    and generates contextually relevant feedback across the document. By grounding AI generation in teacher-provided 
+                    annotations, AnnotateGPT preserves educators&rsquo; voices and styles &mdash; addressing the limitations of existing tools 
+                    while providing students with feedback that is <em>legible, timely, and constructive</em>.</p>
                 </div>
             </div>
         </div>
@@ -728,6 +763,18 @@
                 <p class="figure-caption">
                     <strong>Figure 14.</strong> Number of annotations between AnnotateGPT and baseline, along with human-rated annotations for AnnotateGPT.
                 </p>
+            </div>
+
+            <!-- Student Feedback: Practical Context -->
+            <div class="student-feedback-context reveal" style="background:var(--surface);border-radius:1rem;padding:2rem 2.5rem;margin:2.5rem 0;border-left:4px solid var(--primary);">
+                <h3 style="font-size:1.15rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;"><i class="fas fa-user-graduate" style="color:var(--primary);"></i> What Teachers Said</h3>
+                <p style="color:var(--text-secondary);line-height:1.7;margin-bottom:1rem;">Novice teachers highlighted how AnnotateGPT addressed real feedback challenges for their students:</p>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;">
+                    <blockquote class="participant-quote" style="margin:0;">&ldquo;I graded more in total using [AnnotateGPT] and was able to find things a lot faster.&rdquo; <cite>&mdash; P3</cite></blockquote>
+                    <blockquote class="participant-quote" style="margin:0;">&ldquo;It gave better feedback than I would write&rdquo; and &ldquo;knows the correct terms to use.&rdquo; <cite>&mdash; P4 &amp; P11</cite></blockquote>
+                    <blockquote class="participant-quote" style="margin:0;">&ldquo;This would be helpful&hellip; especially for beginner writers.&rdquo; <cite>&mdash; P12</cite></blockquote>
+                </div>
+                <p style="color:var(--text-secondary);line-height:1.7;margin-top:1rem;font-size:0.95rem;">These insights confirm that AnnotateGPT preserves the personal tone of human comments while improving clarity, depth, and consistency for students.</p>
             </div>
         </div>
     </section>
