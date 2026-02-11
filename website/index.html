@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AnnotateGPT — CHI 2026</title>
+    <link rel="icon" href="logoPen2.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+    <!-- Ink trail canvas for annotation-themed cursor interaction -->
+    <canvas id="inkTrailCanvas"></canvas>
+    <!-- Navigation -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-container">
+            <a href="#hero" class="nav-logo">
+                <span class="logo-blob-wrap">
+                    <img src="logoBlob.svg" class="logo-blob" alt="">
+                    <img src="logoPen2.svg" class="logo-pen" alt="">
+                    <span class="logo-annotate">Annotate</span><span class="logo-gpt">GPT</span>
+                </span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#demo">Demo</a></li>
+                <li><a href="#abstract">Abstract</a></li>
+                <li><a href="#contributions">Contributions</a></li>
+                <li><a href="#system">System</a></li>
+                <li><a href="#results">Results</a></li>
+                <li><a href="#beyond">Beyond Education</a></li>
+                <li><a href="#team">Authors</a></li>
+            </ul>
+            <div class="nav-actions">
+                <a href="https://doi.org/10.1145/3772318.3790867" target="_blank" class="btn btn-sm btn-outline">
+                    <i class="fas fa-file-alt"></i> Paper
+                </a>
+                <a href="https://github.com/vialab/AnnotateGPT" target="_blank" class="btn btn-sm btn-primary">
+                    <i class="fab fa-github"></i> Code
+                </a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <div class="hero-bg">
+            <div class="hero-gradient"></div>
+            <canvas id="heroCanvas"></canvas>
+        </div>
+        <div class="hero-content">
+            <div class="hero-badge fade-up">
+                <span>CHI 2026 &bull; Barcelona, Spain &bull; April 13&ndash;17</span>
+            </div>
+            <h1 class="hero-title fade-up">
+                <span class="title-annotate">Annotate</span><span class="title-gpt">GPT</span>
+            </h1>
+            <p class="hero-subtitle fade-up delay-1">
+                Designing Human&ndash;AI Collaboration in<br>
+                <span class="highlight-text"><span class="highlighter-mark">Pen-Based Document Annotation</span></span>
+            </p>
+            <!-- Decorative hand-drawn scribble -->
+            <svg class="hero-scribble fade-up delay-1" width="220" height="20" viewBox="0 0 220 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 10C20 4 40 16 60 8C80 0 100 18 120 10C140 2 160 16 180 8C200 0 210 14 218 10" stroke="rgba(220,38,38,0.4)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            </svg>
+            <p class="hero-authors fade-up delay-2">
+                Benedict Leung &bull; Mariana Shimabukuro &bull; Christopher Collins
+            </p>
+            <p class="hero-affiliation fade-up delay-2">Ontario Tech University, Canada</p>
+            <div class="hero-actions fade-up delay-3">
+                <a href="https://doi.org/10.1145/3772318.3790867" target="_blank" class="btn btn-lg btn-dark">
+                    <i class="fas fa-file-alt"></i> Read Paper
+                </a>
+                <a href="https://github.com/vialab/AnnotateGPT" target="_blank" class="btn btn-lg btn-outline">
+                    <i class="fab fa-github"></i> Source Code
+                </a>
+                <a href="#demo" class="btn btn-lg btn-ghost-dark">
+                    <i class="fas fa-play-circle"></i> See How It Works
+                </a>
+            </div>
+        </div>
+        <div class="hero-scroll-indicator">
+            <div class="scroll-line"></div>
+            <span>Scroll to explore</span>
+        </div>
+    </section>
+
+    <!-- Teaser Figure -->
+    <section class="teaser" id="teaser">
+        <div class="container">
+            <div class="teaser-wrapper reveal">
+                <canvas id="teaser-pdf-canvas" class="teaser-image"
+                        role="img"
+                        aria-label="AnnotateGPT interaction overview showing the five-step process: annotate, activate assistant, guess purpose, generate highlights, and verify feedback"></canvas>
+                <p class="teaser-caption">
+                    <strong>Figure 1.</strong> A high-level overview of the interaction design of AnnotateGPT. (a) The user manually annotates the document. (b) Tapping on an annotation will activate the assistant. (c) The assistant will guess the purpose of the annotation. (d) Selecting a purpose will prompt the assistant to provide further annotations (yellow highlights) based on the selected purpose. (e) Users can read, verify and continue the feedback.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Abstract -->
+    <section class="abstract section" id="abstract">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-highlighter"></i> Overview</span>
+                <h2 class="section-title">Abstract</h2>
+                <div class="hand-underline">
+                    <svg width="180" height="12" viewBox="0 0 180 12" fill="none"><path d="M2 8C30 3 60 10 90 5C120 0 150 9 178 4" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/></svg>
+                </div>
+            </div>
+            <div class="abstract-content reveal">
+                <div class="abstract-icon">
+                    <i class="fas fa-quote-left"></i>
+                </div>
+                <!-- Margin note decoration -->
+                <div class="margin-note margin-note-left" aria-hidden="true">
+                    <span class="margin-note-bracket">&#123;</span>
+                    <span class="margin-note-text">key idea!</span>
+                </div>
+                <p class="abstract-text">
+                    Providing high-quality feedback on writing is cognitively demanding, requiring reviewers to 
+                    identify issues, suggest fixes, and ensure consistency. We introduce <strong>AnnotateGPT</strong>, 
+                    a system that uses <em>pen-based annotations</em> as an input modality for AI agents to assist 
+                    with essay feedback. AnnotateGPT enhances feedback by interpreting handwritten annotations and 
+                    extending them throughout the document.
+                </p>
+                <p class="abstract-text">
+                    One AI agent classifies the <strong>purpose</strong> of each annotation, which is confirmed or 
+                    corrected by the user. A second AI agent uses the confirmed purpose to generate 
+                    <strong>contextually relevant feedback</strong> for other parts of the essay. In a study with 
+                    <strong>12 novice teachers</strong> annotating essays, we compared AnnotateGPT with a baseline 
+                    pen-based tool without AI support.
+                </p>
+                <p class="abstract-text">
+                    Our findings demonstrate how reviewers used annotations to regulate AI feedback generation, 
+                    refine AI suggestions, and incorporate AI-generated feedback into their review process. We 
+                    highlight design implications for AI-augmented feedback systems, including balanced human-AI 
+                    collaboration and using <em>pen annotations as subtle interaction</em>.
+                </p>
+                <div class="keywords">
+                    <span class="keyword">annotation</span>
+                    <span class="keyword">digital pen</span>
+                    <span class="keyword">LLM</span>
+                    <span class="keyword">feedback</span>
+                    <span class="keyword">human-AI collaboration</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem & Motivation -->
+    <section class="motivation section" id="motivation">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-pen"></i> Motivation</span>
+                <h2 class="section-title">Why AnnotateGPT?</h2>
+                <p class="section-desc">Teachers value handwritten feedback for its personal tone, but face persistent challenges.</p>
+            </div>
+            <div class="challenge-grid" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="right:-60px;top:10px;transform:rotate(3deg);">
+                    <span class="margin-note-arrow">&larr;</span>
+                    <span class="margin-note-text">real pain points!</span>
+                </div>
+                <div class="challenge-card reveal">
+                    <div class="challenge-icon">
+                        <i class="fas fa-eye-slash"></i>
+                    </div>
+                    <h3>Poor Legibility</h3>
+                    <p>Physical and temporal constraints degrade the readability of handwritten annotations, making them difficult for students to interpret.</p>
+                </div>
+                <div class="challenge-card reveal">
+                    <div class="challenge-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>Time Pressure</h3>
+                    <p>Teachers are unable to provide detailed, thoughtful feedback due to time constraints and the need for prompt return to students.</p>
+                </div>
+                <div class="challenge-card reveal">
+                    <div class="challenge-icon">
+                        <i class="fas fa-balance-scale-left"></i>
+                    </div>
+                    <h3>Inconsistent Quality</h3>
+                    <p>Feedback tends to fixate on surface-level errors rather than providing balanced guidance across all aspects of writing.</p>
+                </div>
+            </div>
+            <div class="motivation-solution reveal">
+                <div class="solution-arrow">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="solution-box" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="right:-55px;top:15px;transform:rotate(-2deg);">
+                        <span class="margin-note-text margin-note-star">this!</span>
+                    </div>
+                    <h3><i class="fas fa-lightbulb"></i> Our Approach</h3>
+                    <p>AnnotateGPT treats handwritten marks not only as feedback in themselves but as <strong>clues for AI collaboration</strong>. 
+                    It interprets clusters of pen strokes, infers their likely purpose, and generates contextually relevant feedback 
+                    across the document &mdash; positioning annotations as a form of <em>implicit interaction</em> that balances human judgment 
+                    with AI scalability.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contributions -->
+    <section class="contributions section" id="contributions">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-pen-nib"></i> Impact</span>
+                <h2 class="section-title">Key Contributions</h2>
+                <div class="hand-underline">
+                    <svg width="200" height="12" viewBox="0 0 200 12" fill="none"><path d="M2 6C40 2 80 11 120 4C160 -2 180 10 198 6" stroke="var(--ink-red)" stroke-width="2" stroke-linecap="round" opacity="0.5"/></svg>
+                </div>
+            </div>
+            <div class="contributions-grid" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="left:-75px;top:50px;transform:rotate(-4deg);">
+                    <span class="margin-note-bracket">&#123;</span>
+                    <span class="margin-note-text">novel!</span>
+                </div>
+                <div class="contribution-card reveal">
+                    <div class="contribution-number annotation-circled">01</div>
+                    <div class="contribution-content">
+                        <h3>AnnotateGPT System</h3>
+                        <p>A pen-based system that integrates LLMs into document annotation through <strong>purpose inference</strong> and <strong>feedback propagation</strong>. Pen strokes are classified, clustered, and interpreted by two AI agents to generate actionable feedback.</p>
+                    </div>
+                    <div class="contribution-icon">
+                        <i class="fas fa-pen-fancy"></i>
+                    </div>
+                </div>
+                <div class="contribution-card reveal">
+                    <div class="contribution-number annotation-circled">02</div>
+                    <div class="contribution-content">
+                        <h3>Empirical Insights</h3>
+                        <p>A study with <strong>12 novice teachers</strong> revealing how reviewers manage, appropriate, and negotiate AI-augmented feedback &mdash; including diverse annotation workflows and shifting annotation behaviours.</p>
+                    </div>
+                    <div class="contribution-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="contribution-card reveal">
+                    <div class="contribution-number annotation-circled">03</div>
+                    <div class="contribution-content">
+                        <h3>Design Implications</h3>
+                        <p>Design implications for AI-augmented feedback systems, framing pen annotations not only as feedback but as a <strong>broader interaction design paradigm</strong> for human-AI communication.</p>
+                    </div>
+                    <div class="contribution-icon">
+                        <i class="fas fa-compass-drafting"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Demo Video -->
+    <section class="demo section" id="demo">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-play-circle"></i> Demo</span>
+                <h2 class="section-title">See It in Action</h2>
+                <p class="section-desc">Watch how AnnotateGPT transforms pen-based annotations into AI-augmented feedback.</p>
+            </div>
+            <div class="demo-video-wrapper reveal">
+                <video class="demo-video" controls preload="metadata">
+                    <source src="AnnotateGPT%20Demo.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+    </section>
+
+    <!-- System Overview -->
+    <section class="system section" id="system">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-marker"></i> System Design</span>
+                <h2 class="section-title">How AnnotateGPT Works</h2>
+                <p class="section-desc">A six-step pipeline from pen strokes to AI-generated feedback.</p>
+            </div>
+
+            <!-- Pipeline Steps -->
+            <div class="pipeline">
+                <div class="pipeline-step reveal">
+                    <div class="step-marker">
+                        <span class="step-letter">a</span>
+                    </div>
+                    <div class="step-content">
+                        <h3>Annotate</h3>
+                        <p>The user annotates the document with a digital pen &mdash; highlights, circles, underlines, or handwritten notes.</p>
+                    </div>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step reveal">
+                    <div class="step-marker">
+                        <span class="step-letter">b</span>
+                    </div>
+                    <div class="step-content">
+                        <h3>Cluster Strokes</h3>
+                        <p>Pen strokes are grouped using hierarchical agglomerative clustering based on spatiotemporal distance.</p>
+                    </div>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step reveal">
+                    <div class="step-marker">
+                        <span class="step-letter">c</span>
+                    </div>
+                    <div class="step-content">
+                        <h3>Activate Assistant</h3>
+                        <p>Tapping a cluster reveals a hidden assistant marker &mdash; the entry point for AI support.</p>
+                    </div>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step reveal">
+                    <div class="step-marker">
+                        <span class="step-letter">d</span>
+                    </div>
+                    <div class="step-content">
+                        <h3>Infer Purpose</h3>
+                        <p>The LLM captures two images and proposes four possible annotation purposes, personalized via RAG.</p>
+                    </div>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step reveal">
+                    <div class="step-marker">
+                        <span class="step-letter">e</span>
+                    </div>
+                    <div class="step-content">
+                        <h3>Select Purpose</h3>
+                        <p>The user selects a purpose (or types their own). AnnotateGPT remembers choices for future inferences.</p>
+                    </div>
+                </div>
+                <div class="pipeline-connector"></div>
+                <div class="pipeline-step reveal">
+                    <div class="step-marker">
+                        <span class="step-letter">f</span>
+                    </div>
+                    <div class="step-content">
+                        <h3>Generate &amp; Verify</h3>
+                        <p>AI generates context-specific feedback across the document. Users accept, reject, or mark as helpful.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Framework Figure -->
+            <div class="system-figure reveal" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="right:-50px;top:30px;transform:rotate(2deg);">
+                    <span class="margin-note-text">see full pipeline &darr;</span>
+                </div>
+                <canvas id="pdf-framework" class="figure-image"
+                        role="img"
+                        aria-label="AnnotateGPT framework overview showing the complete pipeline from annotation to feedback generation"></canvas>
+                <p class="figure-caption">
+                    <strong>Figure 2.</strong> An overview of AnnotateGPT&rsquo;s framework: (a) The user first annotates the document. (b) AnnotateGPT then clusters the pen strokes based on spatiotemporal distance, representing an annotation. (c) The user taps on the cluster/annotation to activate and open the assistant. (d) The assistant captures two images from the cluster, one with the underlying text and one without, and makes four guesses about the annotation&rsquo;s purpose. (e) The user then selects a purpose, which AnnotateGPT will remember for future inferences. (f) Finally, AnnotateGPT generates annotations based on the selected purpose and (g) highlights them on the document.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interface -->
+    <section class="interface section" id="interface">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label">Interface</span>
+                <h2 class="section-title">User Interface Design</h2>
+                <p class="section-desc">Built as a Next.js web application with GPT-4o integration.</p>
+            </div>
+            <div class="interface-gallery">
+                <div class="interface-item reveal">
+                    <div class="interface-img-wrapper">
+                        <canvas id="pdf-interface" class="figure-image"
+                                role="img"
+                                aria-label="Prototype interface of AnnotateGPT showing the toolbar, document, and specialized scrollbar"></canvas>
+                    </div>
+                    <div class="interface-info">
+                        <h3>Prototype Interface</h3>
+                        <p>The interface comprises three components: <strong>(b)</strong> a toolbar with colour palette, highlighter, and pen; <strong>(c)</strong> the document; and <strong>(d)</strong> a specialized scrollbar. Designed for the Microsoft Surface Studio with simultaneous thumb and pen interaction.</p>
+                    </div>
+                </div>
+                <div class="interface-item reverse reveal" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="left:-65px;top:0px;transform:rotate(-3deg);">
+                        <span class="margin-note-arrow">&rarr;</span>
+                        <span class="margin-note-text">UX details</span>
+                    </div>
+                    <div class="interface-img-wrapper">
+                        <canvas id="pdf-assistantmarker" class="figure-image"
+                                role="img"
+                                aria-label="Assistant marker showing suggested purposes and three states: waiting, processing, done"></canvas>
+                    </div>
+                    <div class="interface-info">
+                        <h3>Assistant Marker</h3>
+                        <p>Tapping an annotation opens an assistant marker displaying suggested purposes. The marker uses colour-coded states: <span class="state-badge state-waiting">waiting</span> <span class="state-badge state-processing">processing</span> <span class="state-badge state-done">done</span></p>
+                    </div>
+                </div>
+                <div class="interface-item reveal">
+                    <div class="interface-img-wrapper">
+                        <canvas id="pdf-navigation" class="figure-image"
+                                role="img"
+                                aria-label="Verifying AnnotateGPT annotations with accept, helpful, and reject ratings"></canvas>
+                    </div>
+                    <div class="interface-info">
+                        <h3>Verification &amp; Feedback</h3>
+                        <p>Generated annotations appear as yellow highlights. Users tap to view feedback, then rate: <span class="rating-badge accept">accept</span> <span class="rating-badge helpful">helpful</span> <span class="rating-badge reject">reject</span>. A reply box extends the conversation.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results -->
+    <section class="results section" id="results">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-pencil-alt"></i> Evaluation</span>
+                <h2 class="section-title">Study Results</h2>
+                <p class="section-desc">A within-subjects study with 12 pre-service teachers comparing AnnotateGPT to a baseline digital annotation tool.</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-count="12">0</div>
+                    <div class="stat-label">Participants</div>
+                    <div class="stat-detail">Pre-service teachers</div>
+                </div>
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-count="63" data-suffix="%">0</div>
+                    <div class="stat-label">Purpose Inference</div>
+                    <div class="stat-detail">Correctly inferred</div>
+                </div>
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-count="47" data-suffix="">0</div>
+                    <div class="stat-label">Avg. Accepted</div>
+                    <div class="stat-detail">Annotations per user</div>
+                </div>
+            </div>
+
+            <!-- Annotation Types Taxonomy -->
+            <div class="annotation-taxonomy reveal" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="right:-55px;top:60px;transform:rotate(1deg);">
+                    <span class="margin-note-text margin-note-star">important taxonomy</span>
+                </div>
+                <h2 class="taxonomy-title"><i class="fas fa-layer-group"></i> Types of Annotations Observed</h2>
+                <p class="taxonomy-intro">Annotations fall along two dimensions: <strong>Form</strong> (telegraphic vs. explicit) describes whether marks are personal shorthand or clear textual feedback. <strong>Purpose</strong> (micro vs. macro) captures whether the annotation targets fine-grained features or broader structural aspects.</p>
+
+                <div class="taxonomy-dimensions">
+                    <!-- Form Dimension -->
+                    <div class="taxonomy-dimension">
+                        <h3 class="dimension-label">Form <span class="dimension-range">Telegraphic &harr; Explicit</span></h3>
+                        <div class="dimension-cards">
+                            <div class="taxonomy-card telegraphic">
+                                <div class="taxonomy-card-header">
+                                    <span class="taxonomy-icon"><i class="fas fa-highlighter"></i></span>
+                                    <span class="taxonomy-card-title">Telegraphic</span>
+                                </div>
+                                <p class="taxonomy-card-desc">Personal opaque codings &mdash; quick marks, highlights, circles, or crossing-out without written explanation.</p>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 93</span>
+                                    <span class="count-pill annotategpt">User: 73</span>
+                                    <span class="count-pill inferred">Inferred: 48</span>
+                                </div>
+                            </div>
+                            <div class="taxonomy-card explicit">
+                                <div class="taxonomy-card-header">
+                                    <span class="taxonomy-icon"><i class="fas fa-pen-fancy"></i></span>
+                                    <span class="taxonomy-card-title">Explicit</span>
+                                </div>
+                                <p class="taxonomy-card-desc">Clear and explicit meaning, usually handwritten textual comments, corrections, and detailed feedback.</p>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 380</span>
+                                    <span class="count-pill annotategpt">User: 86</span>
+                                    <span class="count-pill inferred">Inferred: 17</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Purpose Dimension -->
+                    <div class="taxonomy-dimension">
+                        <h3 class="dimension-label">Purpose <span class="dimension-range">Micro &harr; Macro</span></h3>
+                        <div class="purpose-grid">
+                            <div class="purpose-category micro">
+                                <div class="purpose-header">
+                                    <span class="purpose-dot micro"></span>
+                                    <h4>Grammar</h4>
+                                    <span class="purpose-total">336 total</span>
+                                </div>
+                                <ul class="purpose-subs">
+                                    <li>Tense &mdash; verb form consistency</li>
+                                    <li>Preposition &mdash; phrase usage</li>
+                                    <li>Punctuation &mdash; commas, periods</li>
+                                    <li>Capitalization &mdash; case rules</li>
+                                </ul>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 110</span>
+                                    <span class="count-pill annotategpt">User: 31</span>
+                                    <span class="count-pill inferred">Inferred: 13</span>
+                                    <span class="count-pill generated">Generated: 182</span>
+                                </div>
+                            </div>
+                            <div class="purpose-category micro">
+                                <div class="purpose-header">
+                                    <span class="purpose-dot micro"></span>
+                                    <h4>Vocabulary</h4>
+                                    <span class="purpose-total">274 total</span>
+                                </div>
+                                <ul class="purpose-subs">
+                                    <li>Word Choice &mdash; context-fitting words</li>
+                                    <li>Spelling &mdash; correct spelling</li>
+                                    <li>Collocation &mdash; natural word pairings</li>
+                                </ul>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 93</span>
+                                    <span class="count-pill annotategpt">User: 33</span>
+                                    <span class="count-pill inferred">Inferred: 9</span>
+                                    <span class="count-pill generated">Generated: 139</span>
+                                </div>
+                            </div>
+                            <div class="purpose-category mid">
+                                <div class="purpose-header">
+                                    <span class="purpose-dot mid"></span>
+                                    <h4>Sentence Structure</h4>
+                                    <span class="purpose-total">538 total</span>
+                                </div>
+                                <ul class="purpose-subs">
+                                    <li>Clarity &mdash; unclear phrasing</li>
+                                    <li>Run-ons &mdash; improperly joined</li>
+                                    <li>Fragments &mdash; incomplete sentences</li>
+                                </ul>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 157</span>
+                                    <span class="count-pill annotategpt">User: 59</span>
+                                    <span class="count-pill inferred">Inferred: 17</span>
+                                    <span class="count-pill generated">Generated: 305</span>
+                                </div>
+                            </div>
+                            <div class="purpose-category macro">
+                                <div class="purpose-header">
+                                    <span class="purpose-dot macro"></span>
+                                    <h4>Organization &amp; Coherence</h4>
+                                    <span class="purpose-total">552 total</span>
+                                </div>
+                                <ul class="purpose-subs">
+                                    <li>Logical Flow &mdash; disjointed ideas</li>
+                                    <li>Paragraphing &mdash; grouping ideas</li>
+                                </ul>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 94</span>
+                                    <span class="count-pill annotategpt">User: 26</span>
+                                    <span class="count-pill inferred">Inferred: 25</span>
+                                    <span class="count-pill generated">Generated: 407</span>
+                                </div>
+                            </div>
+                            <div class="purpose-category macro">
+                                <div class="purpose-header">
+                                    <span class="purpose-dot macro"></span>
+                                    <h4>Task Achievement</h4>
+                                    <span class="purpose-total">46 total</span>
+                                </div>
+                                <ul class="purpose-subs">
+                                    <li>Completeness &mdash; addresses the prompt</li>
+                                    <li>Encouragement &mdash; constructive tone</li>
+                                </ul>
+                                <div class="taxonomy-counts">
+                                    <span class="count-pill baseline">Baseline: 19</span>
+                                    <span class="count-pill annotategpt">User: 10</span>
+                                    <span class="count-pill inferred">Inferred: 1</span>
+                                    <span class="count-pill generated">Generated: 16</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workflows -->
+            <div class="workflows-section reveal" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="left:-70px;top:100px;transform:rotate(-5deg);">
+                    <span class="margin-note-bracket">&#123;</span>
+                    <span class="margin-note-text">emergent<br>strategies</span>
+                </div>
+                <h2 class="taxonomy-title"><i class="fas fa-route"></i> Observed Workflows</h2>
+                <p class="taxonomy-intro">Participants developed distinct strategies for creating annotations and interacting with AI-generated feedback, revealing how users naturally negotiate agency with the assistant.</p>
+
+                <div class="workflow-columns">
+                    <!-- Annotation Workflows -->
+                    <div class="workflow-group">
+                        <h3 class="workflow-group-title"><i class="fas fa-pen-nib"></i> Annotation Workflows</h3>
+                        <p class="workflow-group-desc">How participants created and submitted their annotations</p>
+
+                        <div class="workflow-item">
+                            <div class="workflow-flow">
+                                <span class="wf-step">Annotate</span>
+                                <span class="wf-arrow"><i class="fas fa-long-arrow-alt-right"></i></span>
+                                <span class="wf-step accent">Interpret</span>
+                            </div>
+                            <div class="workflow-meta">
+                                <span class="wf-participants"><i class="fas fa-users"></i> 10 / 12</span>
+                                <p>Make one annotation, then have the assistant interpret it and wait for the result.</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item">
+                            <div class="workflow-flow">
+                                <span class="wf-step">Annotate K</span>
+                                <span class="wf-arrow"><i class="fas fa-long-arrow-alt-right"></i></span>
+                                <span class="wf-step accent">Interpret K</span>
+                            </div>
+                            <div class="workflow-meta">
+                                <span class="wf-participants"><i class="fas fa-users"></i> 9 / 12</span>
+                                <p>Make K annotations, then have the assistant interpret them concurrently in a batch.</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item">
+                            <div class="workflow-flow">
+                                <span class="wf-step">Annotate</span>
+                                <span class="wf-arrow"><i class="fas fa-long-arrow-alt-right"></i></span>
+                                <span class="wf-step accent">Follow-up</span>
+                            </div>
+                            <div class="workflow-meta">
+                                <span class="wf-participants"><i class="fas fa-users"></i> 5 / 12</span>
+                                <p>Annotate to fill in gaps where AnnotateGPT&rsquo;s highlights didn&rsquo;t cover.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interaction Workflows -->
+                    <div class="workflow-group">
+                        <h3 class="workflow-group-title"><i class="fas fa-robot"></i> Interaction Workflows</h3>
+                        <p class="workflow-group-desc">How participants engaged with AI-generated annotations</p>
+
+                        <div class="workflow-item">
+                            <div class="workflow-flow">
+                                <span class="wf-step">Generate</span>
+                                <span class="wf-arrow"><i class="fas fa-long-arrow-alt-right"></i></span>
+                                <span class="wf-step accent">Verify</span>
+                            </div>
+                            <div class="workflow-meta">
+                                <span class="wf-participants"><i class="fas fa-users"></i> 6 / 12</span>
+                                <p>Generate annotations from one annotation, then verify them afterwards.</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item">
+                            <div class="workflow-flow">
+                                <span class="wf-step">Generate K</span>
+                                <span class="wf-arrow"><i class="fas fa-long-arrow-alt-right"></i></span>
+                                <span class="wf-step accent">Verify</span>
+                            </div>
+                            <div class="workflow-meta">
+                                <span class="wf-participants"><i class="fas fa-users"></i> 9 / 12</span>
+                                <p>Generate annotations from K annotations and verify all at once in bulk.</p>
+                            </div>
+                        </div>
+
+                        <div class="workflow-item">
+                            <div class="workflow-flow">
+                                <span class="wf-step">Verify</span>
+                                <span class="wf-arrow"><i class="fas fa-long-arrow-alt-right"></i></span>
+                                <span class="wf-step accent">Comment</span>
+                            </div>
+                            <div class="workflow-meta">
+                                <span class="wf-participants"><i class="fas fa-users"></i> 7 / 12</span>
+                                <p>Verify the annotation and continue to comment, extending the AI feedback.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Follow-up figure -->
+                <div class="workflow-figure reveal">
+                    <canvas id="pdf-workflow" class="figure-image"
+                            role="img"
+                            aria-label="Example of P6 filling in gaps around AnnotateGPT highlights with follow-up annotations"></canvas>
+                    <p class="figure-caption">
+                        <strong>Figure 8.</strong> Example of how P6 fills in the gaps of the automated annotations, where the annotations were filled around the highlights.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Key Findings -->
+            <div class="findings">
+                <div class="finding-card reveal">
+                    <div class="finding-icon"><i class="fas fa-pen"></i></div>
+                    <h3>Shifted Annotation Behaviour</h3>
+                    <p>With AnnotateGPT, participants shifted to <strong>telegraphic annotations</strong> (quick marks instead of full comments), 
+                    relying on the AI to generate detailed feedback.</p>
+                    <blockquote class="participant-quote">&ldquo;No point writing it if the AI would come up with it itself.&rdquo; <cite>&mdash; P9</cite></blockquote>
+                </div>
+                <div class="finding-card reveal">
+                    <div class="finding-icon"><i class="fas fa-sitemap"></i></div>
+                    <h3>Diverse Workflows</h3>
+                    <p>Three annotation workflows emerged: <strong>annotate-interpret</strong> (one at a time), <strong>annotate-K-interpret-K</strong> (batched), 
+                    and <strong>annotate-followup</strong> (filling gaps). Plus three interaction workflows for verification.</p>
+                </div>
+                <div class="finding-card reveal" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="right:45px;top:10px;transform:rotate(3deg);">
+                        <span class="margin-note-text">wow!</span>
+                    </div>
+                    <div class="finding-icon"><i class="fas fa-expand-arrows-alt"></i></div>
+                    <h3>Broader Coverage</h3>
+                    <p>AnnotateGPT surfaced issues participants would have missed. 
+                    AI feedback addressed <strong>organization &amp; coherence</strong> more than baseline.</p>
+                    <blockquote class="participant-quote">&ldquo;It could look at a bigger scope than me.&rdquo; <cite>&mdash; P1</cite></blockquote>
+                </div>
+                <div class="finding-card reveal">
+                    <div class="finding-icon"><i class="fas fa-comment-dots"></i></div>
+                    <h3>Higher-Quality Feedback</h3>
+                    <p>Baseline feedback only stated problems (e.g., <span class="strikethrough-text">awk</span>), while AnnotateGPT <strong>explicitly stated reasons</strong> and 
+                    suggested fixes.</p>
+                    <blockquote class="participant-quote">&ldquo;It gave better feedback than I would write.&rdquo; <cite>&mdash; P4</cite></blockquote>
+                </div>
+            </div>
+
+            <!-- Results Figure -->
+            <div class="results-figure reveal" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="left:-65px;top:30px;transform:rotate(-2deg);">
+                    <span class="margin-note-arrow">&rarr;</span>
+                    <span class="margin-note-text">sig. diff!</span>
+                </div>
+                <canvas id="pdf-numannotations" class="figure-image"
+                        role="img"
+                        aria-label="Bar chart comparing number of annotations between AnnotateGPT and baseline, showing significantly more AI-generated annotations"></canvas>
+                <p class="figure-caption">
+                    <strong>Figure 14.</strong> Number of annotations between AnnotateGPT and baseline, along with human-rated annotations for AnnotateGPT.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Annotation Comparison -->
+    <section class="comparison section">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label">Comparison</span>
+                <h2 class="section-title">Baseline vs. AnnotateGPT</h2>
+            </div>
+            <div class="comparison-visual reveal" style="position:relative;">
+                <div class="margin-note" aria-hidden="true" style="right:-55px;top:40px;transform:rotate(-2deg);">
+                    <span class="margin-note-arrow">&larr;</span>
+                    <span class="margin-note-text">night &amp; day!</span>
+                </div>
+                <canvas id="pdf-p9firstpage" class="figure-image"
+                        role="img"
+                        aria-label="Side-by-side comparison of baseline annotations (explicit, textual) vs AnnotateGPT annotations (telegraphic, highlights-only)"></canvas>
+                <p class="figure-caption">
+                    <strong>Figure 9.</strong> Screenshots of the first page for P9. The left side is with the baseline, and the right side is with AnnotateGPT. It demonstrates different annotation approaches, with the baseline annotations focusing on identifying issues such as unclear phrasing and negative tone using textual feedback, while in the AnnotateGPT condition, P9 only used highlights with no textual feedback.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Discussion Highlights -->
+    <section class="discussion section" id="discussion">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label"><i class="fas fa-edit"></i> Discussion</span>
+                <h2 class="section-title">Design Implications</h2>
+                <div class="hand-underline">
+                    <svg width="220" height="14" viewBox="0 0 220 14" fill="none"><path d="M2 8C45 2 90 13 135 6C180 -1 200 11 218 7" stroke="var(--ink-red)" stroke-width="2" stroke-linecap="round" opacity="0.4"/><path d="M5 11C50 5 95 14 140 8C185 2 205 12 216 9" stroke="var(--ink-red)" stroke-width="1.5" stroke-linecap="round" opacity="0.25"/></svg>
+                </div>
+            </div>
+            <div class="implications-grid">
+                <div class="implication-card reveal">
+                    <div class="implication-number annotation-circled">I</div>
+                    <h3>Balancing Agency &amp; Over-Reliance</h3>
+                    <p>Batched workflows promote deliberate engagement. Sequencing &mdash; marking manually first, then using AI &mdash; fosters ownership and strategic integration.</p>
+                </div>
+                <div class="implication-card reveal" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="right:-50px;top:8px;transform:rotate(-3deg);">
+                        <span class="margin-note-text margin-note-underline">key insight</span>
+                    </div>
+                    <div class="implication-number annotation-circled">II</div>
+                    <h3>LLMs as Cognitive Augmentation</h3>
+                    <p>AnnotateGPT externalizes phrasing and formatting work, allowing educators to focus cognitive effort on identifying issues rather than constructing responses.</p>
+                </div>
+                <div class="implication-card reveal">
+                    <div class="implication-number annotation-circled">III</div>
+                    <h3>Supporting Equity in Education</h3>
+                    <p>AI-augmented feedback helps novice teachers deliver timely, accurate, and curriculum-aligned feedback, even at scale, levelling the playing field.</p>
+                </div>
+                <div class="implication-card reveal" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="left:-60px;top:15px;transform:rotate(-4deg);">
+                        <span class="margin-note-bracket">&#123;</span>
+                        <span class="margin-note-text">big idea!</span>
+                    </div>
+                    <div class="implication-number annotation-circled">IV</div>
+                    <h3>Annotation as Interaction Paradigm</h3>
+                    <p>Annotations transform from private marks into expressive inputs that shape AI system behaviour &mdash; a shared language between humans and AI.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Beyond Education -->
+    <section class="beyond section" id="beyond">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label">Vision</span>
+                <h2 class="section-title">Beyond Education</h2>
+                <p class="section-desc">Annotations as a universal interaction paradigm for AI systems.</p>
+            </div>
+            <div class="beyond-grid">
+                <div class="beyond-card reveal">
+                    <div class="beyond-icon"><i class="fas fa-paintbrush"></i></div>
+                    <h3>Editing Generative Content</h3>
+                    <p>Annotations as spatial constraints for refining AI-generated images, defining action flows for video generation, and creating &amp; editing user interfaces &mdash; a low-friction alternative to repeated prompting.</p>
+                </div>
+                <div class="beyond-card reveal" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="right:-40px;bottom:15px;transform:rotate(4deg);">
+                        <span class="margin-note-text">future work?</span>
+                    </div>
+                    <div class="beyond-icon"><i class="fas fa-globe"></i></div>
+                    <h3>Annotating the World</h3>
+                    <p>On-screen annotations on camera feeds enable users to direct AI attention precisely &mdash; like writing &ldquo;Pie?&rdquo; next to apples to ask which are best for baking. Discreet, precise, contextual.</p>
+                </div>
+            </div>
+            <div class="beyond-figure reveal">
+                <div class="figure-image-pair">
+                    <canvas id="pdf-application2" class="figure-image"
+                            role="img"
+                            aria-label="Sample use cases: editing generative content"></canvas>
+                    <canvas id="pdf-application" class="figure-image"
+                            role="img"
+                            aria-label="Sample use cases: annotating the world"></canvas>
+                </div>
+                <p class="figure-caption">
+                    <strong>Figure 15.</strong> Sample use cases of using annotations: <em>Left</em>: editing and refining generative content, including (a) refining image generation, (b) making action flows for video generation, and (c) creating and editing user interfaces. <em>Right</em>: interacting with a phone using on-screen annotations and form complex queries, such as (a) which apples are best for apple pies, (b) translation, and (c) saving an item for later reference. All sample queries are sourced from ChatGPT and paired with the corresponding image.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team -->
+    <section class="team section" id="team">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label">Team</span>
+                <h2 class="section-title">Authors</h2>
+            </div>
+            <div class="team-grid">
+                <div class="team-card reveal">
+                    <div class="team-avatar">
+                        <img src="img/benedict-leung.jpg" alt="Benedict Leung">
+                    </div>
+                    <h3>Benedict Leung</h3>
+                    <p class="team-role">Researcher, MSc</p>
+                    <p class="team-affiliation">Ontario Tech University</p>
+                    <div class="team-links">
+                        <a href="mailto:benedict.leung1@ontariotechu.net" class="team-link" title="Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                        <a href="https://orcid.org/0009-0003-6754-9874" target="_blank" class="team-link" title="ORCID">
+                            <i class="fab fa-orcid"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/in/ben--leung" target="_blank" class="team-link" title="LinkedIn">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="https://scholar.google.com/citations?hl=en&user=ofhVl3wAAAAJ" target="_blank" class="team-link" title="Google Scholar">
+                            <i class="fas fa-graduation-cap"></i>
+                        </a>
+                        <a href="https://github.com/Benedict-Leung" target="_blank" class="team-link" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://benedict-leung.github.io" target="_blank" class="team-link" title="Website">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="team-card reveal">
+                    <div class="team-avatar">
+                        <img src="img/mariana-shimabukuro.jpg" alt="Mariana Shimabukuro">
+                    </div>
+                    <h3>Mariana Shimabukuro</h3>
+                    <p class="team-role">Researcher, Associate Professor</p>
+                    <p class="team-affiliation">Ontario Tech University</p>
+                    <div class="team-links">
+                        <a href="mailto:mariana.shimabukuro@ontariotechu.ca" class="team-link" title="Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                        <a href="https://orcid.org/0000-0003-4104-0781" target="_blank" class="team-link" title="ORCID">
+                            <i class="fab fa-orcid"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/in/makemi" target="_blank" class="team-link" title="LinkedIn">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="https://scholar.google.com/citations?hl=en&user=FSSbcSgAAAAJ" target="_blank" class="team-link" title="Google Scholar">
+                            <i class="fas fa-graduation-cap"></i>
+                        </a>
+                        <a href="https://github.com/maakemi" target="_blank" class="team-link" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://www.shimabukuro.ca/" target="_blank" class="team-link" title="Website">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="team-card reveal">
+                    <div class="team-avatar">
+                        <img src="img/christopher-collins.jpg" alt="Christopher Collins">
+                    </div>
+                    <h3>Christopher Collins</h3>
+                    <p class="team-role">Professor</p>
+                    <p class="team-affiliation">Ontario Tech University</p>
+                    <div class="team-links">
+                        <a href="mailto:christopher.collins@ontariotechu.ca" class="team-link" title="Email">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                        <a href="https://orcid.org/0000-0002-4520-7000" target="_blank" class="team-link" title="ORCID">
+                            <i class="fab fa-orcid"></i>
+                        </a>
+                        <a href="https://www.linkedin.com/in/christophercollins/" target="_blank" class="team-link" title="LinkedIn">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="https://scholar.google.ca/citations?user=yHRw4eMAAAAJ&hl=en" target="_blank" class="team-link" title="Google Scholar">
+                            <i class="fas fa-graduation-cap"></i>
+                        </a>
+                        <a href="https://github.com/vialab" target="_blank" class="team-link" title="GitHub">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="https://vialab.ca/" target="_blank" class="team-link" title="Website">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA / Citation -->
+    <section class="citation section" id="citation">
+        <div class="container">
+            <div class="section-header reveal">
+                <span class="section-label">Reference</span>
+                <h2 class="section-title">Cite This Work</h2>
+            </div>
+            <div class="citation-block reveal">
+                <pre class="citation-text" id="citationText">@inproceedings{leung2026annotategpt,
+  title     = {AnnotateGPT: Designing Human--AI Collaboration 
+               in Pen-Based Document Annotation},
+  author    = {Leung, Benedict and Shimabukuro, Mariana 
+               and Collins, Christopher},
+  booktitle = {Proceedings of the 2026 CHI Conference on 
+               Human Factors in Computing Systems (CHI '26)},
+  year      = {2026},
+  publisher = {ACM},
+  address   = {New York, NY, USA},
+  location  = {Barcelona, Spain},
+  doi       = {10.1145/3772318.3790867},
+  pages     = {26}
+}</pre>
+                <button class="btn-copy" id="copyBtn" aria-label="Copy citation">
+                    <i class="fas fa-copy"></i> Copy BibTeX
+                </button>
+            </div>
+            <div class="cta-actions reveal">
+                <a href="https://doi.org/10.1145/3772318.3790867" target="_blank" class="btn btn-lg btn-primary">
+                    <i class="fas fa-external-link-alt"></i> ACM Digital Library
+                </a>
+                <a href="https://github.com/vialab/AnnotateGPT" target="_blank" class="btn btn-lg btn-dark">
+                    <i class="fab fa-github"></i> GitHub Repository
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="logo-blob-wrap footer-logo">
+                        <img src="logoBlob.svg" class="logo-blob" alt="">
+                        <img src="logoPen2.svg" class="logo-pen" alt="">
+                        <span class="logo-annotate">Annotate</span><span class="logo-gpt">GPT</span>
+                    </span>
+                </span>
+                </div>
+                <p class="footer-conference">
+                    CHI 2026 &bull; Barcelona, Spain &bull; April 13&ndash;17, 2026
+                </p>
+                <div class="footer-links">
+                    <a href="https://doi.org/10.1145/3772318.3790867" target="_blank">DOI: 10.1145/3772318.3790867</a>
+                    <span class="footer-divider">&bull;</span>
+                    <a href="https://github.com/vialab/AnnotateGPT" target="_blank">GitHub</a>
+                    <span class="footer-divider">&bull;</span>
+                    <a href="https://vialab.ca" target="_blank">vialab</a>
+                </div>
+                <p class="footer-license">
+                    <i class="fab fa-creative-commons"></i> <i class="fab fa-creative-commons-by"></i>
+                    Licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC BY 4.0</a>
+                </p>
+                <p class="footer-copy">&copy; 2026 Ontario Tech University. ACM ISBN 979-8-4007-2278-3/26/04.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.min.mjs" type="module"></script>
+    <script type="module">
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+
+        async function renderPDF(canvasId, pdfPath, scale = 3) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const pdf = await pdfjsLib.getDocument(pdfPath).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
+        }
+
+        const figures = [
+            ['teaser-pdf-canvas',    'figures/teaser.pdf'],
+            ['pdf-framework',        'figures/framework.pdf'],
+            ['pdf-interface',        'figures/Interface.pdf'],
+            ['pdf-assistantmarker',  'figures/assistantMarker.pdf'],
+            ['pdf-navigation',       'figures/Navigation.pdf'],
+            ['pdf-workflow',         'figures/Workflow3.pdf'],
+            ['pdf-numannotations',   'figures/numAnnotations.pdf'],
+            ['pdf-p9firstpage',      'figures/P9-first-page.pdf'],
+            ['pdf-application',      'figures/application.pdf'],
+            ['pdf-application2',     'figures/application2.pdf'],
+        ];
+
+        await Promise.all(figures.map(([id, path]) => renderPDF(id, path)));
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
