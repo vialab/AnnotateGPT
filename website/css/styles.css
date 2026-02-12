@@ -310,7 +310,7 @@ a {
 .nav-container {
     max-width: var(--container-max);
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 36px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -736,10 +736,6 @@ a {
 .abstract-content {
     max-width: 800px;
     margin: 0 auto;
-    position: relative;
-}
-
-.abstract-content {
     position: relative;
 }
 
@@ -1204,13 +1200,27 @@ a {
 .comparison-visual {
     background: var(--white);
     border-radius: var(--radius-xl);
-    /* overflow: hidden; */
     box-shadow: var(--shadow-lg);
     border: 1px solid var(--gray-200);
 }
 
+/* Containers without margin notes get overflow hidden directly */
+.beyond-figure {
+    overflow: visible;
+}
+
+/* Containers with margin notes stay overflow visible;
+   the canvas self-clips its corners instead */
+.system-figure,
+.results-figure,
+.comparison-visual {
+    overflow: visible;
+}
+
 .figure-image {
     width: 100%;
+    display: block;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .figure-caption {
@@ -1265,12 +1275,13 @@ a {
     border: 1px solid var(--gray-200);
 }
 
-.interface-img-wrapper img {
+.interface-img-wrapper .figure-image {
     border-radius: var(--radius-lg);
 }
 
 .interface-img-wrapper img {
     width: 100%;
+    border-radius: var(--radius-lg);
     transition: transform 0.5s ease;
 }
 
@@ -1502,7 +1513,7 @@ a {
 
 .count-pill.annotategpt {
     background: rgba(79,70,229,0.1);
-    color: var(--primary-700);
+    color: var(--primary-dark);
 }
 
 .count-pill.inferred {
@@ -1555,7 +1566,6 @@ a {
 }
 
 .purpose-total {
-    font-size: 0.72rem;
     font-weight: 600;
     color: var(--gray-400);
     margin-left: auto;
@@ -1707,7 +1717,7 @@ a {
 
 .wf-step.accent {
     background: var(--primary-50);
-    color: var(--primary-700);
+    color: var(--primary-dark);
 }
 
 .wf-arrow {
@@ -1723,7 +1733,6 @@ a {
 }
 
 .wf-participants {
-    font-size: 0.72rem;
     font-weight: 600;
     color: var(--primary);
     display: inline-flex;
@@ -2274,14 +2283,59 @@ a {
 .interface-img-wrapper::before {
     content: '';
     position: absolute;
-    top: -16px;
+    top: -14px;
     left: 50%;
-    transform: translateX(-50%) rotate(1deg);
-    width: 80px;
-    height: 28px;
-    background: rgba(250,204,21,0.3);
-    border-radius: 2px;
+    transform: translateX(-50%) rotate(1.5deg);
+    width: 90px;
+    height: 26px;
+    background:
+        /* Frosted semi-transparent tape body */
+        linear-gradient(
+            180deg,
+            rgba(255,255,240,0.55) 0%,
+            rgba(250,245,215,0.45) 40%,
+            rgba(245,240,200,0.5) 100%
+        );
+    /* Tape edges: soft top/bottom with slightly rough left/right */
+    border-top: 1px solid rgba(255,255,255,0.6);
+    border-bottom: 1px solid rgba(210,195,140,0.3);
+    border-left: 1px solid rgba(230,220,170,0.25);
+    border-right: 1px solid rgba(230,220,170,0.25);
+    border-radius: 1px;
+    box-shadow:
+        0 1px 3px rgba(180,160,100,0.15),
+        inset 0 0 8px rgba(255,255,230,0.3);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
     z-index: 2;
+    pointer-events: none;
+}
+
+/* Slight shine / crease across the tape */
+.teaser-wrapper::after,
+.demo-video-wrapper::after,
+.system-figure::after,
+.results-figure::after,
+.beyond-figure::after,
+.comparison-visual::after,
+.workflow-figure::after,
+.interface-img-wrapper::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(1.5deg);
+    width: 86px;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.7) 20%,
+        rgba(255,255,255,0.5) 50%,
+        rgba(255,255,255,0.7) 80%,
+        transparent 100%
+    );
+    z-index: 3;
     pointer-events: none;
 }
 
@@ -2325,7 +2379,7 @@ a {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     :root {
         --section-padding: 64px;
     }
