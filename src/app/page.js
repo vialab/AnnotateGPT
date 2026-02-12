@@ -5,9 +5,6 @@ import localFont from "next/font/local";
 import { parse } from "csv-parse";
 import * as d3 from "d3";
 import { ToastContainer, toast, Flip } from "react-toastify";
-import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, setPersistence, inMemoryPersistence } from "firebase/auth";
-import { getFirestore, addDoc, collection } from "firebase/firestore";
 import AnnotateGPT from "./components/AnnotateGPT.js";
 
 import Header from "../app/components/Header.js";
@@ -17,21 +14,6 @@ export const googleSans = localFont({
     src: "./components/css/googlesans.woff2",
     display: "swap",
 });
-
-const firebaseConfig = {
-    apiKey: "AIzaSyBFTj4CgTWa3to76N_mk7C4EzUABSP1pLM",
-    authDomain: "annotategpt.firebaseapp.com",
-    projectId: "annotategpt",
-    storageBucket: "annotategpt.appspot.com",
-    messagingSenderId: "855106191363",
-    appId: "1:855106191363:web:d74b397557f6eac8d84e36"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-setPersistence(auth, inMemoryPersistence);
 
 const MAX_RETRIES = 3;
 
@@ -170,52 +152,6 @@ export default function Home() {
                         containerId: "errorMessage"
                     });
                 });
-            } else {
-                if (userRef.current) {
-                    try {
-                        fetch("/api/storeHistory", {
-                            method: "GET",
-                        }).then(res => {
-                            if (!res.ok)
-                                return res.text().then(text => { throw new Error(text); });
-                            return res.text();
-                        }).then(data => {
-                            const pid = studyModalRef.current?.pid ?? "test";
-                            const userDocRef = collection(db, userRef.current.uid, state + modeRef.current.toLowerCase() + pid, "history");
-                            const userData = {
-                                history: data,
-                                pid: studyModalRef.current?.pid ?? "test",
-                                timestamp: Date.now()
-                            };
-
-                            retry(() => {
-                                addDoc(userDocRef, userData)
-                                .catch((err) => {
-                                    console.error("sendData:", err);
-
-                                    toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
-                                        toastId: "sendData",
-                                        containerId: "errorMessage"
-                                    });
-                                });
-                            });
-                        }).catch(err => {
-                            console.error("getHistory:", err);
-
-                            toast.error("getHistory: " + err.toString().replaceAll("Error: ", ""), {
-                                toastId: "getHistory",
-                                containerId: "errorMessage"
-                            });
-                        });
-                    } catch (err) {
-                        console.error("sendData:", err);
-
-                        toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
-                            toastId: "sendData",
-                            containerId: "errorMessage"
-                        });
-                    }
-                }
             }
         }
     }, [state]);
@@ -379,37 +315,6 @@ export default function Home() {
                         containerId: "errorMessage"
                     });
                 });
-            } else {
-                if (userRef.current) {
-                    try {
-                        const pid = studyModalRef.current?.pid ?? "test";
-                        const userDocRef = collection(db, userRef.current.uid, state + modeRef.current.toLowerCase() + pid, "data");
-
-                        const userData = {
-                            ...JSON.parse(body),
-                            pid: studyModalRef.current?.pid ?? "test",
-                        };
-
-                        retry(() => {
-                            addDoc(userDocRef, userData)
-                            .catch((err) => {
-                                console.error("sendData:", err);
-
-                                toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
-                                    toastId: "sendData",
-                                    containerId: "errorMessage"
-                                });
-                            });
-                        });
-                    } catch (err) {
-                        console.error("sendData:", err);
-
-                        toast.error("sendData: " + err.toString().replaceAll("Error: ", ""), {
-                            toastId: "sendData",
-                            containerId: "errorMessage"
-                        });
-                    }
-                }
             }
         };
     };
@@ -603,43 +508,6 @@ export default function Home() {
         if (!strokeFile && clusterFile)
             initiateProcessClusters();
     };
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userRef.current = user;
-            } else {
-                try {
-                    let user = await signInAnonymously(auth);
-                    userRef.current = user.user;
-                } catch (error) {
-                    console.error("Error signing in anonymously: ", error);
-
-                    toast.error("Error signing in anonymously: " + error.toString().replaceAll("Error: ", ""), {
-                        toastId: "signInAnonym",
-                        containerId: "errorMessage"
-                    });
-                }
-            }
-        });
-
-        let handleVisibilityChange = async (event) => {
-            if (!event.persisted && auth.currentUser) {
-                const headers = {
-                    type: "application/json",
-                };
-                const blob = new Blob([JSON.stringify({id: auth.currentUser.uid})], headers);
-                navigator.sendBeacon("/api/cleanUp", blob);
-            }
-        };
-
-        window.addEventListener("pagehide", handleVisibilityChange);
-
-        return () => {
-            unsubscribe();
-            window.removeEventListener("pagehide", handleVisibilityChange);
-        };
-    }, []);
 
     useEffect(() => {
         modeRef.current = mode;
