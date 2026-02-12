@@ -1364,6 +1364,9 @@ a {
     text-align: center;
     border: 1px solid var(--gray-200);
     transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .stat-card:hover {
@@ -1390,6 +1393,54 @@ a {
 
 .stat-detail {
     font-size: 0.8rem;
+    color: var(--gray-400);
+}
+
+.detail-counter {
+    font-family: var(--font-hand);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--primary);
+}
+
+.stat-card-wide {
+    grid-column: span 2;
+}
+
+.stat-triple {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 32px;
+}
+
+.stat-triple-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.stat-triple-item .stat-value {
+    font-size: 3rem;
+}
+
+.stat-sublabel {
+    font-size: 0.8rem;
+    font-weight: 400;
+    margin-top: 4px;
+    color: var(--gray-400);
+}
+
+.stat-sublabel.accept {
+    color: var(--gray-400);
+}
+
+.stat-sublabel.reject {
+    color: var(--gray-400);
+}
+
+.stat-sublabel.helpful {
     color: var(--gray-400);
 }
 
@@ -2468,6 +2519,14 @@ a {
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 16px;
+    }
+
+    .stat-card-wide {
+        grid-column: span 2;
+    }
+
+    .stat-triple {
+        gap: 20px;
     }
 
     .stat-value {
