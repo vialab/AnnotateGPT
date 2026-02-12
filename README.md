@@ -1,6 +1,6 @@
 # AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation
 
-[DOI](https://doi.org/10.1145/3772318.3790867) 
+[Project Page](https://vialab.github.io/AnnotateGPT/) | [DOI](https://doi.org/10.1145/3772318.3790867) 
 
 ## Project Summary
 <p align="justify">
