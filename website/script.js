@@ -66,6 +66,13 @@ function initCounterAnimations() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 animateCounter(entry.target);
+                // Also animate any detail-counter spans in the same card
+                const card = entry.target.closest('.stat-card');
+                if (card) {
+                    card.querySelectorAll('.detail-counter').forEach(span => {
+                        animateDetailCounter(span);
+                    });
+                }
                 observer.unobserve(entry.target);
             }
         });
@@ -74,8 +81,9 @@ function initCounterAnimations() {
     stats.forEach(stat => observer.observe(stat));
 }
 
-function animateCounter(element) {
+function animateDetailCounter(element) {
     const target = parseInt(element.getAttribute('data-count'), 10);
+    if (isNaN(target)) return;
     const suffix = element.getAttribute('data-suffix') || '';
     const duration = 1800;
     const startTime = performance.now();
@@ -83,6 +91,62 @@ function animateCounter(element) {
     function easeOutExpo(t) {
         return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
     }
+
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeOutExpo(progress);
+        element.textContent = Math.floor(easedProgress * target) + suffix;
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = target + suffix;
+        }
+    }
+
+    requestAnimationFrame(update);
+}
+
+function animateCounter(element) {
+    const duration = 1800;
+    const startTime = performance.now();
+
+    function easeOutExpo(t) {
+        return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    }
+
+    // Dual-number cards (e.g., "44 → 13")
+    const countFrom = element.getAttribute('data-count-from');
+    const countTo = element.getAttribute('data-count-to');
+    if (countFrom !== null && countTo !== null) {
+        const fromTarget = parseInt(countFrom, 10);
+        const toTarget = parseInt(countTo, 10);
+        const sep = element.getAttribute('data-separator') || ' → ';
+
+        function updateDual(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easedProgress = easeOutExpo(progress);
+            const curFrom = Math.floor(easedProgress * fromTarget);
+            const curTo = Math.floor(easedProgress * toTarget);
+
+            element.innerHTML = curFrom + sep + curTo;
+
+            if (progress < 1) {
+                requestAnimationFrame(updateDual);
+            } else {
+                element.innerHTML = fromTarget + sep + toTarget;
+            }
+        }
+
+        requestAnimationFrame(updateDual);
+        return;
+    }
+
+    // Single-number cards
+    const target = parseInt(element.getAttribute('data-count'), 10);
+    if (isNaN(target)) return;
+    const suffix = element.getAttribute('data-suffix') || '';
 
     function update(currentTime) {
         const elapsed = currentTime - startTime;

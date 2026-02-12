@@ -464,14 +464,55 @@
                     <div class="stat-detail">Pre-service teachers</div>
                 </div>
                 <div class="stat-card reveal">
-                    <div class="stat-value" data-count="63" data-suffix="%">0</div>
-                    <div class="stat-label">Purpose Inference</div>
-                    <div class="stat-detail">Correctly inferred</div>
+                    <div class="stat-value" data-count="30" data-suffix=" min">0</div>
+                    <div class="stat-label">Annotating Window</div>
+                    <div class="stat-detail">25 min annotating + 5 min to finalize ratings</div>
+                </div>
+                <div class="stat-card stat-card-wide reveal">
+                    <div class="stat-triple">
+                        <div class="stat-triple-item">
+                            <div class="stat-value" data-count="63" data-suffix="%">0</div>
+                            <div class="stat-sublabel">Overall</div>
+                        </div>
+                        <div class="stat-triple-item">
+                            <div class="stat-value" data-count="100" data-suffix="%">0</div>
+                            <div class="stat-sublabel accept">Explicit (17/17)</div>
+                        </div>
+                        <div class="stat-triple-item">
+                            <div class="stat-value" data-count="50" data-suffix="%">0</div>
+                            <div class="stat-sublabel reject">Telegraphic (24/48)</div>
+                        </div>
+                    </div>
+                    <div class="stat-label" style="margin-top:12px;">Purpose Inference Accuracy</div>
+                    <div class="stat-detail">41 of 65 total</div>
+                </div>
+                <div class="stat-card stat-card-wide reveal">
+                    <div class="stat-triple">
+                        <div class="stat-triple-item">
+                            <div class="stat-value" data-count="47">0</div>
+                            <div class="stat-sublabel accept">Accepted</div>
+                        </div>
+                        <div class="stat-triple-item">
+                            <div class="stat-value" data-count="19">0</div>
+                            <div class="stat-sublabel reject">Rejected</div>
+                        </div>
+                        <div class="stat-triple-item">
+                            <div class="stat-value" data-count="8">0</div>
+                            <div class="stat-sublabel helpful">Helpful</div>
+                        </div>
+                    </div>
+                    <div class="stat-label" style="margin-top:12px;">Annotation Ratings</div>
+                    <div class="stat-detail">Average per user</div>
                 </div>
                 <div class="stat-card reveal">
-                    <div class="stat-value" data-count="47" data-suffix="">0</div>
-                    <div class="stat-label">Avg. Accepted</div>
-                    <div class="stat-detail">Annotations per user</div>
+                    <div class="stat-value" data-count-from="44" data-count-to="13" data-separator=" vs. ">0 vs. 0</div>
+                    <div class="stat-label">Strokes per Annotation</div>
+                    <div class="stat-detail">Baseline vs. AnnotateGPT</div>
+                </div>
+                <div class="stat-card reveal">
+                    <div class="stat-value" data-count-from="7" data-count-to="4" data-separator=" vs. ">0 vs. 0</div>
+                    <div class="stat-label">Annotations per Question</div>
+                    <div class="stat-detail">Baseline vs. AnnotateGPT</div>
                 </div>
             </div>
 
@@ -726,13 +767,9 @@
                     <h3>Shifted Annotation Behaviour</h3>
                     <p>With AnnotateGPT, participants shifted to <strong>telegraphic annotations</strong> (quick marks instead of full comments), 
                     relying on the AI to generate detailed feedback.</p>
-                    <blockquote class="participant-quote">&ldquo;No point writing it if the AI would come up with it itself.&rdquo; <cite>&mdash; P9</cite></blockquote>
-                </div>
-                <div class="finding-card reveal">
-                    <div class="finding-icon"><i class="fas fa-sitemap"></i></div>
-                    <h3>Diverse Workflows</h3>
-                    <p>Three annotation workflows emerged: <strong>annotate-interpret</strong> (one at a time), <strong>annotate-K-interpret-K</strong> (batched), 
-                    and <strong>annotate-followup</strong> (filling gaps). Plus three interaction workflows for verification.</p>
+                    <blockquote class="participant-quote">&ldquo;I could let [AnnotateGPT] come up with the comments.&rdquo; <cite>&mdash; P4</cite></blockquote>
+                    <blockquote class="participant-quote">&ldquo;It could scan the whole document.&rdquo; <cite>&mdash; P9</cite></blockquote>
+                    <blockquote class="participant-quote">&ldquo;[It could] look at all for me, so I could focus on structure.&rdquo; <cite>&mdash; P10</cite></blockquote>
                 </div>
                 <div class="finding-card reveal" style="position:relative;">
                     <div class="margin-note" aria-hidden="true" style="right:45px;top:10px;transform:rotate(3deg);">
@@ -743,6 +780,7 @@
                     <p>AnnotateGPT surfaced issues participants would have missed. 
                     AI feedback addressed <strong>organization &amp; coherence</strong> more than baseline.</p>
                     <blockquote class="participant-quote">&ldquo;It could look at a bigger scope than me.&rdquo; <cite>&mdash; P1</cite></blockquote>
+                    <blockquote class="participant-quote">&ldquo;It caught other points that I may have missed.&rdquo; <cite>&mdash; P12</cite></blockquote>
                 </div>
                 <div class="finding-card reveal">
                     <div class="finding-icon"><i class="fas fa-comment-dots"></i></div>
@@ -750,21 +788,21 @@
                     <p>Baseline feedback only stated problems (e.g., <span class="strikethrough-text">awk</span>), while AnnotateGPT <strong>explicitly stated reasons</strong> and 
                     suggested fixes.</p>
                     <blockquote class="participant-quote">&ldquo;It gave better feedback than I would write.&rdquo; <cite>&mdash; P4</cite></blockquote>
+                    <blockquote class="participant-quote">&ldquo;It would help me come up with more ideas to edit English work.&rdquo; <cite>&mdash; P9</cite></blockquote>
                 </div>
-            </div>
-
-            <!-- Results Figure -->
-            <div class="results-figure reveal" style="position:relative;">
-                <div class="margin-note" aria-hidden="true" style="left:-65px;top:30px;transform:rotate(-2deg);">
-                    <span class="margin-note-arrow">&rarr;</span>
-                    <span class="margin-note-text">sig. diff!</span>
+                <div class="finding-card reveal" style="position:relative;">
+                    <div class="margin-note" aria-hidden="true" style="right:45px;top:10px;transform:rotate(-2deg);">
+                        <span class="margin-note-text margin-note-underline">caution!</span>
+                    </div>
+                    <div class="finding-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                    <h3>Over-Reliance &amp; Agency</h3>
+                    <p>Some participants began <strong>delegating interpretive work</strong> to the AI, reducing their own engagement. 
+                    Annotation density and duration dropped after the first question.  
+                    Batched workflows and <strong>marking first, then using AI</strong> helped preserve ownership.</p>
+                    <blockquote class="participant-quote">&ldquo;The AI would write for me in a way.&rdquo; <cite>&mdash; P5</cite></blockquote>
+                    <blockquote class="participant-quote">&ldquo;Go through it and mark it first, and then use the assistance as the secondary tool.&rdquo; <cite>&mdash; P5</cite></blockquote>
+                    <blockquote class="participant-quote">&ldquo;I felt more responsible when annotating alone.&rdquo; <cite>&mdash; P1</cite></blockquote>
                 </div>
-                <canvas id="pdf-numannotations" class="figure-image"
-                        role="img"
-                        aria-label="Bar chart comparing number of annotations between AnnotateGPT and baseline, showing significantly more AI-generated annotations"></canvas>
-                <p class="figure-caption">
-                    <strong>Figure 14.</strong> Number of annotations between AnnotateGPT and baseline, along with human-rated annotations for AnnotateGPT.
-                </p>
             </div>
 
             <!-- Student Feedback: Practical Context -->
@@ -816,7 +854,7 @@
                 <div class="implication-card reveal">
                     <div class="implication-number annotation-circled">I</div>
                     <h3>Balancing Agency &amp; Over-Reliance</h3>
-                    <p>Batched workflows promote deliberate engagement. Sequencing (marking manually first, then using AI) fosters ownership and strategic integration.</p>
+                    <p>Batched workflows promote deliberate engagement over continuous delegation. Marking manually first and then using AI fosters ownership. Systems could track <strong>behavioural metrics</strong> (stroke density, duration) to nudge users toward more explicit annotations before invoking AI.</p>
                 </div>
                 <div class="implication-card reveal" style="position:relative;">
                     <div class="margin-note" aria-hidden="true" style="right:-50px;top:8px;transform:rotate(-3deg);">
