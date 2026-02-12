@@ -739,10 +739,6 @@ a {
     position: relative;
 }
 
-.abstract-content {
-    position: relative;
-}
-
 .abstract-icon {
     font-size: 2.5rem;
     color: var(--primary-100);
@@ -1284,11 +1280,8 @@ a {
 }
 
 .interface-img-wrapper img {
-    border-radius: var(--radius-lg);
-}
-
-.interface-img-wrapper img {
     width: 100%;
+    border-radius: var(--radius-lg);
     transition: transform 0.5s ease;
 }
 
@@ -1520,7 +1513,7 @@ a {
 
 .count-pill.annotategpt {
     background: rgba(79,70,229,0.1);
-    color: var(--primary-700);
+    color: var(--primary-dark);
 }
 
 .count-pill.inferred {
@@ -1573,7 +1566,6 @@ a {
 }
 
 .purpose-total {
-    font-size: 0.72rem;
     font-weight: 600;
     color: var(--gray-400);
     margin-left: auto;
@@ -1725,7 +1717,7 @@ a {
 
 .wf-step.accent {
     background: var(--primary-50);
-    color: var(--primary-700);
+    color: var(--primary-dark);
 }
 
 .wf-arrow {
@@ -1741,7 +1733,6 @@ a {
 }
 
 .wf-participants {
-    font-size: 0.72rem;
     font-weight: 600;
     color: var(--primary);
     display: inline-flex;

@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AnnotateGPT — CHI 2026</title>
     <link rel="icon" href="logoPen2.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./all.min.css">
 </head>
 <body>
     <!-- Ink trail canvas for annotation-themed cursor interaction -->
@@ -891,7 +891,7 @@
             <div class="team-grid">
                 <div class="team-card reveal">
                     <div class="team-avatar">
-                        <img src="img/benedict-leung.jpg" alt="Benedict Leung">
+                        <img src="img/benedict-leung.jpg" alt="Benedict Leung" loading="lazy">
                     </div>
                     <h3>Benedict Leung</h3>
                     <p class="team-role">Researcher, MSc</p>
@@ -919,7 +919,7 @@
                 </div>
                 <div class="team-card reveal">
                     <div class="team-avatar">
-                        <img src="img/mariana-shimabukuro.jpg" alt="Mariana Shimabukuro">
+                        <img src="img/mariana-shimabukuro.jpg" alt="Mariana Shimabukuro" loading="lazy">
                     </div>
                     <h3>Mariana Shimabukuro</h3>
                     <p class="team-role">Researcher, Associate Professor</p>
@@ -947,7 +947,7 @@
                 </div>
                 <div class="team-card reveal">
                     <div class="team-avatar">
-                        <img src="img/christopher-collins.jpg" alt="Christopher Collins">
+                        <img src="img/christopher-collins.jpg" alt="Christopher Collins" loading="lazy">
                     </div>
                     <h3>Christopher Collins</h3>
                     <p class="team-role">Professor</p>
@@ -1024,7 +1024,6 @@
                         <img src="logoPen2.svg" class="logo-pen" alt="">
                         <span class="logo-annotate">Annotate</span><span class="logo-gpt">GPT</span>
                     </span>
-                </span>
                 </div>
                 <p class="footer-conference">
                     CHI 2026 &bull; Barcelona, Spain &bull; April 13&ndash;17, 2026
@@ -1044,15 +1043,14 @@
             </div>
         </div>
     </footer>
-
-    <script src="https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.min.mjs" type="module"></script>
+    <script src="https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.min.mjs" type="module"></script>
     <script type="module">
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
 
         async function renderPDF(canvasId, pdfPath, scale = 3) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
             const pdf = await pdfjsLib.getDocument(pdfPath).promise;
             const page = await pdf.getPage(1);
             const viewport = page.getViewport({ scale });
