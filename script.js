@@ -844,14 +844,18 @@ function initHeroCanvas() {
         return result;
     }
 
-    function spawnInitial() {
-        annotations = [];
-        occupiedRects = [];
+    function spawnInitial(isResize = false) {
+        if (!isResize) {
+            // Only clear arrays on the very first load
+            annotations = [];
+            occupiedRects = [];
+        } else {
+            annotations = annotations.filter(a => a.age >= 0);
+        }
         drawQueue = [];
-        activeDrawing = null;
         const count = Math.max(6, Math.floor((width * height) / 80000));
 
-        // Pre-generate all annotation groups
+        // Pre-generate all annotation groups for the newly sized canvas
         const allGroups = [];
         let spawned = 0;
         let attempts = 0;
@@ -860,7 +864,6 @@ function initHeroCanvas() {
             const factory = primaryFactories[Math.floor(Math.random() * primaryFactories.length)];
             const group = spawnAnnotationWithCompanion(factory);
             if (group.length > 0) {
-                // Find the primary annotation's position for sorting
                 const primary = group[0];
                 const bbox = getBBox(primary);
                 allGroups.push({ group, sortX: bbox.x, sortY: bbox.y });
@@ -868,26 +871,19 @@ function initHeroCanvas() {
             }
         }
 
-        // Sort groups from top-left to bottom-right
-        // Primary sort by Y (top to bottom), secondary by X (left to right)
-        allGroups.sort((a, b) => {
-            const rowA = Math.floor(a.sortY / 60);
-            const rowB = Math.floor(b.sortY / 60);
-            if (rowA !== rowB) return rowA - rowB;
-            return a.sortX - b.sortX;
-        });
-
         // Queue them — all start hidden (age deeply negative)
         allGroups.forEach(({ group }) => {
             group.forEach(a => {
-                a.age = -999999; // hidden until activated
-                annotations.push(a);
+                a.age = -999999; 
+                annotations.push(a); 
             });
             drawQueue.push(group);
         });
 
-        // Activate the first group
-        activateNextGroup();
+        // Activate the first new group
+        if (activeDrawing && isGroupDrawingDone(activeDrawing) || !activeDrawing) {
+            activateNextGroup();
+        }
     }
 
     function activateNextGroup() {
@@ -1144,7 +1140,7 @@ function initHeroCanvas() {
             occupiedRects = occupiedRects.filter(r => aliveSet.has(r.id));
         }
 
-        if (drawQueue.length === 0 && !activeDrawing && spawnTimer >= SPAWN_INTERVAL && annotations.length < Math.max(6, Math.floor((width * height) / 80000))) {
+        if (drawQueue.length === 0 && !activeDrawing && spawnTimer >= SPAWN_INTERVAL) {
             const factory = primaryFactories[Math.floor(Math.random() * primaryFactories.length)];
             const group = spawnAnnotationWithCompanion(factory);
             group.forEach(a => annotations.push(a));
@@ -1184,7 +1180,7 @@ function initHeroCanvas() {
             resize();
             generateTextBlocks();
             cacheTextLayer();
-            spawnInitial();
+            spawnInitial(true);
         }, 150);
     });
 }
