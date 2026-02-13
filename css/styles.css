@@ -551,6 +551,12 @@ a {
     opacity: 1;
 }
 
+canvas.pdf-blur {
+  filter: blur(3px);
+  transform: scale(1.02);
+  transition: filter 0.35s ease;
+}
+
 .hero-content {
     display: flex;
     flex-direction: column;
