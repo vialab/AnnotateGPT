@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCounterAnimations();
     initCopyBibTeX();
     initMobileMenu();
+    initSharePopup('shareToggle', 'sharePopup');
+    initSharePopup('shareToggleBottom', 'sharePopupBottom');
     initHeroCanvas();
     initSmoothScroll();
     initInkTrail();
@@ -166,18 +168,68 @@ function animateCounter(element) {
     requestAnimationFrame(update);
 }
 
-/* === Copy BibTeX to clipboard === */
+/* === Copy / Switch citation formats (BibTeX / APA) === */
 function initCopyBibTeX() {
     const copyBtn = document.getElementById('copyBtn');
     const citationText = document.getElementById('citationText');
+    const optionButtons = document.querySelectorAll('.citation-option');
 
     if (!copyBtn || !citationText) return;
+
+    const bibtexText = `@inproceedings{leung2026annotategpt,
+  title     = {AnnotateGPT: Designing Human--AI Collaboration 
+               in Pen-Based Document Annotation},
+  author    = {Leung, Benedict and Shimabukuro, Mariana 
+               and Collins, Christopher},
+  booktitle = {Proceedings of the 2026 CHI Conference on 
+               Human Factors in Computing Systems (CHI '26)},
+  year      = {2026},
+  publisher = {ACM},
+  address   = {New York, NY, USA},
+  location  = {Barcelona, Spain},
+  doi       = {10.1145/3772318.3790867},
+  pages     = {26}
+}`;
+
+    const apaText = `Leung, B., Shimabukuro, M., & Collins, C. (2026). AnnotateGPT: Designing human–AI collaboration in pen-based document annotation. In Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems (CHI '26) (p. 26). ACM. https://doi.org/10.1145/3772318.3790867`;
+
+    // ensure initial content matches the displayed format
+    citationText.textContent = bibtexText;
+
+    function updateButtonLabel(format) {
+        if (format === 'apa') {
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy APA';
+        } else {
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy BibTeX';
+        }
+        copyBtn.classList.remove('copied');
+    }
+
+    function setActiveFormat(format) {
+        // update active button visuals
+        optionButtons.forEach(btn => {
+            const isActive = btn.dataset.format === format;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+
+        citationText.textContent = (format === 'apa') ? apaText : bibtexText;
+        updateButtonLabel(format);
+    }
+
+    if (optionButtons && optionButtons.length) {
+        optionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fmt = btn.dataset.format;
+                setActiveFormat(fmt);
+            });
+        });
+    }
 
     copyBtn.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(citationText.textContent);
         } catch (err) {
-            // Fallback for older browsers
             const textarea = document.createElement('textarea');
             textarea.value = citationText.textContent;
             textarea.style.position = 'fixed';
@@ -190,10 +242,6 @@ function initCopyBibTeX() {
 
         copyBtn.classList.add('copied');
         copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        setTimeout(() => {
-            copyBtn.classList.remove('copied');
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy BibTeX';
-        }, 2500);
     });
 }
 
@@ -215,6 +263,50 @@ function initMobileMenu() {
             navLinks.classList.remove('active');
             toggle.classList.remove('active');
         });
+    });
+}
+
+/* === Share popup (toggle social links) === */
+function initSharePopup(id, popupId) {
+    const toggle = document.getElementById(id);
+    const popup = document.getElementById(popupId);
+    if (!toggle || !popup) return;
+
+    function openPopup() {
+        popup.classList.add('open');
+        popup.setAttribute('aria-hidden', 'false');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function closePopup() {
+        popup.classList.remove('open');
+        popup.setAttribute('aria-hidden', 'true');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+    }
+
+    toggle.addEventListener('click', (e) => {
+        const isOpen = popup.classList.contains('open');
+        if (isOpen) closePopup(); else openPopup();
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!popup.contains(e.target) && !toggle.contains(e.target)) {
+            if (popup.classList.contains('open')) closePopup();
+        }
+    });
+
+    // Close on ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && popup.classList.contains('open')) {
+            closePopup();
+        }
+    });
+
+    // Close after click on a share link (let link open in new tab)
+    popup.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => setTimeout(() => closePopup(), 200));
     });
 }
 

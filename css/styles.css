@@ -641,6 +641,126 @@ canvas.pdf-blur {
     flex-wrap: wrap;
 }
 
+/* Social share icons in hero: ensure SVG fills the clickable circle and hover doesn't cover it */
+.social-share {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Share popup wrapper and toggle button */
+.share-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.share-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    position: relative;
+}
+
+
+#shareToggle {
+    margin-top: 24px;
+    margin-bottom: 50px;
+}
+
+.share-popup {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: var(--shadow-xl);
+    display: none;
+    z-index: 100;
+}
+
+.share-popup[aria-hidden="false"],
+.share-popup.open {
+    display: block;
+}
+
+.share-popup::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 8px;
+    background: transparent;
+}
+
+/* Visually hidden helper */
+.visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap; }
+
+.social-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--gray-200);
+    padding: 0;
+    box-shadow: var(--shadow-sm);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+    overflow: hidden;
+}
+
+.social-circle img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    border-radius: 50%;
+    transition: transform 180ms ease, filter 180ms ease;
+}
+
+.social-circle:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.social-circle:hover img {
+    transform: scale(1.02);
+    filter: none;
+}
+
+/* Keep brand-specific subtle borders, but avoid overwriting the SVG artwork on hover */
+.social-circle.facebook { border-color: rgba(24,119,242,0.16); }
+.social-circle.x { border-color: rgba(29,161,242,0.16); }
+.social-circle.reddit { border-color: rgba(255,69,0,0.16); }
+.social-circle.linkedin { border-color: rgba(10,102,194,0.16); }
+.social-circle.tumblr { border-color: rgba(53,70,92,0.16); }
+
+/* Focus states for accessibility */
+.social-circle:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(217,119,6,0.12), var(--shadow-lg);
+}
+
+@media (max-width: 480px) {
+    .social-circle { width: 40px; height: 40px; }
+}
+
+.ref {
+    color: var(--primary-light);
+    font-weight: 500;
+}
+
 .hero-scroll-indicator {
     position: absolute;
     bottom: 36px;
@@ -654,7 +774,6 @@ canvas.pdf-blur {
     font-size: 0.75rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    z-index: 1;
 }
 
 .scroll-line {
@@ -2165,8 +2284,8 @@ canvas.pdf-blur {
 
 .btn-copy {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 28px;
+    right: 28px;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.2);
     color: rgba(255,255,255,0.8);
@@ -2191,6 +2310,47 @@ canvas.pdf-blur {
     background: var(--accent);
     border-color: var(--accent);
     color: var(--white);
+}
+
+/* Citation format controls */
+.citation-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.citation-controls .citation-label {
+    color: rgba(255,255,255,0.75);
+    font-size: 0.85rem;
+    margin-right: 6px;
+}
+.citation-options {
+    display: inline-flex;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.03);
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.citation-option {
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.85);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    transition: background 180ms, color 180ms, transform 120ms;
+}
+.citation-option:hover {
+    background: rgba(255,255,255,0.06);
+    transform: translateY(-1px);
+}
+.citation-option.active {
+    background: rgba(255,255,255,0.12);
+    color: var(--white);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.35);
 }
 
 .cta-actions {
