@@ -1087,16 +1087,61 @@
     <script type="module">
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@5.4.624/build/pdf.worker.min.mjs';
 
-        async function renderPDF(canvasId, pdfPath, scale = 3) {
+        async function renderPDFProgressive(canvasId, pdfPath) {
             const canvas = document.getElementById(canvasId);
             if (!canvas) return;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            const pdf = await pdfjsLib.getDocument(pdfPath).promise;
+
+            const ctx = canvas.getContext("2d");
+
+            const pdf = await pdfjsLib.getDocument({
+                url: pdfPath,
+                disableFontFace: true,
+            }).promise;
+
             const page = await pdf.getPage(1);
-            const viewport = page.getViewport({ scale });
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            /* ---------- PASS 1: fast preview ---------- */
+            const lowScale = 0.8;
+            const lowVP = page.getViewport({ scale: lowScale });
+
+            canvas.width = lowVP.width;
+            canvas.height = lowVP.height;
+            canvas.classList.add("pdf-blur");
+
+            await page.render({
+                canvasContext: ctx,
+                viewport: lowVP,
+            }).promise;
+
+            /* ---------- PASS 2: high quality ---------- */
+            const highScale = 3;
+            const highVP = page.getViewport({ scale: highScale });
+
+            // Render offscreen if supported
+            let targetCanvas = canvas;
+            let targetCtx = ctx;
+
+            if (window.OffscreenCanvas) {
+                targetCanvas = new OffscreenCanvas(highVP.width, highVP.height);
+                targetCtx = targetCanvas.getContext("2d");
+            } else {
+                const tmp = document.createElement("canvas");
+                tmp.width = highVP.width;
+                tmp.height = highVP.height;
+                targetCanvas = tmp;
+                targetCtx = tmp.getContext("2d");
+            }
+
+            await page.render({
+                canvasContext: targetCtx,
+                viewport: highVP,
+            }).promise;
+
+            // Atomic swap
+            canvas.width = highVP.width;
+            canvas.height = highVP.height;
+            ctx.drawImage(targetCanvas, 0, 0);
+            canvas.classList.remove("pdf-blur");
         }
 
         const figures = [
@@ -1112,7 +1157,12 @@
             ['pdf-application2',     'figures/application2.pdf'],
         ];
 
-        await Promise.all(figures.map(([id, path]) => renderPDF(id, path)));
+        // Render sequentially to avoid worker congestion
+        (async () => {
+            for (const [id, path] of figures) {
+                await renderPDFProgressive(id, path);
+            }
+        })();
     </script>
     <script src="script.js"></script>
 </body>
