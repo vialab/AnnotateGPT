@@ -480,18 +480,17 @@ function initHeroCanvas() {
     // ── Generate structured text blocks (simulated document) ──
     function generateTextBlocks() {
         textBlocks = [];
-        const lineHeight = 22;
+        const lineHeight = 32;
         const margin = width * 0.1;
         const textWidth = width * 0.84;
 
         // Calculate paragraphs needed to fill the full canvas height
         const avgLinesPerPara = 3.5;
         const avgParaH = avgLinesPerPara * lineHeight;
-        const numParagraphs = Math.max(5, Math.floor(height / (avgParaH + 35)));
+        const numParagraphs = Math.max(5, Math.floor((height - 100) / avgParaH));
 
         // Distribute evenly across full height
-        const usableH = height - 200; // 20px top/bottom margin
-        const gapBetween = Math.max(18, usableH / numParagraphs - avgParaH);
+        const gapBetween = lineHeight;
 
         let currentY = 100;
 
@@ -521,7 +520,7 @@ function initHeroCanvas() {
                 lineHeight: lineHeight,
             });
 
-            currentY += numLines * lineHeight + gapBetween + Math.random() * 15;
+            currentY += numLines * lineHeight + gapBetween;
         }
     }
 
@@ -539,26 +538,65 @@ function initHeroCanvas() {
     // -- Draw faint text lines (the "document") -- cached to offscreen canvas --
     function renderTextLines(targetCtx) {
         let seed = 42;
+        // Standard seeded random
         function seeded() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+        // Helper for range
+        function randomRange(min, max) { return min + seeded() * (max - min); }
 
         textBlocks.forEach(block => {
             block.lines.forEach(line => {
                 targetCtx.save();
-                const dashY = line.y + line.h * 0.65;
+                
+                // Adjust baseline to be slightly lower to accommodate ascenders/descenders
+                const dashY = line.y + line.h * 0.6;
                 let cx = line.x;
                 const endX = line.x + line.w;
-                targetCtx.strokeStyle = 'rgba(160, 160, 170, 0.12)';
-                targetCtx.lineWidth = 2.5;
+
+                // Update style to look like ink (darker, slight variation)
+                targetCtx.strokeStyle = 'rgba(100, 105, 115, 0.1)';
+                targetCtx.lineWidth = 1.5; // Thinner like a pen nib
                 targetCtx.lineCap = 'round';
+                targetCtx.lineJoin = 'round';
 
                 while (cx < endX) {
-                    const wordLen = 15 + seeded() * 40;
-                    const gap = 8 + seeded() * 6;
-                    const wordEnd = Math.min(cx + wordLen, endX);
+                    // Determine word length and gap
+                    const wordLen = 20 + seeded() * 50; 
+                    const gap = 6 + seeded() * 8;
+                    let wordEnd = Math.min(cx + wordLen, endX);
+
+                    // Start the word
                     targetCtx.beginPath();
-                    targetCtx.moveTo(cx, dashY + (seeded() - 0.5) * 0.5);
-                    targetCtx.lineTo(wordEnd, dashY + (seeded() - 0.5) * 0.5);
+                    targetCtx.moveTo(cx, dashY + randomRange(-1, 1));
+
+                    let currentX = cx;
+                    
+                    // Draw the scribbles for this word
+                    while (currentX < wordEnd) {
+                        // "step" is roughly the width of a single character/loop
+                        const step = randomRange(3, 6); 
+                        
+                        // "amp" is the height (amplitude) of the scribble
+                        // We mix small loops (e, a) with tall ones (l, h, f)
+                        const isTall = seeded() > 0.85; // 15% chance of a tall stroke
+                        const amp = isTall ? randomRange(8, 14) : randomRange(2, 5);
+                        
+                        // Toggle direction (up/down) to simulate cursive loops
+                        const dir = seeded() > 0.5 ? 1 : -1;
+
+                        // Calculate control point (peak of the curve) and end point
+                        const cpX = currentX + step / 2;
+                        const cpY = dashY - (amp * dir) + randomRange(-1, 1);
+                        const nextX = Math.min(currentX + step, wordEnd);
+                        const nextY = dashY + randomRange(-1, 1); // Return near baseline
+
+                        targetCtx.quadraticCurveTo(cpX, cpY, nextX, nextY);
+
+                        currentX = nextX;
+                    }
+
                     targetCtx.stroke();
+                    
+                    // Move cursor past the word + gap
                     cx = wordEnd + gap;
                 }
                 targetCtx.restore();
