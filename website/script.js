@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCounterAnimations();
     initCopyBibTeX();
     initMobileMenu();
+    initSharePopup('shareToggle', 'sharePopup');
+    initSharePopup('shareToggleBottom', 'sharePopupBottom');
     initHeroCanvas();
     initSmoothScroll();
     initInkTrail();
@@ -166,18 +168,68 @@ function animateCounter(element) {
     requestAnimationFrame(update);
 }
 
-/* === Copy BibTeX to clipboard === */
+/* === Copy / Switch citation formats (BibTeX / APA) === */
 function initCopyBibTeX() {
     const copyBtn = document.getElementById('copyBtn');
     const citationText = document.getElementById('citationText');
+    const optionButtons = document.querySelectorAll('.citation-option');
 
     if (!copyBtn || !citationText) return;
+
+    const bibtexText = `@inproceedings{leung2026annotategpt,
+  title     = {AnnotateGPT: Designing Human--AI Collaboration 
+               in Pen-Based Document Annotation},
+  author    = {Leung, Benedict and Shimabukuro, Mariana 
+               and Collins, Christopher},
+  booktitle = {Proceedings of the 2026 CHI Conference on 
+               Human Factors in Computing Systems (CHI '26)},
+  year      = {2026},
+  publisher = {ACM},
+  address   = {New York, NY, USA},
+  location  = {Barcelona, Spain},
+  doi       = {10.1145/3772318.3790867},
+  pages     = {26}
+}`;
+
+    const apaText = `Leung, B., Shimabukuro, M., & Collins, C. (2026). AnnotateGPT: Designing human–AI collaboration in pen-based document annotation. In Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems (CHI '26) (p. 26). ACM. https://doi.org/10.1145/3772318.3790867`;
+
+    // ensure initial content matches the displayed format
+    citationText.textContent = bibtexText;
+
+    function updateButtonLabel(format) {
+        if (format === 'apa') {
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy APA';
+        } else {
+            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy BibTeX';
+        }
+        copyBtn.classList.remove('copied');
+    }
+
+    function setActiveFormat(format) {
+        // update active button visuals
+        optionButtons.forEach(btn => {
+            const isActive = btn.dataset.format === format;
+            btn.classList.toggle('active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+
+        citationText.textContent = (format === 'apa') ? apaText : bibtexText;
+        updateButtonLabel(format);
+    }
+
+    if (optionButtons && optionButtons.length) {
+        optionButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fmt = btn.dataset.format;
+                setActiveFormat(fmt);
+            });
+        });
+    }
 
     copyBtn.addEventListener('click', async () => {
         try {
             await navigator.clipboard.writeText(citationText.textContent);
         } catch (err) {
-            // Fallback for older browsers
             const textarea = document.createElement('textarea');
             textarea.value = citationText.textContent;
             textarea.style.position = 'fixed';
@@ -190,10 +242,6 @@ function initCopyBibTeX() {
 
         copyBtn.classList.add('copied');
         copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        setTimeout(() => {
-            copyBtn.classList.remove('copied');
-            copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy BibTeX';
-        }, 2500);
     });
 }
 
@@ -215,6 +263,50 @@ function initMobileMenu() {
             navLinks.classList.remove('active');
             toggle.classList.remove('active');
         });
+    });
+}
+
+/* === Share popup (toggle social links) === */
+function initSharePopup(id, popupId) {
+    const toggle = document.getElementById(id);
+    const popup = document.getElementById(popupId);
+    if (!toggle || !popup) return;
+
+    function openPopup() {
+        popup.classList.add('open');
+        popup.setAttribute('aria-hidden', 'false');
+        toggle.setAttribute('aria-expanded', 'true');
+    }
+
+    function closePopup() {
+        popup.classList.remove('open');
+        popup.setAttribute('aria-hidden', 'true');
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+    }
+
+    toggle.addEventListener('click', (e) => {
+        const isOpen = popup.classList.contains('open');
+        if (isOpen) closePopup(); else openPopup();
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!popup.contains(e.target) && !toggle.contains(e.target)) {
+            if (popup.classList.contains('open')) closePopup();
+        }
+    });
+
+    // Close on ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && popup.classList.contains('open')) {
+            closePopup();
+        }
+    });
+
+    // Close after click on a share link (let link open in new tab)
+    popup.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => setTimeout(() => closePopup(), 200));
     });
 }
 
@@ -251,7 +343,7 @@ function initHeroCanvas() {
     let occupiedRects = []; // collision tracking
     let animationId;
     let spawnTimer = 0;
-    const SPAWN_INTERVAL = 120;
+    const SPAWN_INTERVAL = 100;
     let drawQueue = [];       // sorted annotations waiting to be revealed
     let activeDrawing = null; // the annotation group currently being drawn
     let textLayerCanvas = null; // offscreen canvas for cached text lines
@@ -377,48 +469,73 @@ function initHeroCanvas() {
     const highlightGreen  = 'rgba(74, 222, 128,';
 
     function randomColor() {
-        const colors = [inkRed, inkBlue, pencil, pencil];
+        const colors = [inkRed, inkBlue, inkGreen, pencil, pencil];
         return colors[Math.floor(Math.random() * colors.length)];
     }
     function randomHighlight() {
         const h = [highlightYellow, highlightYellow, highlightPink, highlightGreen];
         return h[Math.floor(Math.random() * h.length)];
     }
+    let seed = 42;
+    // Standard seeded random
+    function seeded() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
+    // Helper for range
+    function randomRange(min, max) { return min + seeded() * (max - min); }
 
     // ── Generate structured text blocks (simulated document) ──
+    // Add a variable at the top scope of initHeroCanvas to cache lines
+    let allLinesCache = []; 
+
     function generateTextBlocks() {
         textBlocks = [];
-        const lineHeight = 22;
+        allLinesCache = [];
+        
+        const lineHeight = 32;
         const margin = width * 0.1;
         const textWidth = width * 0.84;
-
-        // Calculate paragraphs needed to fill the full canvas height
-        const avgLinesPerPara = 3.5;
-        const avgParaH = avgLinesPerPara * lineHeight;
-        const numParagraphs = Math.max(5, Math.floor(height / (avgParaH + 35)));
-
-        // Distribute evenly across full height
-        const usableH = height - 200; // 20px top/bottom margin
-        const gapBetween = Math.max(18, usableH / numParagraphs - avgParaH);
-
+        
         let currentY = 100;
+        let safetyCounter = 0;
 
-        for (let p = 0; p < numParagraphs; p++) {
-            const numLines = 2 + Math.floor(Math.random() * 5);
+        while (currentY < height - 100 && safetyCounter++ < 100) {
+            let numLines, isHeading = false;
+            let gapAfter = lineHeight;
+            
+            numLines = 2 + Math.floor(seeded() * 5);
+
+            const remainingHeight = height - currentY - 100; 
+            const maxLinesPossible = Math.floor(remainingHeight / lineHeight);
+
+            if (numLines > maxLinesPossible) {
+                numLines = maxLinesPossible;
+            }
+
+            if (numLines <= 0) break;
+            
             const paraX = margin;
             const paraWidth = textWidth;
             const lines = [];
 
             for (let l = 0; l < numLines; l++) {
-                const lineW = (l === numLines - 1)
-                    ? paraWidth * (0.3 + Math.random() * 0.4)
-                    : paraWidth * (0.8 + Math.random() * 0.2);
-                lines.push({
+                let lineW;
+                if (isHeading) {
+                    lineW = paraWidth * (0.2 + seeded() * 0.3);
+                } else {
+                    lineW = (l === numLines - 1) 
+                        ? paraWidth * (0.3 + seeded() * 0.4) 
+                        : paraWidth * (0.8 + seeded() * 0.2);
+                }
+
+                const lineObj = {
                     x: paraX,
                     y: currentY + l * lineHeight,
                     w: lineW,
                     h: lineHeight,
-                });
+                    isHeading: isHeading,
+                    occupiedRanges: []
+                };
+                lines.push(lineObj);
+                allLinesCache.push(lineObj);
             }
 
             textBlocks.push({
@@ -427,46 +544,108 @@ function initHeroCanvas() {
                 w: paraWidth,
                 lines: lines,
                 lineHeight: lineHeight,
+                type: isHeading ? 'heading' : 'paragraph'
             });
-
-            currentY += numLines * lineHeight + gapBetween + Math.random() * 15;
+            currentY += numLines * lineHeight + gapAfter;
         }
     }
 
     function getRandomLine() {
-        if (textBlocks.length === 0) return null;
-        const block = textBlocks[Math.floor(Math.random() * textBlocks.length)];
-        return block.lines[Math.floor(Math.random() * block.lines.length)];
+        if (allLinesCache.length === 0) return null;
+
+        const weights = allLinesCache.map(line => {
+            return (!line.occupiedRanges || line.occupiedRanges.length === 0) ? 10 : 1;
+        });
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        let random = Math.random() * totalWeight;
+
+        for (let i = 0; i < allLinesCache.length; i++) {
+            random -= weights[i];
+            if (random < 0) {
+                const choice = allLinesCache[i];
+                
+                if (choice.w < 20) {
+                    return getRandomLine(); 
+                }
+                return choice;
+            }
+        }
+        return allLinesCache[0];
     }
 
-    function getRandomBlock() {
-        if (textBlocks.length === 0) return null;
-        return textBlocks[Math.floor(Math.random() * textBlocks.length)];
+    function getRandomBlock(minLines = 1) {
+        const candidates = textBlocks.filter(b => b.lines.length >= minLines);
+
+        if (candidates.length === 0) return null;
+        const totalLines = candidates.reduce((sum, b) => sum + b.lines.length, 0);
+
+        let randomTrigger = Math.floor(Math.random() * totalLines);
+
+        for (const block of candidates) {
+            randomTrigger -= block.lines.length;
+            if (randomTrigger < 0) {
+                return block;
+            }
+        }
+        return candidates[0];
     }
 
     // -- Draw faint text lines (the "document") -- cached to offscreen canvas --
     function renderTextLines(targetCtx) {
-        let seed = 42;
-        function seeded() { seed = (seed * 16807 + 0) % 2147483647; return (seed - 1) / 2147483646; }
-
         textBlocks.forEach(block => {
             block.lines.forEach(line => {
                 targetCtx.save();
-                const dashY = line.y + line.h * 0.65;
+                
+                // Adjust baseline to be slightly lower to accommodate ascenders/descenders
+                const dashY = line.y + line.h * 0.6;
                 let cx = line.x;
                 const endX = line.x + line.w;
-                targetCtx.strokeStyle = 'rgba(160, 160, 170, 0.12)';
-                targetCtx.lineWidth = 2.5;
+
+                // Update style to look like ink (darker, slight variation)
+                targetCtx.strokeStyle = 'rgba(100, 105, 115, 0.1)';
+                targetCtx.lineWidth = 1.5; // Thinner like a pen nib
                 targetCtx.lineCap = 'round';
+                targetCtx.lineJoin = 'round';
 
                 while (cx < endX) {
-                    const wordLen = 15 + seeded() * 40;
-                    const gap = 8 + seeded() * 6;
-                    const wordEnd = Math.min(cx + wordLen, endX);
+                    // Determine word length and gap
+                    const wordLen = 20 + seeded() * 50; 
+                    const gap = 6 + seeded() * 8;
+                    let wordEnd = Math.min(cx + wordLen, endX);
+
+                    // Start the word
                     targetCtx.beginPath();
-                    targetCtx.moveTo(cx, dashY + (seeded() - 0.5) * 0.5);
-                    targetCtx.lineTo(wordEnd, dashY + (seeded() - 0.5) * 0.5);
+                    targetCtx.moveTo(cx, dashY + randomRange(-1, 1));
+
+                    let currentX = cx;
+                    
+                    // Draw the scribbles for this word
+                    while (currentX < wordEnd) {
+                        // "step" is roughly the width of a single character/loop
+                        const step = randomRange(3, 6); 
+                        
+                        // "amp" is the height (amplitude) of the scribble
+                        // We mix small loops (e, a) with tall ones (l, h, f)
+                        const isTall = seeded() > 0.85; // 15% chance of a tall stroke
+                        const amp = isTall ? randomRange(8, 14) : randomRange(2, 5);
+                        
+                        // Toggle direction (up/down) to simulate cursive loops
+                        const dir = seeded() > 0.5 ? 1 : -1;
+
+                        // Calculate control point (peak of the curve) and end point
+                        const cpX = currentX + step / 2;
+                        const cpY = dashY - (amp * dir) + randomRange(-1, 1);
+                        const nextX = Math.min(currentX + step, wordEnd);
+                        const nextY = dashY + randomRange(-1, 1); // Return near baseline
+
+                        targetCtx.quadraticCurveTo(cpX, cpY, nextX, nextY);
+
+                        currentX = nextX;
+                    }
+
                     targetCtx.stroke();
+                    
+                    // Move cursor past the word + gap
                     cx = wordEnd + gap;
                 }
                 targetCtx.restore();
@@ -577,15 +756,47 @@ function initHeroCanvas() {
         return conn;
     }
 
+    // Returns { start, end } or null if no space fits
+    function getOpenSlot(line, minWidthFrac, maxWidthFrac) {
+        const sorted = line.occupiedRanges.sort((a, b) => a.start - b.start);
+        const gaps = [];
+        let cursor = 0;
+
+        sorted.forEach(r => {
+            if (r.start > cursor) {
+                gaps.push({ start: cursor, end: r.start, len: r.start - cursor });
+            }
+            cursor = Math.max(cursor, r.end);
+        });
+        
+        if (cursor < 1) {
+            gaps.push({ start: cursor, end: 1, len: 1 - cursor });
+        }
+        const validGaps = gaps.filter(g => g.len >= minWidthFrac);
+
+        if (validGaps.length === 0) return null;
+
+        const gap = validGaps[Math.floor(Math.random() * validGaps.length)];
+        const actualWidth = minWidthFrac + Math.random() * (Math.min(gap.len, maxWidthFrac) - minWidthFrac);
+        const slack = gap.len - actualWidth;
+        const offset = Math.random() * slack;
+
+        const finalStart = gap.start + offset;
+        const finalEnd = finalStart + actualWidth;
+
+        return { start: finalStart, end: finalEnd };
+    }
+
     // ── Annotation element factories (positioned on text) ──
 
     function createHighlightStreak() {
         const line = getRandomLine();
         if (!line) return null;
-        const spanFrac = 0.1 + Math.random() * 0.2;
-        const startFrac = Math.random() * (1 - spanFrac);
-        const x = line.x + line.w * startFrac;
-        const w = line.w * spanFrac;
+        const slot = getOpenSlot(line, 0.1, 0.3);
+        if (!slot) return null; // Line is too full, give up
+        line.occupiedRanges.push(slot);
+        const x = line.x + line.w * slot.start;
+        const w = line.w * (slot.end - slot.start);
         const y = line.y + line.h * 0.3;
         const h = line.h * 0.55;
         const jitter = () => (Math.random() - 0.5) * 3;
@@ -602,23 +813,26 @@ function initHeroCanvas() {
             ],
             color: randomHighlight(),
             opacity: 0,
-            targetOpacity: 0.35 + Math.random() * 0.12,
+            targetOpacity: 0.15 + Math.random() * 0.12,
             fadeSpeed: 0.008 + Math.random() * 0.006,
             progress: 0,
             drawSpeed: 0.035 + Math.random() * 0.02,
             life: 900 + Math.random() * 1200,
             age: 0,
             angle: (Math.random() - 0.5) * 1.5 * Math.PI / 180,
+            _parentLine: line,
+            _occupiedSlot: slot
         };
     }
 
     function createUnderline() {
         const line = getRandomLine();
         if (!line) return null;
-        const spanFrac = 0.1 + Math.random() * 0.2;
-        const startFrac = Math.random() * (1 - spanFrac);
-        const x = line.x + line.w * startFrac;
-        const w = line.w * spanFrac;
+        const slot = getOpenSlot(line, 0.1, 0.3);
+        if (!slot) return null; // Line is too full, give up
+        line.occupiedRanges.push(slot);
+        const x = line.x + line.w * slot.start;
+        const w = line.w * (slot.end - slot.start);
         const y = line.y + line.h * 0.78;
         const wavy = Math.random() > 0.55;
         const segments = wavy ? 32 : 20;
@@ -644,17 +858,22 @@ function initHeroCanvas() {
             color: randomColor(),
             progress: 0,
             speed: 0.012 + Math.random() * 0.01,
-            baseOpacity: 0.35 + Math.random() * 0.15,
+            baseOpacity: 0.15 + Math.random() * 0.15,
             lineWidth: 1.2 + Math.random() * 1,
             life: 1000 + Math.random() * 800,
             age: 0,
+            _parentLine: line,
+            _occupiedSlot: slot
         };
     }
 
     function createCircleAnnotation() {
         const line = getRandomLine();
         if (!line) return null;
-        const startFrac = Math.random() * 0.85;
+        const slot = getOpenSlot(line, 0.1, 0.3);
+        if (!slot) return null; // Line is too full, give up
+        line.occupiedRanges.push(slot);
+        const startFrac = slot.start;
         const wordW = 20 + Math.random() * 40;
         const cx = line.x + line.w * startFrac + wordW / 2;
         const cy = line.y + line.h * 0.55;
@@ -678,16 +897,18 @@ function initHeroCanvas() {
             color: inkRed,
             progress: 0,
             speed: 0.012 + Math.random() * 0.01,
-            baseOpacity: 0.3 + Math.random() * 0.15,
+            baseOpacity: 0.15 + Math.random() * 0.15,
             lineWidth: 1.1 + Math.random() * 0.8,
             rotation: (Math.random() - 0.5) * 8 * Math.PI / 180,
             life: 1200 + Math.random() * 600,
             age: 0,
+            _parentLine: line,
+            _occupiedSlot: slot
         };
     }
 
     function createBracket() {
-        const block = getRandomBlock();
+        const block = getRandomBlock(3);
         if (!block) return null;
         const isLeft = Math.random() > 0.3;
         const x = isLeft
@@ -710,7 +931,7 @@ function initHeroCanvas() {
             color: inkRed,
             progress: 0,
             speed: 0.012 + Math.random() * 0.008,
-            baseOpacity: 0.28 + Math.random() * 0.12,
+            baseOpacity: 0.15 + Math.random() * 0.12,
             lineWidth: 1 + Math.random() * 0.6,
             life: 1000 + Math.random() * 600,
             age: 0,
@@ -718,7 +939,7 @@ function initHeroCanvas() {
     }
 
     function createMarginNote() {
-        const block = getRandomBlock();
+        const block = getRandomBlock(2);
         if (!block) return null;
         const notes = ['?', '!', '✓', '★', 'key!', 'good', 'fix', 'check', 'important', 'see §2', 'why?', 'cite?'];
         const isLeft = Math.random() > 0.5;
@@ -734,7 +955,7 @@ function initHeroCanvas() {
             text: notes[Math.floor(Math.random() * notes.length)],
             color: randomColor(),
             opacity: 0,
-            targetOpacity: 0.35 + Math.random() * 0.15,
+            targetOpacity: 0.15 + Math.random() * 0.15,
             fadeSpeed: 0.008 + Math.random() * 0.006,
             size: 18 + Math.random() * 8,
             rotation: (Math.random() - 0.5) * 10 * Math.PI / 180,
@@ -768,7 +989,7 @@ function initHeroCanvas() {
             color: randomColor(),
             progress: 0,
             speed: 0.015 + Math.random() * 0.01,
-            baseOpacity: 0.3 + Math.random() * 0.12,
+            baseOpacity: 0.15 + Math.random() * 0.12,
             lineWidth: 1 + Math.random() * 0.6,
             life: 900 + Math.random() * 600,
             age: 0,
@@ -1133,6 +1354,17 @@ function initHeroCanvas() {
         // Remove dead annotations + their occupied rects; spawn replacements
         spawnTimer++;
         const before = annotations.length;
+        const deadAnnotations = annotations.filter(a => a.age > a.life);
+
+        // 2. Cleanup: Remove their "parking spots" from the lines
+        deadAnnotations.forEach(a => {
+            if (a._parentLine && a._occupiedSlot) {
+                const idx = a._parentLine.occupiedRanges.indexOf(a._occupiedSlot);
+                if (idx > -1) {
+                    a._parentLine.occupiedRanges.splice(idx, 1);
+                }
+            }
+        });
         annotations = annotations.filter(a => a.age <= a.life);
         // Clean up occupied rects for dead annotations
         if (annotations.length < before) {
@@ -1140,14 +1372,21 @@ function initHeroCanvas() {
             occupiedRects = occupiedRects.filter(r => aliveSet.has(r.id));
         }
 
-        if (drawQueue.length === 0 && !activeDrawing && spawnTimer >= SPAWN_INTERVAL) {
+        if (spawnTimer >= SPAWN_INTERVAL && annotations.length / 3 < Math.max(6, Math.floor((width * height) / 80000))) {
             const factory = primaryFactories[Math.floor(Math.random() * primaryFactories.length)];
             const group = spawnAnnotationWithCompanion(factory);
-            group.forEach(a => annotations.push(a));
-            activeDrawing = group;
-            spawnTimer = 0;
+            
+            if (group.length > 0) {
+                group.forEach(a => {
+                    a.age = -999999; 
+                    annotations.push(a); 
+                });
+                drawQueue.push(group);
+                // activeDrawing = group;
+                spawnTimer = 0;
+                activateNextGroup();
+            }
         }
-
         animationId = requestAnimationFrame(draw);
     }
 

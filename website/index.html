@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="AnnotateGPT | CHI 2026" />
+    <meta property="og:description" content="Designing Human-AI Collaboration in Pen-Based Document Annotation" />
+    <meta property="og:image" content="https://vialab.github.io/AnnotateGPT/logo.png" />
+    <meta property="og:url" content="https://vialab.github.io/AnnotateGPT/" />
+    <meta property="og:type" content="website" />
+
     <title>AnnotateGPT | CHI 2026</title>
     <link rel="icon" href="logoPen2.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,6 +90,38 @@
                 <a href="#demo" class="btn btn-lg btn-ghost-dark">
                     <i class="fas fa-play-circle"></i> See How It Works
                 </a>
+                <a href="#citation" class="btn btn-lg btn-ghost-dark">
+                    <i class="fas fa-quote-right"></i> Cite Our Work
+                </a>
+                
+                <button class="btn btn-lg btn-outline share-toggle" id="shareToggle" aria-expanded="false" aria-controls="sharePopup">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Share</span>
+
+                    <div class="share-popup" id="sharePopup" role="dialog" aria-hidden="true">
+                        <div class="social-share" aria-label="Share links">
+                            <a class="social-circle facebook" href="https://www.facebook.com/sharer/sharer.php?u=https://vialab.github.io/AnnotateGPT/" target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook" title="Share on Facebook">
+                                <img src="img/facebook.svg" alt="Facebook logo" />
+                            </a>
+
+                            <a class="social-circle x" href="https://twitter.com/intent/tweet?url=https://vialab.github.io/AnnotateGPT/&text=AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation&hashtags=CHI2026,HumanAIInteraction" target="_blank" rel="noopener noreferrer" aria-label="Share on Twitter" title="Share on Twitter">
+                                <img src="img/x.svg" alt="X logo" />
+                            </a>
+
+                            <a class="social-circle reddit" href="https://reddit.com/submit?url=https://vialab.github.io/AnnotateGPT/&title=AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation" target="_blank" rel="noopener noreferrer" aria-label="Share on Reddit" title="Share on Reddit">
+                                <img src="img/reddit.svg" alt="Reddit logo" />
+                            </a>
+
+                            <a class="social-circle linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https://vialab.github.io/AnnotateGPT/" target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn" title="Share on LinkedIn">
+                                <img src="img/linkedIn.svg" alt="LinkedIn logo" />
+                            </a>
+
+                            <a class="social-circle tumblr" href="https://www.tumblr.com/widgets/share/tool?canonicalUrl=https://vialab.github.io/AnnotateGPT/&title=AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation" target="_blank" rel="noopener noreferrer" aria-label="Share on Tumblr" title="Share on Tumblr">
+                                <img src="img/tumblr.svg" alt="Tumblr logo" />
+                            </a>
+                        </div>
+                    </div>
+                </button>
             </div>
         </div>
         <div class="hero-scroll-indicator">
@@ -191,7 +229,7 @@
                         <i class="fas fa-puzzle-piece"></i>
                     </div>
                     <h3>Domain-Specific &amp; Rigid</h3>
-                    <p>Prior pen-based systems like XLibris and Metatation rely on heuristic pattern matching and cannot infer annotation purpose beyond predefined, narrow contexts.</p>
+                    <p>Prior pen-based systems like XLibris <a class="ref" href="https://dl.acm.org/doi/10.1145/312624.312637" target="_blank">[Golovchinsky et al. 1999]</a> and Metatation <a class="ref" href="https://dl.acm.org/doi/10.1145/3131609" target="_blank">[Mehta et al. 2017]</a> rely on heuristic pattern matching and cannot infer annotation purpose beyond predefined, narrow contexts.</p>
                 </div>
             </div>
 
@@ -1022,9 +1060,16 @@
         <div class="container">
             <div class="section-header reveal">
                 <span class="section-label">Reference</span>
-                <h2 class="section-title">Cite This Work</h2>
+                <h2 class="section-title">Cite Our Work</h2>
             </div>
             <div class="citation-block reveal">
+                <div class="citation-controls">
+                    <span class="citation-label">Format:</span>
+                    <div class="citation-options" role="tablist" aria-label="Citation formats">
+                        <button class="citation-option active" data-format="bibtex" aria-pressed="true">BibTeX</button>
+                        <button class="citation-option" data-format="apa" aria-pressed="false">APA</button>
+                    </div>
+                </div>
                 <pre class="citation-text" id="citationText">@inproceedings{leung2026annotategpt,
   title     = {AnnotateGPT: Designing Human--AI Collaboration 
                in Pen-Based Document Annotation},
@@ -1050,6 +1095,34 @@
                 <a href="https://github.com/vialab/AnnotateGPT" target="_blank" class="btn btn-lg btn-dark">
                     <i class="fab fa-github"></i> GitHub Repository
                 </a>
+                <button class="btn btn-lg btn-dark share-toggle" id="shareToggleBottom" aria-expanded="false" aria-controls="sharePopup">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Share</span>
+
+                    <div class="share-popup" id="sharePopupBottom" role="dialog" aria-hidden="true">
+                        <div class="social-share" aria-label="Share links">
+                            <a class="social-circle facebook" href="https://www.facebook.com/sharer/sharer.php?u=https://vialab.github.io/AnnotateGPT/" target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook" title="Share on Facebook">
+                                <img src="img/facebook.svg" alt="Facebook logo" />
+                            </a>
+
+                            <a class="social-circle x" href="https://twitter.com/intent/tweet?url=https://vialab.github.io/AnnotateGPT/&text=AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation&hashtags=CHI2026,HumanAIInteraction" target="_blank" rel="noopener noreferrer" aria-label="Share on Twitter" title="Share on Twitter">
+                                <img src="img/x.svg" alt="X logo" />
+                            </a>
+
+                            <a class="social-circle reddit" href="https://reddit.com/submit?url=https://vialab.github.io/AnnotateGPT/&title=AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation" target="_blank" rel="noopener noreferrer" aria-label="Share on Reddit" title="Share on Reddit">
+                                <img src="img/reddit.svg" alt="Reddit logo" />
+                            </a>
+
+                            <a class="social-circle linkedin" href="https://www.linkedin.com/sharing/share-offsite/?url=https://vialab.github.io/AnnotateGPT/" target="_blank" rel="noopener noreferrer" aria-label="Share on LinkedIn" title="Share on LinkedIn">
+                                <img src="img/linkedIn.svg" alt="LinkedIn logo" />
+                            </a>
+
+                            <a class="social-circle tumblr" href="https://www.tumblr.com/widgets/share/tool?canonicalUrl=https://vialab.github.io/AnnotateGPT/&title=AnnotateGPT: Designing Human-AI Collaboration in Pen-Based Document Annotation" target="_blank" rel="noopener noreferrer" aria-label="Share on Tumblr" title="Share on Tumblr">
+                                <img src="img/tumblr.svg" alt="Tumblr logo" />
+                            </a>
+                        </div>
+                    </div>
+                </button>
             </div>
         </div>
     </section>
