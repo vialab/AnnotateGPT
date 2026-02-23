@@ -282,7 +282,6 @@ function initSharePopup(id, popupId) {
         popup.classList.remove('open');
         popup.setAttribute('aria-hidden', 'true');
         toggle.setAttribute('aria-expanded', 'false');
-        toggle.focus();
     }
 
     toggle.addEventListener('click', (e) => {
