@@ -684,6 +684,11 @@ canvas.pdf-blur {
     box-shadow: var(--shadow-xl);
     display: none;
     z-index: 100;
+    color: var(--gray-700);
+}
+
+#sharePopup {
+    top: calc(100% - 40px);
 }
 
 .share-popup[aria-hidden="false"],
@@ -718,6 +723,7 @@ canvas.pdf-blur {
     box-shadow: var(--shadow-sm);
     transition: transform 160ms ease, box-shadow 160ms ease;
     overflow: hidden;
+    font-size: 1.2em;
 }
 
 .social-circle img {
@@ -732,6 +738,8 @@ canvas.pdf-blur {
 .social-circle:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-lg);
+    background: var(--primary);
+    color: var(--primary-50);
 }
 
 .social-circle:hover img {
