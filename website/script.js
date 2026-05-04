@@ -9,7 +9,36 @@ document.addEventListener('DOMContentLoaded', () => {
     initHeroCanvas();
     initSmoothScroll();
     initInkTrail();
+    initVideoToggle();
 });
+
+function initVideoToggle() {
+    const vidDetails = document.getElementById("video-presentation-details");
+    const vidSummary = document.getElementById("video-presentation-summary");
+
+    if (vidDetails && vidSummary) {
+        vidDetails.addEventListener("click", (e) => {
+            // Only toggle if clicked on the summary bar area
+            if (e.target === vidDetails || e.target === vidSummary || vidSummary.contains(e.target)) {
+                vidDetails.classList.toggle("open");
+                const summaryText = vidSummary.querySelector('.summary-text');
+                
+                if (vidDetails.classList.contains("open")) {
+                    summaryText.innerText = "Hide Full Presentation";
+                } else {
+                    summaryText.innerText = "Watch Full Presentation";
+                    // Pause youtube video when toggling details
+                    const iframe = vidDetails.querySelector("iframe");
+                    if (iframe) {
+                        const src = iframe.src;
+                        iframe.src = "";
+                        iframe.src = src;
+                    }
+                }
+            }
+        });
+    }
+}
 
 /* === Navbar scroll behavior === */
 function initNavbar() {
@@ -179,19 +208,26 @@ function initCopyBibTeX() {
     const bibtexText = `@inproceedings{leung2026annotategpt,
   title     = {AnnotateGPT: Designing Human--AI Collaboration 
                in Pen-Based Document Annotation},
-  author    = {Leung, Benedict and Shimabukuro, Mariana 
-               and Collins, Christopher},
-  booktitle = {Proceedings of the 2026 CHI Conference on 
-               Human Factors in Computing Systems (CHI '26)},
+  author    = {Leung, Benedict and Shimabukuro, Mariana and 
+               Collins, Christopher},
   year      = {2026},
-  publisher = {ACM},
+  isbn      = {9798400722783},
+  publisher = {Association for Computing Machinery},
   address   = {New York, NY, USA},
+  url       = {https://doi.org/10.1145/3772318.3790867},
+  doi       = {10.1145/3772318.3790867},
+  booktitle = {Proceedings of the 2026 CHI Conference on 
+               Human Factors in Computing Systems},
   location  = {Barcelona, Spain},
   doi       = {10.1145/3772318.3790867},
-  pages     = {26}
+  articleno = {811},
+  numpages  = {25},
+  keywords  = {annotation, digital pen, LLM, feedback},
+  location  = {Barcelona, Spain},
+  series    = {CHI '26}
 }`;
 
-    const apaText = `Leung, B., Shimabukuro, M., & Collins, C. (2026). AnnotateGPT: Designing human–AI collaboration in pen-based document annotation. In Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems (CHI '26) (p. 26). ACM. https://doi.org/10.1145/3772318.3790867`;
+    const apaText = `Leung, B., Shimabukuro, M., & Collins, C. (2026). AnnotateGPT: Designing human–AI collaboration in pen-based document annotation. Proceedings of the 2026 CHI Conference on Human Factors in Computing Systems (Article 811, pp. 1–25). Association for Computing Machinery. https://doi.org/10.1145/3772318.3790867`;
 
     // ensure initial content matches the displayed format
     citationText.textContent = bibtexText;
